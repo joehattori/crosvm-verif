@@ -1,0 +1,6 @@
+[submodule "crosvm"]
+	path = crosvm
+	url = https://chromium.googlesource.com/crosvm/crosvm
+[submodule "aeneas"]
+	path = aeneas
+	url = https://github.com/AeneasVerif/aeneas.git
