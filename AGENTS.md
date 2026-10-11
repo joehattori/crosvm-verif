@@ -1,64 +1,23 @@
-# Purpose and scope
+# Agent instructions
 
-Use Aeneas to prove properties of crosvm's Rust code in Lean. The pipeline is
-Rust → Charon LLBC → Aeneas-generated Lean → handwritten specifications and proofs.
-The current extraction targets are `resources::address_range` and
-`AddressAllocator::new` with its dependencies; this is not a proof of all of
-crosvm. Keep claims tied to the functions, assumptions, and properties actually
-verified. The allocator proof currently covers default alignments only.
+Read [README.md](README.md) for project context and build commands. See
+[Resources/README.md](Resources/README.md) for the verified scope and model
+assumptions. Keep those descriptions in their respective READMEs rather than
+duplicating them here.
 
 # Repository map
 
-- `crosvm/`: pinned upstream Rust submodule. The current source of interest is
-  `crosvm/resources/src/address_range.rs` and `address_allocator.rs`.
-- `aeneas/`: pinned toolchain submodule, including the Lean library at
-  `aeneas/backends/lean/` and examples at `aeneas/tests/lean/`.
-- `Resources/Types.lean` and `Resources/Funs.lean`: generated types and functions.
-- `Resources/FunsExternal_Template.lean`: generated declarations for missing
-  external models; a reference for maintaining the handwritten implementation.
-- `Resources/FunsExternal.lean`: handwritten models of external Rust functions.
-- `Resources/TypesExternal.lean`: handwritten collection and iterator models.
-- `Resources/AddressRangeSpec.lean`: mathematical predicates and function proofs.
-- `Resources/AddressAllocatorSpec.lean`: constructor initialization proofs.
-- `Resources/README.md`: verified scope, model assumptions, and extraction notes.
-- `Resources.lean`: library entry point. Import new specification modules here so
-  the default build checks them.
-- `Makefile`: toolchain build, extraction, and verification commands.
-- `lakefile.lean`, `lake-manifest.json`, and `lean-toolchain`: Lean dependencies
-  and version pins. Use these pins; avoid incidental dependency upgrades.
-
-# Build and extraction
-
-Run commands from the repository root.
-
-```sh
-# Check the Lean library and its imported specifications.
-make verify
-# Equivalent: lake build
-
-# Check one proof file during development, with its imports already built.
-lake env lean Resources/AddressRangeSpec.lean
-
-# Build Aeneas and Charon using Nix when extraction binaries are needed.
-make aeneas-bin
-
-# Extract Rust to LLBC, then generate Lean.
-make extract
-
-# Force fresh LLBC and Lean after Rust or extraction configuration changes.
-make -B extract
-```
-
-`make` defaults to verification; it does not regenerate the Lean translation.
-The LLBC target currently has no Rust source prerequisites, so ordinary
-`make extract` reuses `llbc/resources.llbc` if it exists. Force extraction when
-the Rust input, toolchain, or extraction options change.
-
-The default binaries are `aeneas-bin/bin/charon` and `aeneas-bin/bin/aeneas`.
-The Makefile supports `AENEAS_BIN`, `CHARON`, and `AENEAS` overrides and obtains
-the Rust toolchain path from Charon. Keep Charon and Aeneas compatible; use the
-Makefile's extraction flags rather than inventing a separate invocation.
-Proof-only work on checked-in Lean does not require rebuilding the extractor.
+| Path | Role |
+| --- | --- |
+| [crosvm/](crosvm/) | Pinned upstream Rust submodule; the current sources of interest are [address_range.rs](crosvm/resources/src/address_range.rs) and [address_allocator.rs](crosvm/resources/src/address_allocator.rs). |
+| [aeneas/](aeneas/) | Pinned toolchain submodule, including the [Lean library](aeneas/backends/lean/) and [examples](aeneas/tests/lean/). |
+| [Resources/Types.lean](Resources/Types.lean), [Resources/Funs.lean](Resources/Funs.lean) | Generated types and functions. |
+| [Resources/TypesExternal_Template.lean](Resources/TypesExternal_Template.lean), [Resources/FunsExternal_Template.lean](Resources/FunsExternal_Template.lean) | Generated declarations for missing external models. |
+| [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
+| [Resources/AddressRangeSpec.lean](Resources/AddressRangeSpec.lean) | Mathematical predicates and proofs for address ranges. |
+| [Resources/AddressAllocatorSpec.lean](Resources/AddressAllocatorSpec.lean) | Allocator constructor initialization proofs. |
+| [Resources/README.md](Resources/README.md) | Detailed verification scope, model assumptions, and extraction notes. |
+| [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 
 # Editing rules
 
@@ -69,14 +28,19 @@ Proof-only work on checked-in Lean does not require rebuilding the extractor.
   in `FunsExternal.lean`; do not overwrite it with the generated template.
   After extraction, reconcile any changed template signatures and inspect the
   generated diff before updating proofs.
+- Import new specification modules in `Resources.lean` so the default build
+  checks them.
+- Use the pinned Lean dependencies; avoid incidental dependency upgrades.
+  Use the Makefile's extraction flags rather than a separate invocation.
 - Treat both submodules as pinned dependencies. Modify their contents or
   revisions only when needed for the requested task, and report those changes.
   For work inside crosvm, consult `crosvm/.agents/AGENTS.md` and its contribution
   workflow. For Aeneas changes, consult `aeneas/CLAUDE.md` and relevant local docs.
-- Keep `.lake/`, `aeneas-bin`, and `llbc/` build artifacts out of commits.
 
 # Proof standards
 
+- Keep claims tied to the functions, assumptions, and properties actually
+  verified.
 - Read the Rust implementation and its generated Lean before stating a theorem.
   Prove a meaningful mathematical property of the translated function, with
   explicit preconditions where needed. Do not weaken a requested property or
@@ -98,17 +62,17 @@ Proof-only work on checked-in Lean does not require rebuilding the extractor.
   `native_decide` to bypass kernel-checked proof construction. A successful build
   alone does not establish that a theorem is free of proof holes or assumptions.
 - External models are part of the trust boundary: match their Rust semantics
-  and make assumptions explicit. `FunsExternal.lean` currently contains the
-  formatting axiom `U64.Insts.CoreFmtLowerHex.fmt`; the generated template also
-  contains placeholder axioms. Do not treat those declarations as proved
-  behavior. Use `#print axioms theoremName` when auditing theorem dependencies.
+  and make assumptions explicit. Do not treat existing axioms or generated
+  placeholders as proved behavior. Use `#print axioms theoremName` when auditing
+  theorem dependencies.
 
 # Validation and reporting
 
-After changing Lean proofs or models, run `make verify` and inspect warnings as
-well as errors. After changing extraction inputs, regenerate first and then
-verify. If Rust code changes, also run the relevant crosvm checks according to
-its contribution workflow. Documentation-only changes need path and command
+After changing Lean proofs or models, run the verification command in the
+[build and extraction guide](README.md#build-and-extraction) and inspect warnings
+as well as errors. After changing extraction inputs, regenerate first and then
+verify. If Rust code changes, also run the relevant crosvm checks according to its
+contribution workflow. Documentation-only changes need path and command
 consistency checks, not a toolchain rebuild.
 
 Report the properties proved, files changed, commands run and their outcomes,
@@ -117,8 +81,8 @@ committed Lean translation from validating a freshly regenerated translation.
 
 # Local references
 
-- `aeneas/documentation/getting-started.md`
-- `aeneas/documentation/proof-strategies.md`
-- `aeneas/documentation/tactics-reference.md`
-- `aeneas/documentation/tips-and-tricks.md`
-- `aeneas/tests/lean/Tutorial/`
+- [Getting started with Aeneas](aeneas/documentation/getting-started.md)
+- [Proof strategies](aeneas/documentation/proof-strategies.md)
+- [Tactics reference](aeneas/documentation/tactics-reference.md)
+- [Tips and tricks](aeneas/documentation/tips-and-tricks.md)
+- [Lean tutorial examples](aeneas/tests/lean/Tutorial/)
