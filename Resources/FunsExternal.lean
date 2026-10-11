@@ -64,3 +64,73 @@ def core.ops.range.RangeInclusive.start
 def core.ops.range.RangeInclusive.end
   {Idx : Type} (r : core.ops.range.RangeInclusive Idx) : Result Idx :=
   ok r.end
+
+/-- Construct a lazy filter, preserving both the iterator and predicate state. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
+def core.iter.traits.iterator.Iterator.filter.default
+  {I P T : Type} (_iterInst : core.iter.traits.iterator.Iterator I T)
+  (_predInst : core.ops.function.FnMut P T Bool)
+  (iter : I) (predicate : P) : Result (core.iter.adapters.filter.Filter I P) :=
+  ok ⟨iter, predicate⟩
+
+/-- Compatibility with the pinned backend's Iterator model, which lacks a
+    filter field. Rust's default method constructs the adapter above.
+    The constructor uses Vec::IntoIter, which uses this default. This bridge
+    does not model an arbitrary iterator overriding `filter`. -/
+def Aeneas.Std.core.iter.traits.iterator.Iterator.filter
+  {I P T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
+  (predInst : core.ops.function.FnMut P T Bool)
+  (iter : I) (predicate : P) : Result (_root_.core.iter.adapters.filter.Filter I P) :=
+  _root_.core.iter.traits.iterator.Iterator.filter.default iterInst predInst iter predicate
+
+/-- Search until the next accepted element, keeping mutations of the predicate
+    even when an element is rejected. Infinite rejection may diverge. -/
+@[rust_fun
+  "core::iter::adapters::filter::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>}::next"]
+def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
+  {I P T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
+  (predInst : core.ops.function.FnMut P T Bool)
+  (self : core.iter.adapters.filter.Filter I P) :
+  Result (Option T × core.iter.adapters.filter.Filter I P) := do
+  let (item, iter) ← iterInst.next self.iter
+  match item with
+  | none => ok (none, ⟨iter, self.predicate⟩)
+  | some value =>
+    let (keep, predicate) ← predInst.call_mut self.predicate value
+    if keep then ok (some value, ⟨iter, predicate⟩)
+    else next iterInst predInst ⟨iter, predicate⟩
+partial_fixpoint
+
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, std::hash::random::RandomState, alloc::alloc::Global>}::new"]
+def std.collections.hash.map.HashMapKVRandomStateGlobal.new (K V : Type) :
+  Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState Global) :=
+  ok ∅
+
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new"]
+def alloc.collections.btree.set.BTreeSetTGlobal.new (T : Type) :
+  Result (alloc.collections.btree.set.BTreeSet T Global) :=
+  ok []
+
+/-- Insert in comparator order. An equal element retains the existing value,
+    as in Rust's BTreeSet::insert (in contrast with replace). -/
+def alloc.collections.btree.set.insertList {T : Type} (ord : core.cmp.Ord T)
+  (value : T) : List T → Result (Bool × List T)
+  | [] => ok (true, [value])
+  | head :: tail => do
+    let ordering ← ord.cmp value head
+    match ordering with
+    | .lt => ok (true, value :: head :: tail)
+    | .eq => ok (false, head :: tail)
+    | .gt =>
+      let (added, tail) ← insertList ord value tail
+      ok (added, head :: tail)
+
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::insert"]
+def alloc.collections.btree.set.BTreeSet.insert
+  {T A : Type} (_allocator : resources.core.alloc.AllocatorClone A) (ord : core.cmp.Ord T)
+  (self : alloc.collections.btree.set.BTreeSet T A) (value : T) :
+  Result (Bool × alloc.collections.btree.set.BTreeSet T A) :=
+  alloc.collections.btree.set.insertList ord value self

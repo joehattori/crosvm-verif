@@ -32,6 +32,326 @@ def U64.Insts.CoreFmtLowerHex : core.fmt.LowerHex Std.U64 := {
   fmt := U64.Insts.CoreFmtLowerHex.fmt
 }
 
+/-- Trait implementation: [core::iter::adapters::filter::{impl core::iter::traits::iterator::Iterator<Clause0_Item> for core::iter::adapters::filter::Filter<I, P>}]
+    Source: '/rustc/library/core/src/iter/adapters/filter.rs', lines 90:0-92:31
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>"]
+impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+  {I : Type} {P : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (opsfunctionFnMutPTupleSharedClause0_ItemBoolInst : core.ops.function.FnMut P
+  Clause0_Item Bool) : core.iter.traits.iterator.Iterator
+  (core.iter.adapters.filter.Filter I P) Clause0_Item := {
+  next :=
+    core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
+}
+
+/-- Trait implementation: [alloc::alloc::{impl core::alloc::AllocatorClone for alloc::alloc::Global}]
+    Source: '/rustc/library/alloc/src/alloc.rs', lines 62:0-62:50
+    Name pattern: [core::alloc::AllocatorClone<alloc::alloc::Global>] -/
+@[reducible, rust_trait_impl
+  "core::alloc::AllocatorClone<alloc::alloc::Global>"]
+def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
+  core.alloc.AllocatorClone Global := {
+  cloneCloneInst := core.clone.CloneGlobal
+}
+
+/-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}::call_once]:
+    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
+def
+  address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once
+  (c : address_range.OrdAddressRange.cmp.closure) (_ : Unit) :
+  Result Ordering
+  := do
+  let (ar, ar1) := c
+  ok (core.cmp.impls.OrdU64.cmp ar.end ar1.end)
+
+/-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}]
+    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
+@[reducible]
+def
+  address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering
+  : core.ops.function.FnOnce address_range.OrdAddressRange.cmp.closure Unit
+  Ordering := {
+  call_once :=
+    address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once
+}
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::is_empty]:
+    Source: 'resources/src/address_range.rs', lines 48:4-50:5
+    Visibility: public -/
+def address_range.AddressRange.is_empty
+  (self : address_range.AddressRange) : Result Bool := do
+  ok (self.end < self.start)
+
+/-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp]:
+    Source: 'resources/src/address_range.rs', lines 194:4-208:5
+    Visibility: public -/
+def address_range.AddressRange.Insts.CoreCmpOrd.cmp
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result Ordering
+  := do
+  let b ← address_range.AddressRange.is_empty self
+  let b1 ← address_range.AddressRange.is_empty other
+  if b
+  then if b1
+       then ok Ordering.eq
+       else ok Ordering.lt
+  else
+    if b1
+    then ok Ordering.gt
+    else
+      let o ← lift (core.cmp.impls.OrdU64.cmp self.start other.start)
+      core.cmp.Ordering.then_with
+        address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering
+        o (self, other)
+
+/-- [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}::eq]:
+    Source: 'resources/src/address_range.rs', lines 218:4-220:5
+    Visibility: public -/
+def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result Bool
+  := do
+  let o ← address_range.AddressRange.Insts.CoreCmpOrd.cmp self other
+  core.cmp.Ordering.Insts.CoreCmpPartialEqOrdering.eq o Ordering.eq
+
+/-- Trait implementation: [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
+    Source: 'resources/src/address_range.rs', lines 217:0-221:1 -/
+@[reducible]
+def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange :
+  core.cmp.PartialEq address_range.AddressRange address_range.AddressRange := {
+  eq := address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
+}
+
+/-- Trait implementation: [resources::address_range::{impl core::cmp::Eq for resources::address_range::AddressRange}]
+    Source: 'resources/src/address_range.rs', lines 224:0-224:32 -/
+@[reducible]
+def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
+  address_range.AddressRange := {
+  partialEqInst :=
+    address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange
+}
+
+/-- [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}::partial_cmp]:
+    Source: 'resources/src/address_range.rs', lines 212:4-214:5
+    Visibility: public -/
+def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result (Option Ordering)
+  := do
+  let o ← address_range.AddressRange.Insts.CoreCmpOrd.cmp self other
+  ok (some o)
+
+/-- Trait implementation: [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
+    Source: 'resources/src/address_range.rs', lines 211:0-215:1 -/
+@[reducible]
+def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange :
+  core.cmp.PartialOrd address_range.AddressRange address_range.AddressRange
+  := {
+  partialEqInst :=
+    address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange
+  partial_cmp :=
+    address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
+}
+
+/-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}]
+    Source: 'resources/src/address_range.rs', lines 193:0-209:1 -/
+@[reducible]
+def address_range.AddressRange.Insts.CoreCmpOrd : core.cmp.Ord
+  address_range.AddressRange := {
+  eqInst := address_range.AddressRange.Insts.CoreCmpEq
+  partialOrdInst :=
+    address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange
+  cmp := address_range.AddressRange.Insts.CoreCmpOrd.cmp
+}
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}<T, Clause0_IntoIter>}::call_mut]:
+    Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
+def
+  address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
+  {T : Type} {Clause0_IntoIter : Type}
+  (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T address_range.AddressRange
+  Clause0_IntoIter)
+  (c : address_allocator.AddressAllocator.new_from_list.closure T
+  Clause0_IntoIter) (tupled_args : address_range.AddressRange) :
+  Result (Bool × (address_allocator.AddressAllocator.new_from_list.closure T
+    Clause0_IntoIter))
+  := do
+  let b ← address_range.AddressRange.is_empty tupled_args
+  ok (¬ b, c)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}<T, Clause0_IntoIter>}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
+def
+  address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool.call_once
+  {T : Type} {Clause0_IntoIter : Type}
+  (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T address_range.AddressRange
+  Clause0_IntoIter)
+  (c : address_allocator.AddressAllocator.new_from_list.closure T
+  Clause0_IntoIter) (ar : address_range.AddressRange) :
+  Result Bool
+  := do
+  let (b, _) ←
+    address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
+      coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst c ar
+  ok b
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}<T, Clause0_IntoIter>}]
+    Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool
+  {T : Type} {Clause0_IntoIter : Type}
+  (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T address_range.AddressRange
+  Clause0_IntoIter) : core.ops.function.FnOnce
+  (address_allocator.AddressAllocator.new_from_list.closure T Clause0_IntoIter)
+  address_range.AddressRange Bool := {
+  call_once :=
+    address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool.call_once
+    coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst
+}
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}<T, Clause0_IntoIter>}]
+    Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool
+  {T : Type} {Clause0_IntoIter : Type}
+  (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T address_range.AddressRange
+  Clause0_IntoIter) : core.ops.function.FnMut
+  (address_allocator.AddressAllocator.new_from_list.closure T Clause0_IntoIter)
+  address_range.AddressRange Bool := {
+  FnOnceInst :=
+    address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool
+    coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst
+  call_mut :=
+    address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
+    coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst
+}
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list]: loop body 0:
+    Source: 'resources/src/address_allocator.rs', lines 80:8-82:9
+    Visibility: public -/
+@[rust_loop_body]
+def address_allocator.AddressAllocator.new_from_list_loop.body
+  (iter : core.slice.iter.Iter address_range.AddressRange)
+  (regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
+  Global) :
+  Result (ControlFlow ((core.slice.iter.Iter address_range.AddressRange) ×
+    (alloc.collections.btree.set.BTreeSet address_range.AddressRange Global))
+    (alloc.collections.btree.set.BTreeSet address_range.AddressRange Global))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none => ok (done regions)
+  | some r =>
+    let (_, regions1) ←
+      alloc.collections.btree.set.BTreeSet.insert
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+        address_range.AddressRange.Insts.CoreCmpOrd regions r
+    ok (cont (iter1, regions1))
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list]: loop 0:
+    Source: 'resources/src/address_allocator.rs', lines 80:8-82:9
+    Visibility: public -/
+@[rust_loop]
+def address_allocator.AddressAllocator.new_from_list_loop
+  (iter : core.slice.iter.Iter address_range.AddressRange)
+  (regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
+  Global) :
+  Result (alloc.collections.btree.set.BTreeSet address_range.AddressRange
+    Global)
+  := do
+  loop
+    (fun (iter1, regions1) =>
+      address_allocator.AddressAllocator.new_from_list_loop.body iter1
+      regions1)
+    (iter, regions)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list]:
+    Source: 'resources/src/address_allocator.rs', lines 59:4-90:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.new_from_list
+  {T : Type} {Clause0_IntoIter : Type}
+  (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
+  core.iter.traits.collect.IntoIterator T address_range.AddressRange
+  Clause0_IntoIter) (pools : T) (min_align : Option Std.U64)
+  (preferred_align : Option Std.U64) :
+  Result (core.result.Result address_allocator.AddressAllocator Error)
+  := do
+  let t ←
+    coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst.into_iter
+      pools
+  let f ←
+    coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst.iteratorInst.filter
+      (address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool
+      coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst) t ()
+  let pools1 ←
+    core.iter.traits.iterator.Iterator.collect.default
+      (core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+      coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst.iteratorInst
+      (address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool
+      coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst))
+      (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) f
+  let min_align1 ← lift (core.option.Option.unwrap_or min_align 4#u64)
+  let b ← core.num.U64.is_power_of_two min_align1
+  if b
+  then
+    if min_align1 = 0#u64
+    then ok (core.result.Result.Err Error.BadAlignment)
+    else
+      let preferred_align1 ←
+        lift (core.option.Option.unwrap_or preferred_align min_align1)
+      let b1 ← core.num.U64.is_power_of_two preferred_align1
+      if b1
+      then
+        if preferred_align1 < min_align1
+        then ok (core.result.Result.Err Error.BadAlignment)
+        else
+          let regions ←
+            alloc.collections.btree.set.BTreeSetTGlobal.new
+              address_range.AddressRange
+          let s := alloc.vec.Vec.deref pools1
+          let iter ← core.slice.Slice.iter s
+          let regions1 ←
+            address_allocator.AddressAllocator.new_from_list_loop iter regions
+          let hm ←
+            std.collections.hash.map.HashMapKVRandomStateGlobal.new Alloc
+              (address_range.AddressRange × String)
+          ok (core.result.Result.Ok
+            {
+              pools := pools1,
+              min_align := min_align1,
+              preferred_align := preferred_align1,
+              allocs := hm,
+              regions := regions1
+            })
+      else ok (core.result.Result.Err Error.BadAlignment)
+  else ok (core.result.Result.Err Error.BadAlignment)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new]:
+    Source: 'resources/src/address_allocator.rs', lines 42:4-48:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.new
+  (pool : address_range.AddressRange) (min_align : Option Std.U64)
+  (preferred_align : Option Std.U64) :
+  Result (core.result.Result address_allocator.AddressAllocator Error)
+  := do
+  let y ←
+    lift (Std.Array.to_slice (Array.make 1#usize [ pool ] : Array
+      address_range.AddressRange 1#usize))
+  let ret := alloc.slice.Slice.into_vec y
+  address_allocator.AddressAllocator.new_from_list
+    (core.iter.traits.collect.IntoIteratorVec address_range.AddressRange) ret
+    min_align preferred_align
+
 /-- [resources::address_range::{impl core::clone::Clone for resources::address_range::AddressRange}::clone]:
     Source: 'resources/src/address_range.rs', lines 16:15-16:20
     Visibility: public -/
@@ -94,13 +414,6 @@ def address_range.AddressRange.from_start_and_size
     match o with
     | none => ok none
     | some «end» => ok (some { start, «end» })
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::is_empty]:
-    Source: 'resources/src/address_range.rs', lines 48:4-50:5
-    Visibility: public -/
-def address_range.AddressRange.is_empty
-  (self : address_range.AddressRange) : Result Bool := do
-  ok (self.end < self.start)
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::contains]:
     Source: 'resources/src/address_range.rs', lines 53:4-55:5
@@ -264,109 +577,6 @@ def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange :
   address_range.AddressRange := {
   «from» :=
     core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
-}
-
-/-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}::call_once]:
-    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
-def
-  address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once
-  (c : address_range.OrdAddressRange.cmp.closure) (_ : Unit) :
-  Result Ordering
-  := do
-  let (ar, ar1) := c
-  ok (core.cmp.impls.OrdU64.cmp ar.end ar1.end)
-
-/-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}]
-    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
-@[reducible]
-def
-  address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering
-  : core.ops.function.FnOnce address_range.OrdAddressRange.cmp.closure Unit
-  Ordering := {
-  call_once :=
-    address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once
-}
-
-/-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp]:
-    Source: 'resources/src/address_range.rs', lines 194:4-208:5
-    Visibility: public -/
-def address_range.AddressRange.Insts.CoreCmpOrd.cmp
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result Ordering
-  := do
-  let b ← address_range.AddressRange.is_empty self
-  let b1 ← address_range.AddressRange.is_empty other
-  if b
-  then if b1
-       then ok Ordering.eq
-       else ok Ordering.lt
-  else
-    if b1
-    then ok Ordering.gt
-    else
-      let o ← lift (core.cmp.impls.OrdU64.cmp self.start other.start)
-      core.cmp.Ordering.then_with
-        address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering
-        o (self, other)
-
-/-- [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}::eq]:
-    Source: 'resources/src/address_range.rs', lines 218:4-220:5
-    Visibility: public -/
-def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result Bool
-  := do
-  let o ← address_range.AddressRange.Insts.CoreCmpOrd.cmp self other
-  core.cmp.Ordering.Insts.CoreCmpPartialEqOrdering.eq o Ordering.eq
-
-/-- Trait implementation: [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 217:0-221:1 -/
-@[reducible]
-def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange :
-  core.cmp.PartialEq address_range.AddressRange address_range.AddressRange := {
-  eq := address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
-}
-
-/-- Trait implementation: [resources::address_range::{impl core::cmp::Eq for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 224:0-224:32 -/
-@[reducible]
-def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
-  address_range.AddressRange := {
-  partialEqInst :=
-    address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange
-}
-
-/-- [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}::partial_cmp]:
-    Source: 'resources/src/address_range.rs', lines 212:4-214:5
-    Visibility: public -/
-def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result (Option Ordering)
-  := do
-  let o ← address_range.AddressRange.Insts.CoreCmpOrd.cmp self other
-  ok (some o)
-
-/-- Trait implementation: [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 211:0-215:1 -/
-@[reducible]
-def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange :
-  core.cmp.PartialOrd address_range.AddressRange address_range.AddressRange
-  := {
-  partialEqInst :=
-    address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange
-  partial_cmp :=
-    address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
-}
-
-/-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 193:0-209:1 -/
-@[reducible]
-def address_range.AddressRange.Insts.CoreCmpOrd : core.cmp.Ord
-  address_range.AddressRange := {
-  eqInst := address_range.AddressRange.Insts.CoreCmpEq
-  partialOrdInst :=
-    address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange
-  cmp := address_range.AddressRange.Insts.CoreCmpOrd.cmp
 }
 
 end resources

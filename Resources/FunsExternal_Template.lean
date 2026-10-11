@@ -49,6 +49,33 @@ axiom U64.Insts.CoreFmtLowerHex.fmt
   Std.U64 → core.fmt.Formatter → Result ((core.result.Result Unit
     core.fmt.Error) × core.fmt.Formatter)
 
+/-- [core::iter::traits::iterator::Iterator::filter]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
+    Name pattern: [core::iter::traits::iterator::Iterator::filter]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
+axiom core.iter.traits.iterator.Iterator.filter.default
+  {Self : Type} {P : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutPTupleSharedClause0_ItemBoolInst : core.ops.function.FnMut P
+  Clause0_Item Bool) :
+  Self → P → Result (core.iter.adapters.filter.Filter Self P)
+
+/-- [core::iter::adapters::filter::{impl core::iter::traits::iterator::Iterator<Clause0_Item> for core::iter::adapters::filter::Filter<I, P>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/filter.rs', lines 97:4-97:41
+    Name pattern: [core::iter::adapters::filter::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::filter::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>}::next"]
+axiom
+  core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
+  {I : Type} {P : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
+  P Clause0_Item Bool) :
+  core.iter.adapters.filter.Filter I P → Result ((Option Clause0_Item) ×
+    (core.iter.adapters.filter.Filter I P))
+
 /-- [core::ops::range::{core::ops::range::RangeInclusive<Idx>}::start]:
     Source: '/rustc/library/core/src/ops/range.rs', lines 425:4-425:37
     Name pattern: [core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::start]
@@ -64,4 +91,36 @@ axiom core.ops.range.RangeInclusive.start
 @[rust_fun "core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::end"]
 axiom core.ops.range.RangeInclusive.end
   {Idx : Type} : core.ops.range.RangeInclusive Idx → Result Idx
+
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, std::hash::random::RandomState, alloc::alloc::Global>}::new]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 269:4-269:46
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, std::hash::random::RandomState, alloc::alloc::Global>}::new]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, std::hash::random::RandomState, alloc::alloc::Global>}::new"]
+axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
+  (K : Type) (V : Type) :
+  Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState
+    Global)
+
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}::new]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 344:4-344:37
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new"]
+axiom alloc.collections.btree.set.BTreeSetTGlobal.new
+  (T : Type) : Result (alloc.collections.btree.set.BTreeSet T Global)
+
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::insert]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 900:4-902:15
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::insert]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::insert"]
+axiom alloc.collections.btree.set.BTreeSet.insert
+  {T : Type} {A : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord T) :
+  alloc.collections.btree.set.BTreeSet T A → T → Result (Bool ×
+    (alloc.collections.btree.set.BTreeSet T A))
 

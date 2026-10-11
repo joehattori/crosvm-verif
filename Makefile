@@ -19,6 +19,7 @@ $(LLBC_DIR)/resources.llbc:
 		--preset=aeneas \
 		--dest-file $(LLBC_DIR)/resources.llbc \
 		--start-from 'crate::address_range' \
+		--start-from 'crate::address_allocator::AddressAllocator::new' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::address_range::{impl core::fmt::Display for _}' \
@@ -29,9 +30,11 @@ $(LLBC_DIR)/resources.llbc:
 
 extract: $(LLBC_DIR)/resources.llbc
 	mkdir -p $(CURDIR)/Resources
+	# Iterator methods absent from the pinned backend are supplied by FunsExternal.
 	$(AENEAS) \
 		-backend lean \
 		-split-files \
+		-filter-trait-methods \
 		-dest $(CURDIR)/Resources \
 		$(LLBC_DIR)/resources.llbc
 

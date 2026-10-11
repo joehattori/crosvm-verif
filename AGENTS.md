@@ -2,21 +2,25 @@
 
 Use Aeneas to prove properties of crosvm's Rust code in Lean. The pipeline is
 Rust → Charon LLBC → Aeneas-generated Lean → handwritten specifications and proofs.
-The current extraction target is `resources::address_range`; this is not a proof
-of all of crosvm. Keep claims tied to the functions, assumptions, and properties
-actually verified.
+The current extraction targets are `resources::address_range` and
+`AddressAllocator::new` with its dependencies; this is not a proof of all of
+crosvm. Keep claims tied to the functions, assumptions, and properties actually
+verified. The allocator proof currently covers default alignments only.
 
 # Repository map
 
 - `crosvm/`: pinned upstream Rust submodule. The current source of interest is
-  `crosvm/resources/src/address_range.rs`.
+  `crosvm/resources/src/address_range.rs` and `address_allocator.rs`.
 - `aeneas/`: pinned toolchain submodule, including the Lean library at
   `aeneas/backends/lean/` and examples at `aeneas/tests/lean/`.
 - `Resources/Types.lean` and `Resources/Funs.lean`: generated types and functions.
 - `Resources/FunsExternal_Template.lean`: generated declarations for missing
   external models; a reference for maintaining the handwritten implementation.
 - `Resources/FunsExternal.lean`: handwritten models of external Rust functions.
+- `Resources/TypesExternal.lean`: handwritten collection and iterator models.
 - `Resources/AddressRangeSpec.lean`: mathematical predicates and function proofs.
+- `Resources/AddressAllocatorSpec.lean`: constructor initialization proofs.
+- `Resources/README.md`: verified scope, model assumptions, and extraction notes.
 - `Resources.lean`: library entry point. Import new specification modules here so
   the default build checks them.
 - `Makefile`: toolchain build, extraction, and verification commands.

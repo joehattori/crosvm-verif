@@ -1,0 +1,30 @@
+module
+public import Aeneas
+public import Mathlib.Data.Finmap
+@[expose] public section
+open Aeneas Aeneas.Std
+
+/- These are logical models of external Rust types, not verified implementations
+   of the standard library. Storage layout, capacity, allocation failure, and
+   hash seeds are outside this model. Only the operations in FunsExternal are
+   supported. The unused MaybeUninit template declaration needs no model. -/
+
+@[rust_type "core::iter::adapters::filter::Filter"]
+structure core.iter.adapters.filter.Filter (I P : Type) where
+  iter : I
+  predicate : P
+
+/-- Finite map contents with unique keys and no observable entry order.
+    The constructor only needs the empty map. -/
+@[rust_type "std::collections::hash::map::HashMap"]
+abbrev std.collections.hash.map.HashMap (K V _S _A : Type) :=
+  Finmap (fun _ : K => V)
+
+@[rust_type "std::hash::random::RandomState"]
+def std.hash.random.RandomState := Unit
+
+/-- Ascending elements, with uniqueness determined by Rust's `Ord::cmp`.
+    The invariant holds for states reachable through `new` and `insert` when
+    the supplied comparator obeys the Rust `Ord` contract. -/
+@[rust_type "alloc::collections::btree::set::BTreeSet"]
+abbrev alloc.collections.btree.set.BTreeSet (T _A : Type) := List T

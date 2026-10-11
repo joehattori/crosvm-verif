@@ -2,6 +2,7 @@
 -- [resources]: type definitions
 module
 public import Aeneas
+public import Resources.TypesExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
@@ -19,6 +20,29 @@ set_option maxRecDepth 2048
 
 namespace resources
 
+/-- Trait declaration: [core::alloc::AllocatorClone]
+    Source: '/rustc/library/core/src/alloc/mod.rs', lines 541:0-541:50
+    Name pattern: [core::alloc::AllocatorClone]
+    Visibility: public -/
+@[rust_trait "core::alloc::AllocatorClone"
+  (parentClauses := ["cloneCloneInst"])]
+structure core.alloc.AllocatorClone (Self : Type) where
+  cloneCloneInst : core.clone.Clone Self
+
+/-- [resources::Alloc]
+    Source: 'resources/src/lib.rs', lines 27:0-46:1
+    Visibility: public -/
+@[discriminant isize]
+inductive Alloc where
+| Anon : Std.Usize → Alloc
+| PciBar : Std.U8 → Std.U8 → Std.U8 → Std.U8 → Alloc
+| GpuRenderNode : Alloc
+| PmemDevice : Std.Usize → Alloc
+| Pstore : Alloc
+| PciBridgeWindow : Std.U8 → Std.U8 → Std.U8 → Alloc
+| PciBridgePrefetchWindow : Std.U8 → Std.U8 → Std.U8 → Alloc
+| FileBacked : Std.U64 → Alloc
+
 /-- [resources::address_range::AddressRange]
     Source: 'resources/src/address_range.rs', lines 18:0-21:1
     Visibility: public -/
@@ -26,9 +50,46 @@ structure address_range.AddressRange where
   start : Std.U64
   «end» : Std.U64
 
+/-- [resources::address_allocator::AddressAllocator]
+    Source: 'resources/src/address_allocator.rs', lines 20:0-30:1
+    Visibility: public -/
+structure address_allocator.AddressAllocator where
+  pools : alloc.vec.Vec address_range.AddressRange
+  min_align : Std.U64
+  preferred_align : Std.U64
+  allocs : std.collections.hash.map.HashMap Alloc (address_range.AddressRange
+    × String) std.hash.random.RandomState Global
+  regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
+    Global
+
+/-- [resources::Error]
+    Source: 'resources/src/lib.rs', lines 50:0-75:1
+    Visibility: public -/
+@[discriminant isize]
+inductive Error where
+| AllocSizeZero : Error
+| BadAlignment : Error
+| BadAlloc : Alloc → Error
+| ExistingAlloc : Alloc → Error
+| InvalidAlloc : Alloc → Error
+| IOPortOutOfRange : address_range.AddressRange → Error
+| MissingPlatformMMIOAddresses : Error
+| NoIoAllocator : Error
+| OutOfBounds : Error
+| OutOfSpace : Error
+| PoolOverflow : Std.U64 → Std.U64 → Error
+| RegionOverlap : address_range.AddressRange → Error
+
 /-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}]
     Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
 def address_range.OrdAddressRange.cmp.closure :=
   address_range.AddressRange × address_range.AddressRange
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
+@[reducible]
+def address_allocator.AddressAllocator.new_from_list.closure (T : Type)
+  (Clause0_IntoIter : Type) :=
+Unit
 
 end resources
