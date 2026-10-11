@@ -7,8 +7,9 @@ and the private `internal_allocate_from_slot` update helper.
 `non_overlapping_ranges_spec` characterizes the remainders by address membership:
 their union is exactly `self \ other`, and they are disjoint whenever `other`
 is nonempty. The union property holds for empty inputs too, but removing an
-empty range can produce overlapping remainders. The allocator proof uses this
-single specification to show that the remainders stay within the selected slot
+empty range can produce [overlapping remainders](../FIXED_BUGS.md#bug-001-overlapping-remainders-for-empty-ranges).
+The allocator proof uses this single specification to show that the remainders
+stay within the selected slot
 and are disjoint from each other and the other free regions.
 
 `new_default_spec` proves successful construction for every input range:

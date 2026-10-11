@@ -163,6 +163,8 @@ theorem non_overlapping_ranges_spec (self other : AddressRange) :
     AddressRange.non_overlapping_ranges self other ⦃ before after =>
       (∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
         self.containsModel addr ∧ ¬other.containsModel addr) ∧
+      -- TODO(BUG-001): Remove this precondition after updating to CL 8546718
+      -- and regenerating Lean.
       (¬other.isEmptyModel →
         ∀ addr, ¬(before.containsModel addr ∧ after.containsModel addr)) ⦄ := by
   step with non_overlapping_ranges_bounds_spec as ⟨before, after, hbefore, hafter⟩

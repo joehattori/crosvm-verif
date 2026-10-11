@@ -18,6 +18,7 @@ duplicating them here.
 | [Resources/AddressAllocatorCollections.lean](Resources/AddressAllocatorCollections.lean) | Free-region invariant, key equality, and collection update proofs. |
 | [Resources/AddressAllocatorSpec.lean](Resources/AddressAllocatorSpec.lean) | Allocator constructor and slot allocation proofs. |
 | [Resources/README.md](Resources/README.md) | Detailed verification scope, model assumptions, and extraction notes. |
+| [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
 | [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 
 # Editing rules
