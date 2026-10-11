@@ -29,6 +29,23 @@ namespace resources
 structure core.alloc.AllocatorClone (Self : Type) where
   cloneCloneInst : core.clone.Clone Self
 
+/-- Trait declaration: [core::borrow::Borrow]
+    Source: '/rustc/library/core/src/borrow.rs', lines 158:0-158:40
+    Name pattern: [core::borrow::Borrow]
+    Visibility: public -/
+@[rust_trait "core::borrow::Borrow"]
+structure core.borrow.Borrow (Self : Type) (Borrowed : Type) where
+  borrow : Self → Result Borrowed
+
+/-- Trait declaration: [core::hash::BuildHasher]
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 637:0-637:21
+    Name pattern: [core::hash::BuildHasher]
+    Visibility: public -/
+@[rust_trait "core::hash::BuildHasher" (parentClauses := ["HasherInst"])]
+structure core.hash.BuildHasher (Self : Type) (Self_Hasher : Type) where
+  HasherInst : core.hash.Hasher Self_Hasher
+  build_hasher : Self → Result Self_Hasher
+
 /-- [resources::Alloc]
     Source: 'resources/src/lib.rs', lines 27:0-46:1
     Visibility: public -/

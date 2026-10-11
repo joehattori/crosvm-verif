@@ -14,8 +14,7 @@ structure core.iter.adapters.filter.Filter (I P : Type) where
   iter : I
   predicate : P
 
-/-- Finite map contents with unique keys and no observable entry order.
-    The constructor only needs the empty map. -/
+/-- Finite map contents with unique keys and no observable entry order. -/
 @[rust_type "std::collections::hash::map::HashMap"]
 abbrev std.collections.hash.map.HashMap (K V _S _A : Type) :=
   Finmap (fun _ : K => V)
@@ -28,3 +27,8 @@ def std.hash.random.RandomState := Unit
     the supplied comparator obeys the Rust `Ord` contract. -/
 @[rust_type "alloc::collections::btree::set::BTreeSet"]
 abbrev alloc.collections.btree.set.BTreeSet (T _A : Type) := List T
+
+/-- Hashing is unobserved by the finite-map model. Direct hasher operations are
+    unsupported (fail explicitly); this is not a model of hash outputs. -/
+@[rust_type "std::hash::random::DefaultHasher"]
+def std.hash.random.DefaultHasher := Unit

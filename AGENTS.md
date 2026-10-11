@@ -15,7 +15,8 @@ duplicating them here.
 | [Resources/TypesExternal_Template.lean](Resources/TypesExternal_Template.lean), [Resources/FunsExternal_Template.lean](Resources/FunsExternal_Template.lean) | Generated declarations for missing external models. |
 | [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
 | [Resources/AddressRangeSpec.lean](Resources/AddressRangeSpec.lean) | Mathematical predicates and proofs for address ranges. |
-| [Resources/AddressAllocatorSpec.lean](Resources/AddressAllocatorSpec.lean) | Allocator constructor initialization proofs. |
+| [Resources/AddressAllocatorCollections.lean](Resources/AddressAllocatorCollections.lean) | Free-region invariant, key equality, and collection update proofs. |
+| [Resources/AddressAllocatorSpec.lean](Resources/AddressAllocatorSpec.lean) | Allocator constructor and slot allocation proofs. |
 | [Resources/README.md](Resources/README.md) | Detailed verification scope, model assumptions, and extraction notes. |
 | [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 

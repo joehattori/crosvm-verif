@@ -20,6 +20,13 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open resources
 
+/-- [core::borrow::{impl core::borrow::Borrow<T> for T}::borrow]:
+    Source: '/rustc/library/core/src/borrow.rs', lines 214:4-214:26
+    Name pattern: [core::borrow::{core::borrow::Borrow<@T, @T>}::borrow]
+    Visibility: public -/
+@[rust_fun "core::borrow::{core::borrow::Borrow<@T, @T>}::borrow"]
+axiom core.borrow.Borrow.Blanket.borrow {T : Type} : T → Result T
+
 /-- [core::cmp::{impl core::cmp::PartialEq<core::cmp::Ordering> for core::cmp::Ordering}::eq]:
     Source: '/rustc/library/core/src/cmp.rs', lines 413:43-413:52
     Name pattern: [core::cmp::{core::cmp::PartialEq<core::cmp::Ordering, core::cmp::Ordering>}::eq]
@@ -48,6 +55,38 @@ axiom U64.Insts.CoreFmtLowerHex.fmt
   :
   Std.U64 → core.fmt.Formatter → Result ((core.result.Result Unit
     core.fmt.Error) × core.fmt.Formatter)
+
+/-- [core::hash::impls::{impl core::hash::Hash for isize}::hash]:
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Name pattern: [core::hash::impls::{core::hash::Hash<isize>}::hash]
+    Visibility: public -/
+@[rust_fun "core::hash::impls::{core::hash::Hash<isize>}::hash"]
+axiom Isize.Insts.CoreHashHash.hash
+  {H : Type} (HasherInst : core.hash.Hasher H) : Std.Isize → H → Result H
+
+/-- [core::hash::impls::{impl core::hash::Hash for usize}::hash]:
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Name pattern: [core::hash::impls::{core::hash::Hash<usize>}::hash]
+    Visibility: public -/
+@[rust_fun "core::hash::impls::{core::hash::Hash<usize>}::hash"]
+axiom Usize.Insts.CoreHashHash.hash
+  {H : Type} (HasherInst : core.hash.Hasher H) : Std.Usize → H → Result H
+
+/-- [core::hash::impls::{impl core::hash::Hash for u8}::hash]:
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Name pattern: [core::hash::impls::{core::hash::Hash<u8>}::hash]
+    Visibility: public -/
+@[rust_fun "core::hash::impls::{core::hash::Hash<u8>}::hash"]
+axiom U8.Insts.CoreHashHash.hash
+  {H : Type} (HasherInst : core.hash.Hasher H) : Std.U8 → H → Result H
+
+/-- [core::hash::impls::{impl core::hash::Hash for u64}::hash]:
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Name pattern: [core::hash::impls::{core::hash::Hash<u64>}::hash]
+    Visibility: public -/
+@[rust_fun "core::hash::impls::{core::hash::Hash<u64>}::hash"]
+axiom U64.Insts.CoreHashHash.hash
+  {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
 
 /-- [core::iter::traits::iterator::Iterator::filter]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
@@ -103,6 +142,49 @@ axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
   Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState
     Global)
 
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::insert]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1332:4-1332:53
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::insert]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::insert"]
+axiom std.collections.hash.map.HashMap.insert
+  {K : Type} {V : Type} {S : Type} {A : Type} {Clause2_Hasher : Type}
+  (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
+  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher) :
+  std.collections.hash.map.HashMap K V S A → K → V → Result ((Option V)
+    × (std.collections.hash.map.HashMap K V S A))
+
+/-- [std::hash::random::{impl core::hash::Hasher for std::hash::random::DefaultHasher}::finish]:
+    Source: '/rustc/library/std/src/hash/random.rs', lines 140:4-140:27
+    Name pattern: [std::hash::random::{core::hash::Hasher<std::hash::random::DefaultHasher>}::finish]
+    Visibility: public -/
+@[rust_fun
+  "std::hash::random::{core::hash::Hasher<std::hash::random::DefaultHasher>}::finish"]
+axiom std.hash.random.DefaultHasher.Insts.CoreHashHasher.finish
+  : std.hash.random.DefaultHasher → Result Std.U64
+
+/-- [std::hash::random::{impl core::hash::Hasher for std::hash::random::DefaultHasher}::write]:
+    Source: '/rustc/library/std/src/hash/random.rs', lines 130:4-130:35
+    Name pattern: [std::hash::random::{core::hash::Hasher<std::hash::random::DefaultHasher>}::write]
+    Visibility: public -/
+@[rust_fun
+  "std::hash::random::{core::hash::Hasher<std::hash::random::DefaultHasher>}::write"]
+axiom std.hash.random.DefaultHasher.Insts.CoreHashHasher.write
+  :
+  std.hash.random.DefaultHasher → Slice Std.U8 → Result
+    std.hash.random.DefaultHasher
+
+/-- [std::hash::random::{impl core::hash::BuildHasher<std::hash::random::DefaultHasher> for std::hash::random::RandomState}::build_hasher]:
+    Source: '/rustc/library/std/src/hash/random.rs', lines 83:4-83:43
+    Name pattern: [std::hash::random::{core::hash::BuildHasher<std::hash::random::RandomState, std::hash::random::DefaultHasher>}::build_hasher]
+    Visibility: public -/
+@[rust_fun
+  "std::hash::random::{core::hash::BuildHasher<std::hash::random::RandomState, std::hash::random::DefaultHasher>}::build_hasher"]
+axiom
+  std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
+  : std.hash.random.RandomState → Result std.hash.random.DefaultHasher
+
 /-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 344:4-344:37
     Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new]
@@ -122,5 +204,18 @@ axiom alloc.collections.btree.set.BTreeSet.insert
   {T : Type} {A : Type} (coreallocAllocatorCloneInst :
   core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord T) :
   alloc.collections.btree.set.BTreeSet T A → T → Result (Bool ×
+    (alloc.collections.btree.set.BTreeSet T A))
+
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::remove]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1053:4-1056:15
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::remove]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::remove"]
+axiom alloc.collections.btree.set.BTreeSet.remove
+  {T : Type} {A : Type} {Q : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) (coreborrowBorrowInst : core.borrow.Borrow T Q)
+  (corecmpOrdInst : core.cmp.Ord T) (corecmpOrdInst1 : core.cmp.Ord Q) :
+  alloc.collections.btree.set.BTreeSet T A → Q → Result (Bool ×
     (alloc.collections.btree.set.BTreeSet T A))
 

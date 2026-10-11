@@ -1,12 +1,7 @@
 # crosvm-verif
 
-This project uses Aeneas to prove properties of crosvm's Rust code in Lean.
-
-The current extraction targets are `resources::address_range` and
-`AddressAllocator::new` with its dependencies. The allocator proof covers default
-alignments only. This is not a proof of all of crosvm; see
-[verification scope and model assumptions](Resources/README.md) for the
-properties established and the remaining limitations.
+We aim to verify core components of crosvm, such as `AddressAllocator`, using
+Aeneas and Lean.
 
 ## Build and extraction
 

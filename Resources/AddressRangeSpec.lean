@@ -156,16 +156,22 @@ private theorem non_overlapping_ranges_bounds_spec (self other : AddressRange) :
 
 /-- `non_overlapping_ranges` succeeds and returns exactly the addresses in `self`
     that are not in `other`: `before ∪ after = self \ other`.
-    This holds even for empty inputs. It does not require `before` and `after`
-    to be disjoint from each other when `other` is empty. -/
+    This holds even for empty inputs. When `other` is nonempty, `before` and
+    `after` are also disjoint; for empty `other`, they may overlap. -/
 @[step]
 theorem non_overlapping_ranges_spec (self other : AddressRange) :
     AddressRange.non_overlapping_ranges self other ⦃ before after =>
-      ∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
-        self.containsModel addr ∧ ¬other.containsModel addr ⦄ := by
+      (∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
+        self.containsModel addr ∧ ¬other.containsModel addr) ∧
+      (¬other.isEmptyModel →
+        ∀ addr, ¬(before.containsModel addr ∧ after.containsModel addr)) ⦄ := by
   step with non_overlapping_ranges_bounds_spec as ⟨before, after, hbefore, hafter⟩
   simp only [containsModel, isEmptyModel] at *
-  split_ifs at hbefore hafter <;> omega
+  split_ifs at hbefore hafter
+  all_goals
+    constructor
+    · intro addr; omega
+    · intro hn addr; omega
 
 @[step]
 theorem len_spec (self : AddressRange) :

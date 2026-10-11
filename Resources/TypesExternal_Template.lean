@@ -47,6 +47,13 @@ axiom std.collections.hash.map.HashMap (K : Type) (V : Type) (S : Type) (A :
 @[rust_type "std::hash::random::RandomState"]
 axiom std.hash.random.RandomState : Type
 
+/-- [std::hash::random::DefaultHasher]
+    Source: '/rustc/library/std/src/hash/random.rs', lines 94:0-94:24
+    Name pattern: [std::hash::random::DefaultHasher]
+    Visibility: public -/
+@[rust_type "std::hash::random::DefaultHasher"]
+axiom std.hash.random.DefaultHasher : Type
+
 /-- [alloc::collections::btree::set::BTreeSet]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 78:0-81:1
     Name pattern: [alloc::collections::btree::set::BTreeSet]

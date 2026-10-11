@@ -15,6 +15,8 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open resources
 
+noncomputable instance : DecidableEq resources.Alloc := Classical.decEq _
+
 /-- [core::cmp::{impl core::cmp::PartialEq<core::cmp::Ordering> for core::cmp::Ordering}::eq]:
     Source: '/rustc/library/core/src/cmp.rs', lines 413:43-413:52
     Name pattern: [core::cmp::{core::cmp::PartialEq<core::cmp::Ordering, core::cmp::Ordering>}::eq]
@@ -134,3 +136,61 @@ def alloc.collections.btree.set.BTreeSet.insert
   (self : alloc.collections.btree.set.BTreeSet T A) (value : T) :
   Result (Bool × alloc.collections.btree.set.BTreeSet T A) :=
   alloc.collections.btree.set.insertList ord value self
+
+@[rust_fun "core::borrow::{core::borrow::Borrow<@T, @T>}::borrow"]
+def core.borrow.Borrow.Blanket.borrow {T : Type} (value : T) : Result T := ok value
+
+/-- Remove the first comparator-equal borrowed key. On a valid BTreeSet there
+    is at most one such element. Borrowed and owned orderings must agree. -/
+def alloc.collections.btree.set.removeList {T Q : Type}
+    (borrow : resources.core.borrow.Borrow T Q) (ord : core.cmp.Ord Q)
+    (key : Q) : List T → Result (Bool × List T)
+  | [] => ok (false, [])
+  | head :: tail => do
+    let borrowed ← borrow.borrow head
+    let ordering ← ord.cmp key borrowed
+    if ordering = .eq then ok (true, tail)
+    else
+      let (removed, rest) ← removeList borrow ord key tail
+      ok (removed, head :: rest)
+
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::remove"]
+def alloc.collections.btree.set.BTreeSet.remove
+    {T A Q : Type} (_allocator : resources.core.alloc.AllocatorClone A)
+    (borrow : resources.core.borrow.Borrow T Q) (_ord : core.cmp.Ord T)
+    (ordQ : core.cmp.Ord Q) (self : alloc.collections.btree.set.BTreeSet T A) (key : Q) :
+    Result (Bool × alloc.collections.btree.set.BTreeSet T A) :=
+  alloc.collections.btree.set.removeList borrow ordQ key self
+
+/-- Finite-map insertion, including the old value returned on replacement.
+    Rust key equality must coincide with Lean equality; hashes and storage are
+    abstracted away, so the hash dictionaries are never called. -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::insert"]
+noncomputable def std.collections.hash.map.HashMap.insert
+    {K V S A H : Type} (_eq : core.cmp.Eq K) (_hash : core.hash.Hash K)
+    (_build : resources.core.hash.BuildHasher S H)
+    (self : std.collections.hash.map.HashMap K V S A) (key : K) (value : V) :
+    Result (Option V × std.collections.hash.map.HashMap K V S A) := by
+  classical
+  exact ok (Finmap.lookup key self, Finmap.insert key value self)
+
+/- The following hash operations occur only in dictionaries passed to the
+   abstract map. They deliberately fail rather than assert any hash behavior.
+   No successful direct hash computation is modeled or verified. -/
+def Isize.Insts.CoreHashHash.hash {H : Type} (_ : core.hash.Hasher H)
+    (_ : Isize) (_ : H) : Result H := fail .panic
+def Usize.Insts.CoreHashHash.hash {H : Type} (_ : core.hash.Hasher H)
+    (_ : Usize) (_ : H) : Result H := fail .panic
+def U8.Insts.CoreHashHash.hash {H : Type} (_ : core.hash.Hasher H)
+    (_ : U8) (_ : H) : Result H := fail .panic
+def U64.Insts.CoreHashHash.hash {H : Type} (_ : core.hash.Hasher H)
+    (_ : U64) (_ : H) : Result H := fail .panic
+def std.hash.random.DefaultHasher.Insts.CoreHashHasher.finish
+    (_ : std.hash.random.DefaultHasher) : Result U64 := fail .panic
+def std.hash.random.DefaultHasher.Insts.CoreHashHasher.write
+    (_ : std.hash.random.DefaultHasher) (_ : Slice U8) :
+    Result std.hash.random.DefaultHasher := fail .panic
+def std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
+    (_ : std.hash.random.RandomState) : Result std.hash.random.DefaultHasher := fail .panic

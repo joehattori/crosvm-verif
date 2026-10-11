@@ -24,6 +24,14 @@ noncomputable section
 
 namespace resources
 
+/-- Trait implementation: [core::borrow::{impl core::borrow::Borrow<T> for T}]
+    Source: '/rustc/library/core/src/borrow.rs', lines 212:0-212:37
+    Name pattern: [core::borrow::Borrow<@T, @T>] -/
+@[reducible, rust_trait_impl "core::borrow::Borrow<@T, @T>"]
+def core.borrow.Borrow.Blanket (T : Type) : core.borrow.Borrow T T := {
+  borrow := core.borrow.Borrow.Blanket.borrow
+}
+
 /-- Trait implementation: [core::fmt::num::{impl core::fmt::LowerHex for u64}]
     Source: '/rustc/library/core/src/fmt/num.rs', lines 12:8-12:38
     Name pattern: [core::fmt::LowerHex<u64>] -/
@@ -46,6 +54,30 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
   next :=
     core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
+}
+
+/-- Trait implementation: [std::hash::random::{impl core::hash::Hasher for std::hash::random::DefaultHasher}]
+    Source: '/rustc/library/std/src/hash/random.rs', lines 125:0-125:29
+    Name pattern: [core::hash::Hasher<std::hash::random::DefaultHasher>] -/
+@[reducible, rust_trait_impl
+  "core::hash::Hasher<std::hash::random::DefaultHasher>"]
+def std.hash.random.DefaultHasher.Insts.CoreHashHasher : core.hash.Hasher
+  std.hash.random.DefaultHasher := {
+  finish := std.hash.random.DefaultHasher.Insts.CoreHashHasher.finish
+  write := std.hash.random.DefaultHasher.Insts.CoreHashHasher.write
+}
+
+/-- Trait implementation: [std::hash::random::{impl core::hash::BuildHasher<std::hash::random::DefaultHasher> for std::hash::random::RandomState}]
+    Source: '/rustc/library/std/src/hash/random.rs', lines 80:0-80:32
+    Name pattern: [core::hash::BuildHasher<std::hash::random::RandomState, std::hash::random::DefaultHasher>] -/
+@[reducible, rust_trait_impl
+  "core::hash::BuildHasher<std::hash::random::RandomState, std::hash::random::DefaultHasher>"]
+def std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher :
+  core.hash.BuildHasher std.hash.random.RandomState
+  std.hash.random.DefaultHasher := {
+  HasherInst := std.hash.random.DefaultHasher.Insts.CoreHashHasher
+  build_hasher :=
+    std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
 }
 
 /-- Trait implementation: [alloc::alloc::{impl core::alloc::AllocatorClone for alloc::alloc::Global}]
@@ -129,10 +161,12 @@ def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange :
 /-- Trait implementation: [resources::address_range::{impl core::cmp::Eq for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 224:0-224:32 -/
 @[reducible]
-def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
+impl_def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
   address_range.AddressRange := {
   partialEqInst :=
     address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange
+  assert_fields_are_eq := core.cmp.Eq.assert_fields_are_eq.default
+    address_range.AddressRange.Insts.CoreCmpEq
 }
 
 /-- [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}::partial_cmp]:
@@ -352,6 +386,262 @@ def address_allocator.AddressAllocator.new
     (core.iter.traits.collect.IntoIteratorVec address_range.AddressRange) ret
     min_align preferred_align
 
+/-- [resources::{impl core::hash::Hash for resources::Alloc}::hash]:
+    Source: 'resources/src/lib.rs', lines 26:31-26:35
+    Visibility: public -/
+def Alloc.Insts.CoreHashHash.hash
+  {__H : Type} (corehashHasherInst : core.hash.Hasher __H) (self : Alloc)
+  (state : __H) :
+  Result __H
+  := do
+  let self1 := read_discriminant self
+  let state1 ← Isize.Insts.CoreHashHash.hash corehashHasherInst self1 state
+  match self with
+  | Alloc.Anon __self_0 =>
+    Usize.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+  | Alloc.PciBar __self_0 __self_1 __self_2 __self_3 =>
+    let state2 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+    let state3 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_1 state2
+    let state4 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_2 state3
+    U8.Insts.CoreHashHash.hash corehashHasherInst __self_3 state4
+  | Alloc.GpuRenderNode => ok state1
+  | Alloc.PmemDevice __self_0 =>
+    Usize.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+  | Alloc.Pstore => ok state1
+  | Alloc.PciBridgeWindow __self_0 __self_1 __self_2 =>
+    let state2 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+    let state3 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_1 state2
+    U8.Insts.CoreHashHash.hash corehashHasherInst __self_2 state3
+  | Alloc.PciBridgePrefetchWindow __self_0 __self_1 __self_2 =>
+    let state2 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+    let state3 ←
+      U8.Insts.CoreHashHash.hash corehashHasherInst __self_1 state2
+    U8.Insts.CoreHashHash.hash corehashHasherInst __self_2 state3
+  | Alloc.FileBacked __self_0 =>
+    U64.Insts.CoreHashHash.hash corehashHasherInst __self_0 state1
+
+/-- Trait implementation: [resources::{impl core::hash::Hash for resources::Alloc}]
+    Source: 'resources/src/lib.rs', lines 26:31-26:35 -/
+@[reducible]
+def Alloc.Insts.CoreHashHash : core.hash.Hash Alloc := {
+  hash := fun {H : Type} (corehashHasherInst : core.hash.Hasher H) =>
+    Alloc.Insts.CoreHashHash.hash corehashHasherInst
+}
+
+/-- [resources::{impl core::cmp::PartialEq<resources::Alloc> for resources::Alloc}::eq]:
+    Source: 'resources/src/lib.rs', lines 26:20-26:29
+    Visibility: public -/
+def Alloc.Insts.CoreCmpPartialEqAlloc.eq
+  (self : Alloc) (other : Alloc) : Result Bool := do
+  let self1 := read_discriminant self
+  let other1 := read_discriminant other
+  if self1 = other1
+  then
+    match self with
+    | Alloc.Anon __self_0 =>
+      match other with
+      | Alloc.Anon __arg1_0 =>
+        lift (core.cmp.impls.PartialEqUsize.eq __self_0 __arg1_0)
+      | Alloc.PciBar _ _ _ _ => ok true
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice _ => ok true
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow _ _ _ => ok true
+      | Alloc.PciBridgePrefetchWindow _ _ _ => ok true
+      | Alloc.FileBacked _ => ok true
+    | Alloc.PciBar __self_0 __self_1 __self_2 __self_3 =>
+      match other with
+      | Alloc.Anon _ => ok true
+      | Alloc.PciBar __arg1_0 __arg1_1 __arg1_2 __arg1_3 =>
+        let b ← lift (core.cmp.impls.PartialEqU8.eq __self_0 __arg1_0)
+        if b
+        then
+          let b1 ← lift (core.cmp.impls.PartialEqU8.eq __self_1 __arg1_1)
+          if b1
+          then
+            let b2 ← lift (core.cmp.impls.PartialEqU8.eq __self_2 __arg1_2)
+            if b2
+            then lift (core.cmp.impls.PartialEqU8.eq __self_3 __arg1_3)
+            else ok false
+          else ok false
+        else ok false
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice _ => ok true
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow _ _ _ => ok true
+      | Alloc.PciBridgePrefetchWindow _ _ _ => ok true
+      | Alloc.FileBacked _ => ok true
+    | Alloc.GpuRenderNode => ok true
+    | Alloc.PmemDevice __self_0 =>
+      match other with
+      | Alloc.Anon _ => ok true
+      | Alloc.PciBar _ _ _ _ => ok true
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice __arg1_0 =>
+        lift (core.cmp.impls.PartialEqUsize.eq __self_0 __arg1_0)
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow _ _ _ => ok true
+      | Alloc.PciBridgePrefetchWindow _ _ _ => ok true
+      | Alloc.FileBacked _ => ok true
+    | Alloc.Pstore => ok true
+    | Alloc.PciBridgeWindow __self_0 __self_1 __self_2 =>
+      match other with
+      | Alloc.Anon _ => ok true
+      | Alloc.PciBar _ _ _ _ => ok true
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice _ => ok true
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow __arg1_0 __arg1_1 __arg1_2 =>
+        let b ← lift (core.cmp.impls.PartialEqU8.eq __self_0 __arg1_0)
+        if b
+        then
+          let b1 ← lift (core.cmp.impls.PartialEqU8.eq __self_1 __arg1_1)
+          if b1
+          then lift (core.cmp.impls.PartialEqU8.eq __self_2 __arg1_2)
+          else ok false
+        else ok false
+      | Alloc.PciBridgePrefetchWindow _ _ _ => ok true
+      | Alloc.FileBacked _ => ok true
+    | Alloc.PciBridgePrefetchWindow __self_0 __self_1 __self_2 =>
+      match other with
+      | Alloc.Anon _ => ok true
+      | Alloc.PciBar _ _ _ _ => ok true
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice _ => ok true
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow _ _ _ => ok true
+      | Alloc.PciBridgePrefetchWindow __arg1_0 __arg1_1 __arg1_2 =>
+        let b ← lift (core.cmp.impls.PartialEqU8.eq __self_0 __arg1_0)
+        if b
+        then
+          let b1 ← lift (core.cmp.impls.PartialEqU8.eq __self_1 __arg1_1)
+          if b1
+          then lift (core.cmp.impls.PartialEqU8.eq __self_2 __arg1_2)
+          else ok false
+        else ok false
+      | Alloc.FileBacked _ => ok true
+    | Alloc.FileBacked __self_0 =>
+      match other with
+      | Alloc.Anon _ => ok true
+      | Alloc.PciBar _ _ _ _ => ok true
+      | Alloc.GpuRenderNode => ok true
+      | Alloc.PmemDevice _ => ok true
+      | Alloc.Pstore => ok true
+      | Alloc.PciBridgeWindow _ _ _ => ok true
+      | Alloc.PciBridgePrefetchWindow _ _ _ => ok true
+      | Alloc.FileBacked __arg1_0 =>
+        lift (core.cmp.impls.PartialEqU64.eq __self_0 __arg1_0)
+  else ok false
+
+/-- Trait implementation: [resources::{impl core::cmp::PartialEq<resources::Alloc> for resources::Alloc}]
+    Source: 'resources/src/lib.rs', lines 26:20-26:29 -/
+@[reducible]
+def Alloc.Insts.CoreCmpPartialEqAlloc : core.cmp.PartialEq Alloc Alloc := {
+  eq := Alloc.Insts.CoreCmpPartialEqAlloc.eq
+}
+
+/-- [resources::{impl core::cmp::Eq for resources::Alloc}::assert_fields_are_eq]:
+    Source: 'resources/src/lib.rs', lines 26:16-26:18
+    Visibility: public -/
+def Alloc.Insts.CoreCmpEq.assert_fields_are_eq
+  (self : Alloc) : Result Unit := do
+  ok ()
+
+/-- Trait implementation: [resources::{impl core::cmp::Eq for resources::Alloc}]
+    Source: 'resources/src/lib.rs', lines 26:16-26:18 -/
+@[reducible]
+def Alloc.Insts.CoreCmpEq : core.cmp.Eq Alloc := {
+  partialEqInst := Alloc.Insts.CoreCmpPartialEqAlloc
+  assert_fields_are_eq := Alloc.Insts.CoreCmpEq.assert_fields_are_eq
+}
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::empty]:
+    Source: 'resources/src/address_range.rs', lines 43:4-45:5
+    Visibility: public -/
+def address_range.AddressRange.empty : Result address_range.AddressRange := do
+  ok { start := 1#u64, «end» := 0#u64 }
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::non_overlapping_ranges]:
+    Source: 'resources/src/address_range.rs', lines 85:4-117:5
+    Visibility: public -/
+def address_range.AddressRange.non_overlapping_ranges
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result (address_range.AddressRange × address_range.AddressRange)
+  := do
+  let before ←
+    if self.start >= other.start
+    then address_range.AddressRange.empty
+    else
+      do
+      let start ← core.cmp.min core.cmp.OrdU64 self.start other.start
+      let i ← core.cmp.max core.cmp.OrdU64 self.start other.start
+      let «end» ← i - 1#u64
+      let end1 ← core.cmp.min core.cmp.OrdU64 «end» self.end
+      ok ({ start, «end» := end1 } : address_range.AddressRange)
+  if self.end <= other.end
+  then let after ← address_range.AddressRange.empty
+       ok (before, after)
+  else
+    let i ← core.cmp.min core.cmp.OrdU64 self.end other.end
+    let start ← i + 1#u64
+    let start1 ← core.cmp.max core.cmp.OrdU64 start self.start
+    let «end» ← core.cmp.max core.cmp.OrdU64 self.end other.end
+    ok (before, { start := start1, «end» })
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_from_slot]:
+    Source: 'resources/src/address_allocator.rs', lines 99:4-120:5 -/
+def address_allocator.AddressAllocator.internal_allocate_from_slot
+  (self : address_allocator.AddressAllocator)
+  (slot : address_range.AddressRange) (range : address_range.AddressRange)
+  (alloc1 : Alloc) (tag : String) :
+  Result ((core.result.Result Std.U64 Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let (slot_was_present, bs) ←
+    alloc.collections.btree.set.BTreeSet.remove
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket address_range.AddressRange)
+      address_range.AddressRange.Insts.CoreCmpOrd
+      address_range.AddressRange.Insts.CoreCmpOrd self.regions slot
+  massert slot_was_present
+  let (before, after) ←
+    address_range.AddressRange.non_overlapping_ranges slot range
+  let b ← address_range.AddressRange.is_empty before
+  let bs1 ←
+    if b
+    then ok bs
+    else
+      do
+      let (_, bs2) ←
+        alloc.collections.btree.set.BTreeSet.insert
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+          address_range.AddressRange.Insts.CoreCmpOrd bs before
+      ok bs2
+  let b1 ← address_range.AddressRange.is_empty after
+  let bs2 ←
+    if b1
+    then ok bs1
+    else
+      do
+      let (_, bs3) ←
+        alloc.collections.btree.set.BTreeSet.insert
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+          address_range.AddressRange.Insts.CoreCmpOrd bs1 after
+      ok bs3
+  let (_, hm) ←
+    std.collections.hash.map.HashMap.insert Alloc.Insts.CoreCmpEq
+      Alloc.Insts.CoreHashHash
+      std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      self.allocs alloc1 (range, tag)
+  ok (core.result.Result.Ok range.start,
+    { self with allocs := hm, regions := bs2 })
+
 /-- [resources::address_range::{impl core::clone::Clone for resources::address_range::AddressRange}::clone]:
     Source: 'resources/src/address_range.rs', lines 16:15-16:20
     Visibility: public -/
@@ -391,12 +681,6 @@ def address_range.AddressRange.from_start_and_end
   Result address_range.AddressRange
   := do
   ok { start, «end» }
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::empty]:
-    Source: 'resources/src/address_range.rs', lines 43:4-45:5
-    Visibility: public -/
-def address_range.AddressRange.empty : Result address_range.AddressRange := do
-  ok { start := 1#u64, «end» := 0#u64 }
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::from_start_and_size]:
     Source: 'resources/src/address_range.rs', lines 32:4-40:5
@@ -460,33 +744,6 @@ def address_range.AddressRange.overlaps
   let ar ← address_range.AddressRange.intersect self other
   let b ← address_range.AddressRange.is_empty ar
   ok (¬ b)
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::non_overlapping_ranges]:
-    Source: 'resources/src/address_range.rs', lines 85:4-117:5
-    Visibility: public -/
-def address_range.AddressRange.non_overlapping_ranges
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result (address_range.AddressRange × address_range.AddressRange)
-  := do
-  let before ←
-    if self.start >= other.start
-    then address_range.AddressRange.empty
-    else
-      do
-      let start ← core.cmp.min core.cmp.OrdU64 self.start other.start
-      let i ← core.cmp.max core.cmp.OrdU64 self.start other.start
-      let «end» ← i - 1#u64
-      let end1 ← core.cmp.min core.cmp.OrdU64 «end» self.end
-      ok ({ start, «end» := end1 } : address_range.AddressRange)
-  if self.end <= other.end
-  then let after ← address_range.AddressRange.empty
-       ok (before, after)
-  else
-    let i ← core.cmp.min core.cmp.OrdU64 self.end other.end
-    let start ← i + 1#u64
-    let start1 ← core.cmp.max core.cmp.OrdU64 start self.start
-    let «end» ← core.cmp.max core.cmp.OrdU64 self.end other.end
-    ok (before, { start := start1, «end» })
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::split_at]:
     Source: 'resources/src/address_range.rs', lines 123:4-140:5
@@ -564,10 +821,10 @@ def address_range.AddressRange.Insts.CoreConvertFromRangeInclusiveU64 :
     Source: 'resources/src/address_range.rs', lines 186:4-188:5
     Visibility: public -/
 def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
-  (address_range : address_range.AddressRange) :
+  (address_range1 : address_range.AddressRange) :
   Result (core.ops.range.RangeInclusive Std.U64)
   := do
-  core.ops.range.RangeInclusive.new address_range.start address_range.end
+  core.ops.range.RangeInclusive.new address_range1.start address_range1.end
 
 /-- Trait implementation: [resources::address_range::{impl core::convert::From<resources::address_range::AddressRange> for core::ops::range::RangeInclusive<u64>}]
     Source: 'resources/src/address_range.rs', lines 185:0-189:1 -/
