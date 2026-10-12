@@ -1,13 +1,13 @@
 # Verification scope
 
 - [AddressRange](AddressRange/Spec.lean): extracted range operations.
-- [AddressAllocator](AddressAllocator/Spec.lean): construction with default
-  alignments, slot allocation, and forward/reverse allocation with explicit
+- [AddressAllocator](AddressAllocator/Spec.lean): single-pool construction,
+  slot allocation, and forward/reverse allocation with explicit
   alignment or preferred-alignment fallback,
-  subject to the stated free-region, alignment, and arithmetic assumptions.
+  subject to the stated well-formedness and arithmetic assumptions.
 
-Custom constructor alignments, fixed-address allocation, release, and a full
-allocator lifetime invariant remain unverified.
+Multi-pool construction, fixed-address allocation, release, and full accounting
+between pools, free regions, and allocations remain unverified.
 
 # Assumptions and limitations
 

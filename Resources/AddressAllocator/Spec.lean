@@ -9,6 +9,14 @@ open resources.address_range resources.address_allocator
 
 namespace resources.address_allocator.AddressAllocator
 
+/-- Structural invariant for AddressAllocator: valid free regions and constructor-valid
+    alignments. Accounting between pools, free regions, and allocations is separate. -/
+structure WellFormed (a : AddressAllocator) : Prop where
+  validRegions : ValidRegions a.regions
+  minAlign : a.min_align.val.isPowerOfTwo
+  preferredAlign : a.preferred_align.val.isPowerOfTwo
+  alignOrder : a.min_align.val ≤ a.preferred_align.val
+
 /-! ### Construction and slot allocation -/
 
 /-- Initial pools omit an empty input range. -/
@@ -16,10 +24,28 @@ abbrev initialPools (pool : AddressRange) : List AddressRange :=
   if pool.isEmptyModel then [] else [pool]
 
 /-- A new allocator has no allocations and all of its pool is free. -/
-def initialState (pool : AddressRange) (a : AddressAllocator) : Prop :=
+def initialState (pool : AddressRange) (a : AddressAllocator)
+    (min_align : U64 := 4#u64) (preferred_align : U64 := min_align) : Prop :=
   a.pools.val = initialPools pool ∧
   a.allocs = ∅ ∧ a.regions = initialPools pool ∧
-  a.min_align = 4#u64 ∧ a.preferred_align = 4#u64
+  a.min_align = min_align ∧ a.preferred_align = preferred_align
+
+/-- Initialization establishes the free-region invariant used by updates. -/
+theorem initialState.validRegions {pool : AddressRange} {a : AddressAllocator}
+    {min_align preferred_align : U64} (h : initialState pool a min_align preferred_align) :
+    ValidRegions a.regions := by
+  rw [h.2.2.1]
+  by_cases hn : pool.isEmptyModel <;> simp [initialPools, hn]
+
+/-- A valid initial alignment configuration establishes structural well-formedness. -/
+theorem initialState.wellFormed {pool : AddressRange} {a : AddressAllocator}
+    {min_align preferred_align : U64} (h : initialState pool a min_align preferred_align)
+    (hmin : min_align.val.isPowerOfTwo) (hpref : preferred_align.val.isPowerOfTwo)
+    (horder : min_align.val ≤ preferred_align.val) : WellFormed a := by
+  have hv := h.validRegions
+  rcases h with ⟨_, _, _, hminimum, hpreferred⟩
+  exact ⟨hv, by simpa [hminimum] using hmin, by simpa [hpreferred] using hpref,
+    by simpa [hminimum, hpreferred] using horder⟩
 
 private abbrev poolIterator :=
   core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
@@ -71,12 +97,36 @@ private theorem collect_singleton (pool : AddressRange) (h) :
   · simp [he, initialPools]
   · simp [he, collect_empty, initialPools]
 
-/-- With default alignments, construction succeeds even for an empty pool
-    and establishes the exact initial state. -/
+private theorem initial_regions_spec (pool : AddressRange)
+    (h : (initialPools pool).length ≤ Usize.max) :
+    new_from_list_loop { slice := Slice.from (initialPools pool) h, i := 0 } []
+      ⦃ regions => regions = initialPools pool ⦄ := by
+  unfold new_from_list_loop
+  by_cases he : pool.isEmptyModel
+  all_goals
+    simp [initialPools, he]
+    rw [loop.eq_def]
+    simp [new_from_list_loop.body, core.slice.iter.IteratorSliceIter.next,
+      _root_.alloc.collections.btree.set.BTreeSet.insert,
+      _root_.alloc.collections.btree.set.insertList]
+  rw [loop.eq_def]
+  simp
+  rfl
+
+/-- Construction establishes well-formedness and the exact initial state, including
+    custom alignments. Invalid alignment configurations return `BadAlignment`. -/
 @[step]
-theorem new_default_spec (pool : AddressRange) :
-    AddressAllocator.new pool none none ⦃ result =>
-      ∃ a, result = .Ok a ∧ initialState pool a ⦄ := by
+theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) :
+    AddressAllocator.new pool min_align preferred_align ⦃ result =>
+      let minimum := min_align.getD 4#u64
+      let preferred := preferred_align.getD minimum
+      match result with
+      | .Ok a => initialState pool a minimum preferred ∧ WellFormed a
+      | .Err error => error = .BadAlignment ∧
+          ¬(minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧
+            minimum.val ≤ preferred.val) ⦄ := by
+  have hunwrap (x : Option U64) (d : U64) : core.option.Option.unwrap_or x d = x.getD d := by
+    cases x <;> rfl
   unfold AddressAllocator.new AddressAllocator.new_from_list
   simp only [alloc.vec.IntoIteratorVec.into_iter,
     Aeneas.Std.core.iter.traits.iterator.Iterator.filter,
@@ -85,9 +135,8 @@ theorem new_default_spec (pool : AddressRange) :
     alloc.vec.FromIteratorVec.from_iter,
     core.iter.traits.collect.IntoIterator.Blanket.into_iter]
   simp [Array.to_slice, alloc.slice.Slice.into_vec, Array.make,
-    core.option.Option.unwrap_or, lift,
-    core.num.U64.is_power_of_two, UScalar.is_power_of_two,
-    show Nat.isPowerOfTwo 4 from by decide]
+    hunwrap, lift,
+    core.num.U64.is_power_of_two, UScalar.is_power_of_two]
   erw [collect_singleton]
   have hlen : (initialPools pool).length ≤ Usize.max := by
     unfold initialPools
@@ -96,28 +145,29 @@ theorem new_default_spec (pool : AddressRange) :
   simp [hlen, _root_.alloc.collections.btree.set.BTreeSetTGlobal.new,
     core.slice.Slice.iter, alloc.vec.Vec.deref,
     _root_.std.collections.hash.map.HashMapKVRandomStateGlobal.new]
-  unfold new_from_list_loop
-  by_cases h : pool.isEmptyModel
-  all_goals
-    simp [initialPools, h]
-    rw [loop.eq_def]
-    simp [new_from_list_loop.body, core.slice.iter.IteratorSliceIter.next,
-      _root_.alloc.collections.btree.set.BTreeSet.insert,
-      _root_.alloc.collections.btree.set.insertList,
-      initialState, initialPools, h]
-  rw [loop.eq_def]
-  simp
-  rfl
+  generalize hminimum : min_align.getD 4#u64 = minimum
+  generalize hpreferred : preferred_align.getD minimum = preferred
+  split
+  · rename_i hmin
+    have hpos := Nat.pos_of_isPowerOfTwo hmin
+    split
+    · scalar_tac
+    · split
+      · rename_i hpref
+        split
+        · simp_all
+        · rename_i horder
+          step with initial_regions_spec pool hlen as ⟨regions, hregions⟩
+          subst regions
+          refine (fun h : initialState pool _ minimum preferred =>
+            ⟨h, h.wellFormed hmin hpref (Nat.le_of_not_gt horder)⟩) ?_
+          simp [initialState]
+      · simp_all
+  · simp_all
 
 /-- Addresses represented by a list of ranges. -/
 def Covers (rs : List AddressRange) (addr : Nat) : Prop :=
   ∃ r ∈ rs, r.containsModel addr
-
-/-- Initialization establishes the free-region invariant used by updates. -/
-theorem initialState.validRegions {pool : AddressRange} {a : AddressAllocator}
-    (h : initialState pool a) : ValidRegions a.regions := by
-  rw [h.2.2.1]
-  by_cases hn : pool.isEmptyModel <;> simp [initialPools, hn]
 
 private theorem covers_split (rs rest : List AddressRange) (slot range before after : AddressRange)
     (hv : ValidRegions rs) (hslot : slot ∈ rs)
@@ -695,6 +745,33 @@ def AlignedAllocationOutcome (self : AddressAllocator) (size : U64)
     | .Err error => error = .OutOfSpace ∧ a = self ∧
         ¬∃ start, Placement self.regions size.val alignment start
 
+/-- Successful allocation preserves the structural invariant. -/
+theorem AlignedAllocation.wellFormed {self a : AddressAllocator} {size start : U64}
+    {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
+    (h : AlignedAllocation self size allocation tag alignment reverse start a)
+    (hwf : WellFormed self) : WellFormed a := by
+  obtain ⟨range, _, _, _, hmin, hpref, _, hregions, _⟩ := h.2
+  exact ⟨hregions, by simpa [hmin] using hwf.minAlign,
+    by simpa [hpref] using hwf.preferredAlign,
+    by simpa [hmin, hpref] using hwf.alignOrder⟩
+
+/-- Allocation preserves well-formedness on both success and expected errors. -/
+theorem AlignedAllocationOutcome.wellFormed {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
+    {result : core.result.Result U64 resources.Error}
+    (h : AlignedAllocationOutcome self size allocation tag alignment reverse result a)
+    (hwf : WellFormed self) : WellFormed a := by
+  unfold AlignedAllocationOutcome at h
+  split at h
+  · simpa [h.2] using hwf
+  · split at h
+    · simpa [h.2] using hwf
+    · split at h
+      · simpa [h.2] using hwf
+      · cases result with
+        | Ok start => exact h.wellFormed hwf
+        | Err error => simpa [h.2.1] using hwf
+
 /-- The generated continuation after the iterator search. -/
 private noncomputable def allocateFound (self : AddressAllocator) (size : U64) (allocation : resources.Alloc)
     (tag : String) (alignment : U64) (reverse : Bool) (region : Option AddressRange) :
@@ -811,10 +888,7 @@ open scoped Classical in
 /-- The shared two-attempt allocation sequence, parameterized by search direction. -/
 private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (reverse : Bool)
-    (hv : ValidRegions self.regions)
-    (hmin : self.min_align.val.isPowerOfTwo)
-    (hpref : self.preferred_align.val.isPowerOfTwo)
-    (horder : self.min_align.val ≤ self.preferred_align.val)
+    (hwf : WellFormed self)
     -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
     -- and regenerating Lean.
     (hsearch : reverse = false →
@@ -836,6 +910,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
           then self.preferred_align.val else self.min_align.val
         AlignedAllocationOutcome self size allocation tag alignment reverse result a ⦄ := by
   classical
+  rcases hwf with ⟨hv, hmin, hpref, horder⟩
   have hdvd : self.min_align.val ∣ self.preferred_align.val := by
     obtain ⟨m, hm⟩ := hmin
     obtain ⟨p, hp⟩ := hpref
@@ -885,7 +960,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
 @[step]
 theorem allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64)
-    (hv : ValidRegions self.regions)
+    (hwf : WellFormed self)
     -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
     -- and regenerating Lean.
     (hsearch : ∀ slot ∈ self.regions,
@@ -898,28 +973,30 @@ theorem allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (hend : ∀ start, Placement self.regions size.val
       (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
     allocate_with_align self size allocation tag alignment ⦃ result a =>
-      AlignedAllocationOutcome self size allocation tag
+      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag
         (max self.min_align.val alignment.val) false result a ⦄ := by
   unfold allocate_with_align
-  exact internal_allocate_with_align_spec self size allocation tag alignment false hv
-    (fun _ => hsearch) (fun _ => hstart) hend
+  step with internal_allocate_with_align_spec self size allocation tag alignment false hwf.validRegions
+    (fun _ => hsearch) (fun _ => hstart) hend as ⟨result, a, hresult⟩
+  exact ⟨hresult.wellFormed hwf, hresult⟩
 
 /-- Explicit-alignment reverse allocation chooses the highest feasible address.
     Expected errors preserve the allocator. -/
 @[step]
 theorem reverse_allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64)
-    (hv : ValidRegions self.regions)
+    (hwf : WellFormed self)
     -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
     -- and regenerating Lean.
     (hend : ∀ start, Placement self.regions size.val
       (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
     reverse_allocate_with_align self size allocation tag alignment ⦃ result a =>
-      AlignedAllocationOutcome self size allocation tag
+      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag
         (max self.min_align.val alignment.val) true result a ⦄ := by
   unfold reverse_allocate_with_align
-  exact internal_allocate_with_align_spec self size allocation tag alignment true hv
-    (by simp) (by simp) hend
+  step with internal_allocate_with_align_spec self size allocation tag alignment true hwf.validRegions
+    (by simp) (by simp) hend as ⟨result, a, hresult⟩
+  exact ⟨hresult.wellFormed hwf, hresult⟩
 
 open scoped Classical in
 /-- Prefer the lowest address admitting the preferred alignment; use the minimum
@@ -927,10 +1004,7 @@ open scoped Classical in
     satisfy the constructor's requirements. Expected errors preserve the allocator. -/
 @[step]
 theorem allocate_spec (self : AddressAllocator) (size : U64)
-    (allocation : resources.Alloc) (tag : String) (hv : ValidRegions self.regions)
-    (hmin : self.min_align.val.isPowerOfTwo)
-    (hpref : self.preferred_align.val.isPowerOfTwo)
-    (horder : self.min_align.val ≤ self.preferred_align.val)
+    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self)
     -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
     -- and regenerating Lean.
     (hsearch : ∀ alignment ∈ [self.preferred_align.val, self.min_align.val],
@@ -945,11 +1019,13 @@ theorem allocate_spec (self : AddressAllocator) (size : U64)
     allocate self size allocation tag ⦃ result a =>
       let alignment := if ∃ start, Placement self.regions size.val self.preferred_align.val start
         then self.preferred_align.val else self.min_align.val
-      AlignedAllocationOutcome self size allocation tag alignment false result a ⦄ := by
+      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag alignment false result a ⦄ := by
   unfold allocate allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
-  exact allocate_preferred_spec self size allocation tag false hv hmin hpref horder
-    (fun _ => hsearch) (fun _ => hstart) hend
+  apply WP.spec_mono (allocate_preferred_spec self size allocation tag false hwf
+    (fun _ => hsearch) (fun _ => hstart) hend)
+  rintro ⟨result, a⟩ hresult
+  exact ⟨hresult.wellFormed hwf, hresult⟩
 
 open scoped Classical in
 /-- Prefer the highest address admitting the preferred alignment; use the minimum
@@ -957,10 +1033,7 @@ open scoped Classical in
     satisfy the constructor's requirements. Expected errors preserve the allocator. -/
 @[step]
 theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
-    (allocation : resources.Alloc) (tag : String) (hv : ValidRegions self.regions)
-    (hmin : self.min_align.val.isPowerOfTwo)
-    (hpref : self.preferred_align.val.isPowerOfTwo)
-    (horder : self.min_align.val ≤ self.preferred_align.val)
+    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self)
     -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
     -- and regenerating Lean.
     (hend : ∀ start, Placement self.regions size.val self.min_align.val start →
@@ -968,10 +1041,12 @@ theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
     reverse_allocate self size allocation tag ⦃ result a =>
       let alignment := if ∃ start, Placement self.regions size.val self.preferred_align.val start
         then self.preferred_align.val else self.min_align.val
-      AlignedAllocationOutcome self size allocation tag alignment true result a ⦄ := by
+      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag alignment true result a ⦄ := by
   unfold reverse_allocate reverse_allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
-  exact allocate_preferred_spec self size allocation tag true hv hmin hpref horder
-    (by simp) (by simp) hend
+  apply WP.spec_mono (allocate_preferred_spec self size allocation tag true hwf
+    (by simp) (by simp) hend)
+  rintro ⟨result, a⟩ hresult
+  exact ⟨hresult.wellFormed hwf, hresult⟩
 
 end resources.address_allocator.AddressAllocator
