@@ -546,6 +546,13 @@ def Placement (rs : List AddressRange) (size alignment start : Nat) : Prop :=
   ∃ slot ∈ rs, slot.start.val ≤ start ∧ start % alignment = 0 ∧
     start + (size - 1) ≤ slot.end.val
 
+/-- A placement also satisfies any alignment dividing its original alignment. -/
+theorem Placement.of_dvd {rs : List AddressRange} {size alignment start smaller : Nat}
+    (h : Placement rs size alignment start) (hd : smaller ∣ alignment) :
+    Placement rs size smaller start := by
+  obtain ⟨slot, hm, hs, ha, he⟩ := h
+  exact ⟨slot, hm, hs, Nat.mod_eq_zero_of_dvd (hd.trans (Nat.dvd_of_mod_eq_zero ha)), he⟩
+
 /-- Forward allocation chooses the lowest possible address; reverse chooses the highest. -/
 def BestPlacement (rs : List AddressRange) (size alignment : Nat) (reverse : Bool)
     (start : Nat) : Prop :=
@@ -797,5 +804,79 @@ theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
           as ⟨result, a, hresult⟩
         simpa [AlignedAllocationOutcome, hfresh, Nat.ne_of_gt hs, ← heffective, ha] using hresult
       · simp_all [AlignedAllocationOutcome, Nat.ne_of_gt hs]
+
+/-! ### Public reverse allocation -/
+
+/-- Explicit-alignment reverse allocation chooses the highest feasible address.
+    Expected errors preserve the allocator. -/
+@[step]
+theorem reverse_allocate_with_align_spec (self : AddressAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (alignment : U64)
+    (hv : ValidRegions self.regions)
+    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
+    -- and regenerating Lean.
+    (hend : ∀ start, Placement self.regions size.val
+      (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
+    reverse_allocate_with_align self size allocation tag alignment ⦃ result a =>
+      AlignedAllocationOutcome self size allocation tag
+        (max self.min_align.val alignment.val) true result a ⦄ := by
+  unfold reverse_allocate_with_align
+  exact internal_allocate_with_align_spec self size allocation tag alignment true hv
+    (by simp) (by simp) hend
+
+open scoped Classical in
+/-- Prefer the highest address admitting the preferred alignment; use the minimum
+    alignment only if no preferred-alignment placement exists. Both alignments
+    satisfy the constructor's requirements. Expected errors preserve the allocator. -/
+@[step]
+theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (hv : ValidRegions self.regions)
+    (hmin : self.min_align.val.isPowerOfTwo)
+    (hpref : self.preferred_align.val.isPowerOfTwo)
+    (horder : self.min_align.val ≤ self.preferred_align.val)
+    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
+    -- and regenerating Lean.
+    (hend : ∀ start, Placement self.regions size.val self.min_align.val start →
+      start + size.val ≤ U64.max) :
+    reverse_allocate self size allocation tag ⦃ result a =>
+      let alignment := if ∃ start, Placement self.regions size.val self.preferred_align.val start
+        then self.preferred_align.val else self.min_align.val
+      AlignedAllocationOutcome self size allocation tag alignment true result a ⦄ := by
+  classical
+  have hdvd : self.min_align.val ∣ self.preferred_align.val := by
+    obtain ⟨m, hm⟩ := hmin
+    obtain ⟨p, hp⟩ := hpref
+    rw [hm, hp] at horder ⊢
+    exact Nat.pow_dvd_pow 2 ((Nat.pow_le_pow_iff_right (by decide)).mp horder)
+  have hmax := max_eq_right horder
+  unfold reverse_allocate
+  simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
+  step with reverse_allocate_with_align_spec self size allocation tag self.preferred_align hv
+    (by simpa only [hmax] using fun start h => hend start (h.of_dvd hdvd))
+    as ⟨result, a, hfirst⟩
+  cases result with
+  | Ok start =>
+    have hsuccess : AlignedAllocation self size allocation tag self.preferred_align.val true start a := by
+      simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
+      split_ifs at hfirst <;> simp_all
+    have hfits : ∃ candidate, Placement self.regions size.val self.preferred_align.val candidate :=
+      ⟨start.val, hsuccess.1.1⟩
+    simpa only [hfits, ↓reduceIte, WP.spec_ok, WP.uncurry', hmax] using hfirst
+  | Err error =>
+    have hself : a = self := by
+      simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
+      split_ifs at hfirst <;> tauto
+    subst a
+    step with reverse_allocate_with_align_spec self size allocation tag self.min_align hv
+      (by simpa only [max_self] using hend) as ⟨result, a, hsecond⟩
+    by_cases hk : allocation ∈ self.allocs
+    · simpa [AlignedAllocationOutcome, hk] using hsecond
+    by_cases hz : size.val = 0
+    · simpa [AlignedAllocationOutcome, hk, hz] using hsecond
+    have hno : ¬∃ start, Placement self.regions size.val self.preferred_align.val start := by
+      simp only [AlignedAllocationOutcome, hmax, if_neg hk, if_neg hz,
+        hpref, not_true_eq_false, ↓reduceIte] at hfirst
+      exact hfirst.2.2
+    simpa only [hno, ↓reduceIte, max_self] using hsecond
 
 end resources.address_allocator.AddressAllocator

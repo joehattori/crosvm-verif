@@ -17,6 +17,11 @@ open resources
 
 noncomputable instance : DecidableEq resources.Alloc := Classical.decEq _
 
+/-- Cloning preserves string contents; storage allocation is abstracted away. -/
+@[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
+def alloc.string.String.Insts.CoreCloneClone.clone (self : String) : Result String :=
+  ok self
+
 /-- [core::cmp::{impl core::cmp::PartialEq<core::cmp::Ordering> for core::cmp::Ordering}::eq]:
     Source: '/rustc/library/core/src/cmp.rs', lines 413:43-413:52
     Name pattern: [core::cmp::{core::cmp::PartialEq<core::cmp::Ordering, core::cmp::Ordering>}::eq]

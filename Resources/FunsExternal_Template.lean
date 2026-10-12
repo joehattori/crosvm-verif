@@ -305,3 +305,10 @@ axiom
   alloc.collections.btree.set.Iter T → Result ((Option T) ×
     (alloc.collections.btree.set.Iter T))
 
+/-- [alloc::string::{impl core::clone::Clone for alloc::string::String}::clone]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 2425:4-2425:27
+    Name pattern: [alloc::string::{core::clone::Clone<alloc::string::String>}::clone]
+    Visibility: public -/
+@[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
+axiom alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
+

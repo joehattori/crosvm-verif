@@ -2,11 +2,12 @@
 
 - [AddressRange](AddressRange/Spec.lean): extracted range operations.
 - [AddressAllocator](AddressAllocator/Spec.lean): construction with default
-  alignments, `internal_allocate_from_slot`, and `internal_allocate_with_align`
-  in both directions, subject to the stated free-region and arithmetic assumptions.
+  alignments, `internal_allocate_from_slot`, `internal_allocate_with_align` in
+  both directions, and `reverse_allocate` / `reverse_allocate_with_align`,
+  subject to the stated free-region, alignment, and arithmetic assumptions.
 
-Custom constructor alignments, public allocation wrappers, release, and a full
-allocator lifetime invariant remain unverified.
+Custom constructor alignments, forward allocation wrappers, fixed-address
+allocation, release, and a full allocator lifetime invariant remain unverified.
 
 # Assumptions and limitations
 
