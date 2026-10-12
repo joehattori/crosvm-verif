@@ -1,6 +1,6 @@
 # Verification scope
 
-- [AddressRange](AddressRangeSpec.lean): extracted range operations.
+- [AddressRange](AddressRange/Spec.lean): extracted range operations.
 - [AddressAllocator](AddressAllocator/Spec.lean): construction with default
   alignments, `internal_allocate_from_slot`, and `internal_allocate_with_align`
   in both directions, subject to the stated free-region and arithmetic assumptions.

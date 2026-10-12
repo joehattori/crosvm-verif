@@ -1,5 +1,5 @@
 module
-public import Resources.AddressRangeSpec
+public import Resources.AddressRange.Spec
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open resources.address_range

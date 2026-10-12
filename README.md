@@ -22,7 +22,7 @@ make verify
 # Equivalent: lake build
 
 # Check one proof file during development, with its imports already built.
-lake env lean Resources/AddressRangeSpec.lean
+lake env lean Resources/AddressRange/Spec.lean
 ```
 
 `make` defaults to verification. It checks the existing Lean translation without

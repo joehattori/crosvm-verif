@@ -14,7 +14,7 @@ duplicating them here.
 | [Resources/Types.lean](Resources/Types.lean), [Resources/Funs.lean](Resources/Funs.lean) | Generated types and functions. |
 | [Resources/TypesExternal_Template.lean](Resources/TypesExternal_Template.lean), [Resources/FunsExternal_Template.lean](Resources/FunsExternal_Template.lean) | Generated declarations for missing external models. |
 | [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
-| [Resources/AddressRangeSpec.lean](Resources/AddressRangeSpec.lean) | Mathematical predicates and proofs for address ranges. |
+| [Resources/AddressRange/Spec.lean](Resources/AddressRange/Spec.lean) | Mathematical predicates and proofs for address ranges. |
 | [Resources/AddressAllocator/Collections.lean](Resources/AddressAllocator/Collections.lean) | Free-region invariant, key equality, and collection operation proofs. |
 | [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including alignment arithmetic and ordered search. |
 | [Resources/README.md](Resources/README.md) | Verification outline, model assumptions, and extraction prerequisites. |
