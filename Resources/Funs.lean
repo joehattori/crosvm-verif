@@ -979,6 +979,37 @@ def address_allocator.AddressAllocator.reverse_allocate
     address_allocator.AddressAllocator.reverse_allocate_with_align self1 size
       alloc1 tag self1.min_align
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_with_align]:
+    Source: 'resources/src/address_allocator.rs', lines 213:4-221:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.allocate_with_align
+  (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
+  (tag : String) (alignment : Std.U64) :
+  Result ((core.result.Result Std.U64 Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  address_allocator.AddressAllocator.internal_allocate_with_align self size
+    alloc1 tag alignment false
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate]:
+    Source: 'resources/src/address_allocator.rs', lines 223:4-230:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.allocate
+  (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
+  (tag : String) :
+  Result ((core.result.Result Std.U64 Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let s ← alloc.string.String.Insts.CoreCloneClone.clone tag
+  let (r, self1) ←
+    address_allocator.AddressAllocator.allocate_with_align self size alloc1 s
+      self.preferred_align
+  match r with
+  | core.result.Result.Ok _ => ok (r, self1)
+  | core.result.Result.Err _ =>
+    address_allocator.AddressAllocator.allocate_with_align self1 size alloc1
+      tag self1.min_align
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]
