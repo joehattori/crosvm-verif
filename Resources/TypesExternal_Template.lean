@@ -75,3 +75,10 @@ axiom alloc.collections.btree.set.BTreeSet (T : Type) (A : Type) : Type
 @[rust_type "alloc::collections::btree::set::Iter"]
 axiom alloc.collections.btree.set.Iter (T : Type) : Type
 
+/-- [alloc::collections::btree::set::Range]
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 170:0-170:27
+    Name pattern: [alloc::collections::btree::set::Range]
+    Visibility: public -/
+@[rust_type "alloc::collections::btree::set::Range"]
+axiom alloc.collections.btree.set.Range (T : Type) : Type
+

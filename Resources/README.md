@@ -2,8 +2,9 @@
 
 - [AddressRange](AddressRange/Spec.lean): extracted range operations.
 - [AddressAllocator](AddressAllocator/Spec.lean): single-pool construction,
-  slot allocation, fixed-address allocation, and forward/reverse allocation with
-  explicit alignment or preferred-alignment fallback,
+  slot allocation, free-region insertion with neighbor coalescing, fixed-address
+  allocation, and forward/reverse allocation with explicit alignment or
+  preferred-alignment fallback,
   subject to the stated well-formedness and arithmetic assumptions.
 
 Multi-pool construction, release, and full accounting

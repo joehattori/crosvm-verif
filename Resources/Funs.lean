@@ -32,6 +32,28 @@ def core.borrow.Borrow.Blanket (T : Type) : core.borrow.Borrow T T := {
   borrow := core.borrow.Borrow.Blanket.borrow
 }
 
+/-- Trait implementation: [core::cmp::impls::{impl core::cmp::Eq for &'_0 A}]
+    Source: '/rustc/library/core/src/cmp.rs', lines 2525:4-2525:61
+    Name pattern: [core::cmp::Eq<&'0 @A>] -/
+@[reducible, rust_trait_impl "core::cmp::Eq<&'0 @A>"]
+impl_def Shared0A.Insts.CoreCmpEq {A : Type} (EqInst : core.cmp.Eq A) :
+  core.cmp.Eq A := {
+  partialEqInst := core.cmp.PartialEqShared EqInst.partialEqInst
+  assert_fields_are_eq := core.cmp.Eq.assert_fields_are_eq.default
+    (Shared0A.Insts.CoreCmpEq EqInst)
+}
+
+/-- Trait implementation: [core::cmp::impls::{impl core::cmp::Ord for &'_0 A}]
+    Source: '/rustc/library/core/src/cmp.rs', lines 2514:4-2516:23
+    Name pattern: [core::cmp::Ord<&'0 @A>] -/
+@[reducible, rust_trait_impl "core::cmp::Ord<&'0 @A>"]
+def Shared0A.Insts.CoreCmpOrd {A : Type} (OrdInst : core.cmp.Ord A) :
+  core.cmp.Ord A := {
+  eqInst := Shared0A.Insts.CoreCmpEq OrdInst.eqInst
+  partialOrdInst := core.cmp.PartialOrdShared OrdInst.partialOrdInst
+  cmp := Shared0A.Insts.CoreCmpOrd.cmp OrdInst
+}
+
 /-- Trait implementation: [core::fmt::num::{impl core::fmt::LowerHex for u64}]
     Source: '/rustc/library/core/src/fmt/num.rs', lines 12:8-12:38
     Name pattern: [core::fmt::LowerHex<u64>] -/
@@ -54,6 +76,18 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
   next :=
     core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
+}
+
+/-- Trait implementation: [core::ops::range::{impl core::ops::range::RangeBounds<T> for (core::ops::range::Bound<T>, core::ops::range::Bound<T>)}]
+    Source: '/rustc/library/core/src/ops/range.rs', lines 1193:0-1193:53
+    Name pattern: [core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>] -/
+@[reducible, rust_trait_impl
+  "core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>"]
+def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
+  core.ops.range.RangeBounds ((core.ops.range.Bound T) × (core.ops.range.Bound
+  T)) T := {
+  start_bound := PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
+  end_bound := PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
 }
 
 /-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
@@ -1259,6 +1293,239 @@ def address_allocator.AddressAllocator.allocate_at
             core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
               Unit (core.convert.FromSame Error) residual
           ok (r1, self1)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::insert_at]:
+    Source: 'resources/src/address_allocator.rs', lines 311:4-369:5 -/
+def address_allocator.AddressAllocator.insert_at
+  (self : address_allocator.AddressAllocator)
+  (slot : address_range.AddressRange) :
+  Result ((core.result.Result Unit Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let b ← address_range.AddressRange.is_empty slot
+  if b
+  then ok (core.result.Result.Err Error.AllocSizeZero, self)
+  else
+    let r ←
+      alloc.collections.btree.set.BTreeSet.range
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+        address_range.AddressRange.Insts.CoreCmpOrd (core.borrow.Borrow.Blanket
+        address_range.AddressRange) address_range.AddressRange.Insts.CoreCmpOrd
+        (PairBoundBound.Insts.CoreOpsRangeRangeBounds
+        address_range.AddressRange) self.regions
+        (core.ops.range.Bound.Unbounded, core.ops.range.Bound.Included slot)
+    let o ←
+      alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+        (Shared0A.Insts.CoreCmpOrd address_range.AddressRange.Insts.CoreCmpOrd)
+        r
+    match o with
+    | none =>
+      let r1 ←
+        alloc.collections.btree.set.BTreeSet.range
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+          address_range.AddressRange.Insts.CoreCmpOrd
+          (core.borrow.Borrow.Blanket address_range.AddressRange)
+          address_range.AddressRange.Insts.CoreCmpOrd
+          (PairBoundBound.Insts.CoreOpsRangeRangeBounds
+          address_range.AddressRange) self.regions
+          (core.ops.range.Bound.Excluded slot, core.ops.range.Bound.Unbounded)
+      let o1 ←
+        alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+          (Shared0A.Insts.CoreCmpOrd
+          address_range.AddressRange.Insts.CoreCmpOrd) r1
+      match o1 with
+      | none =>
+        let (_, bs) ←
+          alloc.collections.btree.set.BTreeSet.insert
+            alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+            address_range.AddressRange.Insts.CoreCmpOrd self.regions slot
+        ok (core.result.Result.Ok (), { self with regions := bs })
+      | some larger =>
+        let o2 ← lift (U64.checked_sub larger.start 1#u64)
+        let r2 ← core.option.Option.ok_or o2 (Error.RegionOverlap slot)
+        let cf ← core.result.Result.Insts.CoreOpsTry.branch r2
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue val =>
+          let o3 ← lift (core.cmp.impls.OrdU64.cmp slot.end val)
+          match o3 with
+          | Ordering.lt =>
+            let (_, bs) ←
+              alloc.collections.btree.set.BTreeSet.insert
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                address_range.AddressRange.Insts.CoreCmpOrd self.regions slot
+            ok (core.result.Result.Ok (), { self with regions := bs })
+          | Ordering.eq =>
+            let (_, bs) ←
+              alloc.collections.btree.set.BTreeSet.remove
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                (core.borrow.Borrow.Blanket address_range.AddressRange)
+                address_range.AddressRange.Insts.CoreCmpOrd
+                address_range.AddressRange.Insts.CoreCmpOrd self.regions larger
+            let (_, bs1) ←
+              alloc.collections.btree.set.BTreeSet.insert
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                address_range.AddressRange.Insts.CoreCmpOrd bs
+                { slot with «end» := larger.end }
+            ok (core.result.Result.Ok (), { self with regions := bs1 })
+          | Ordering.gt =>
+            ok (core.result.Result.Err (Error.RegionOverlap slot), self)
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          let r3 ←
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              Unit (core.convert.FromSame Error) residual
+          ok (r3, self)
+    | some smaller =>
+      let o1 ← lift (U64.checked_add smaller.end 1#u64)
+      let r1 ← core.option.Option.ok_or o1 (Error.RegionOverlap slot)
+      let cf ← core.result.Result.Insts.CoreOpsTry.branch r1
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        let o2 ← lift (core.cmp.impls.OrdU64.cmp val slot.start)
+        match o2 with
+        | Ordering.lt =>
+          let r2 ←
+            alloc.collections.btree.set.BTreeSet.range
+              alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+              address_range.AddressRange.Insts.CoreCmpOrd
+              (core.borrow.Borrow.Blanket address_range.AddressRange)
+              address_range.AddressRange.Insts.CoreCmpOrd
+              (PairBoundBound.Insts.CoreOpsRangeRangeBounds
+              address_range.AddressRange) self.regions
+              (core.ops.range.Bound.Excluded slot,
+              core.ops.range.Bound.Unbounded)
+          let o3 ←
+            alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+              (Shared0A.Insts.CoreCmpOrd
+              address_range.AddressRange.Insts.CoreCmpOrd) r2
+          match o3 with
+          | none =>
+            let (_, bs) ←
+              alloc.collections.btree.set.BTreeSet.insert
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                address_range.AddressRange.Insts.CoreCmpOrd self.regions slot
+            ok (core.result.Result.Ok (), { self with regions := bs })
+          | some larger =>
+            let o4 ← lift (U64.checked_sub larger.start 1#u64)
+            let r3 ← core.option.Option.ok_or o4 (Error.RegionOverlap slot)
+            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            match cf1 with
+            | core.ops.control_flow.ControlFlow.Continue val1 =>
+              let o5 ← lift (core.cmp.impls.OrdU64.cmp slot.end val1)
+              match o5 with
+              | Ordering.lt =>
+                let (_, bs) ←
+                  alloc.collections.btree.set.BTreeSet.insert
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    address_range.AddressRange.Insts.CoreCmpOrd self.regions
+                    slot
+                ok (core.result.Result.Ok (), { self with regions := bs })
+              | Ordering.eq =>
+                let (_, bs) ←
+                  alloc.collections.btree.set.BTreeSet.remove
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    (core.borrow.Borrow.Blanket address_range.AddressRange)
+                    address_range.AddressRange.Insts.CoreCmpOrd
+                    address_range.AddressRange.Insts.CoreCmpOrd self.regions
+                    larger
+                let (_, bs1) ←
+                  alloc.collections.btree.set.BTreeSet.insert
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    address_range.AddressRange.Insts.CoreCmpOrd bs
+                    { slot with «end» := larger.end }
+                ok (core.result.Result.Ok (), { self with regions := bs1 })
+              | Ordering.gt =>
+                ok (core.result.Result.Err (Error.RegionOverlap slot), self)
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              let r4 ←
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  Unit (core.convert.FromSame Error) residual
+              ok (r4, self)
+        | Ordering.eq =>
+          let r2 ←
+            alloc.collections.btree.set.BTreeSet.range
+              alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+              address_range.AddressRange.Insts.CoreCmpOrd
+              (core.borrow.Borrow.Blanket address_range.AddressRange)
+              address_range.AddressRange.Insts.CoreCmpOrd
+              (PairBoundBound.Insts.CoreOpsRangeRangeBounds
+              address_range.AddressRange) self.regions
+              (core.ops.range.Bound.Excluded slot,
+              core.ops.range.Bound.Unbounded)
+          let o3 ←
+            alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+              (Shared0A.Insts.CoreCmpOrd
+              address_range.AddressRange.Insts.CoreCmpOrd) r2
+          match o3 with
+          | none =>
+            let (_, bs) ←
+              alloc.collections.btree.set.BTreeSet.remove
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                (core.borrow.Borrow.Blanket address_range.AddressRange)
+                address_range.AddressRange.Insts.CoreCmpOrd
+                address_range.AddressRange.Insts.CoreCmpOrd self.regions
+                smaller
+            let (_, bs1) ←
+              alloc.collections.btree.set.BTreeSet.insert
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                address_range.AddressRange.Insts.CoreCmpOrd bs
+                { slot with start := smaller.start }
+            ok (core.result.Result.Ok (), { self with regions := bs1 })
+          | some larger =>
+            let o4 ← lift (U64.checked_sub larger.start 1#u64)
+            let r3 ← core.option.Option.ok_or o4 (Error.RegionOverlap slot)
+            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            match cf1 with
+            | core.ops.control_flow.ControlFlow.Continue val1 =>
+              let o5 ← lift (core.cmp.impls.OrdU64.cmp slot.end val1)
+              match o5 with
+              | Ordering.lt =>
+                let (_, bs) ←
+                  alloc.collections.btree.set.BTreeSet.remove
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    (core.borrow.Borrow.Blanket address_range.AddressRange)
+                    address_range.AddressRange.Insts.CoreCmpOrd
+                    address_range.AddressRange.Insts.CoreCmpOrd self.regions
+                    smaller
+                let (_, bs1) ←
+                  alloc.collections.btree.set.BTreeSet.insert
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    address_range.AddressRange.Insts.CoreCmpOrd bs
+                    { slot with start := smaller.start }
+                ok (core.result.Result.Ok (), { self with regions := bs1 })
+              | Ordering.eq =>
+                let (_, bs) ←
+                  alloc.collections.btree.set.BTreeSet.remove
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    (core.borrow.Borrow.Blanket address_range.AddressRange)
+                    address_range.AddressRange.Insts.CoreCmpOrd
+                    address_range.AddressRange.Insts.CoreCmpOrd self.regions
+                    smaller
+                let (_, bs1) ←
+                  alloc.collections.btree.set.BTreeSet.remove
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    (core.borrow.Borrow.Blanket address_range.AddressRange)
+                    address_range.AddressRange.Insts.CoreCmpOrd
+                    address_range.AddressRange.Insts.CoreCmpOrd bs larger
+                let (_, bs2) ←
+                  alloc.collections.btree.set.BTreeSet.insert
+                    alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+                    address_range.AddressRange.Insts.CoreCmpOrd bs1
+                    { smaller with «end» := larger.end }
+                ok (core.result.Result.Ok (), { self with regions := bs2 })
+              | Ordering.gt =>
+                ok (core.result.Result.Err (Error.RegionOverlap slot), self)
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              let r4 ←
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  Unit (core.convert.FromSame Error) residual
+              ok (r4, self)
+        | Ordering.gt =>
+          ok (core.result.Result.Err (Error.RegionOverlap slot), self)
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        let r2 ←
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            Unit (core.convert.FromSame Error) residual
+        ok (r2, self)
 
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/

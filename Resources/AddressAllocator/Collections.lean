@@ -233,4 +233,130 @@ theorem insertRemainder_spec (rs : List AddressRange) (r : AddressRange)
     step with insert_region_spec rs r hv hn (hd hn)
     simp_all
 
+/-- The adjacent entry on one side of the Rust comparator cut at `slot`.
+    `lower = true` selects the greatest entry at most `slot`; false selects
+    the least entry strictly greater than it. -/
+def Neighbor (rs : List AddressRange) (slot : AddressRange) (lower : Bool)
+    (found : Option AddressRange) : Prop :=
+  let side := fun r => if lower then ¬slot.ltModel r else slot.ltModel r
+  match found with
+  | none => ∀ r ∈ rs, ¬side r
+  | some r => r ∈ rs ∧ side r ∧ ∀ s ∈ rs, side s →
+      s = r ∨ (if lower then s.end.val < r.start.val else r.end.val < s.start.val)
+
+/-- The bounded query and extremum used by `insert_at`. -/
+def neighbor (rs : List AddressRange) (slot : AddressRange) (lower : Bool) :
+    Result (Option AddressRange) := do
+  let query := if lower then (.Unbounded, .Included slot) else (.Excluded slot, .Unbounded)
+  let entries ← _root_.alloc.collections.btree.set.BTreeSet.range
+    resources.alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+    AddressRange.Insts.CoreCmpOrd (resources.core.borrow.Borrow.Blanket AddressRange)
+    AddressRange.Insts.CoreCmpOrd (resources.PairBoundBound.Insts.CoreOpsRangeRangeBounds AddressRange)
+    rs query
+  if lower then
+    _root_.alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+      (resources.Shared0A.Insts.CoreCmpOrd AddressRange.Insts.CoreCmpOrd) entries
+  else
+    _root_.alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+      (resources.Shared0A.Insts.CoreCmpOrd AddressRange.Insts.CoreCmpOrd) entries
+
+private theorem rangeList_sides_spec (rs : List AddressRange) (slot : AddressRange) (lower : Bool)
+    (hv : ValidRegions rs) (hn : ¬slot.isEmptyModel) :
+    _root_.alloc.collections.btree.set.rangeList
+      (resources.core.borrow.Borrow.Blanket AddressRange) AddressRange.Insts.CoreCmpOrd
+      (if lower then .Unbounded else .Excluded slot)
+      (if lower then .Included slot else .Unbounded) rs ⦃ entries =>
+        entries = rs.filter (fun r => decide (if lower then ¬slot.ltModel r else slot.ltModel r)) ⦄ := by
+  induction rs with
+  | nil => simp [_root_.alloc.collections.btree.set.rangeList]
+  | cons head tail ih =>
+    have hh := hv.1 head (by simp)
+    have ht := ((validRegions_cons _ _).mp hv).2.1
+    cases lower <;>
+      simp only [Bool.false_eq_true, ↓reduceIte,
+        _root_.alloc.collections.btree.set.rangeList, resources.core.borrow.Borrow.Blanket,
+        _root_.core.borrow.Borrow.Blanket.borrow, _root_.alloc.collections.btree.set.boundAllows, bind_ok]
+    all_goals
+      step with AddressRange.cmp_nonempty_spec head slot hh hn as ⟨o, heq, hlt, hgt⟩
+      have htail := ih ht
+      simp only [Bool.false_eq_true, ↓reduceIte, resources.core.borrow.Borrow.Blanket] at htail
+      step with htail as ⟨entries, hentries⟩
+      cases o <;> simp_all [List.filter_cons, AddressRange.ltModel] <;> omega
+
+private theorem validRegions_filter (rs : List AddressRange) (p : AddressRange → Bool)
+    (hv : ValidRegions rs) : ValidRegions (rs.filter p) :=
+  ⟨fun r hr => hv.1 r (List.mem_filter.mp hr).1, hv.2.filter p⟩
+
+private theorem validRegions_head (rs : List AddressRange) (hv : ValidRegions rs) :
+    match rs.head? with
+    | none => rs = []
+    | some r => r ∈ rs ∧ ∀ s ∈ rs, s = r ∨ r.end.val < s.start.val := by
+  cases rs with
+  | nil => rfl
+  | cons r rs =>
+    refine ⟨by simp, ?_⟩
+    intro s hs
+    rcases List.mem_cons.mp hs with rfl | hs
+    · exact Or.inl rfl
+    · exact Or.inr (((validRegions_cons _ _).mp hv).2.2 s hs)
+
+private theorem validRegions_last (rs : List AddressRange) (hv : ValidRegions rs) :
+    match rs.getLast? with
+    | none => rs = []
+    | some r => r ∈ rs ∧ ∀ s ∈ rs, s = r ∨ s.end.val < r.start.val := by
+  induction rs with
+  | nil => rfl
+  | cons head tail ih =>
+    cases tail with
+    | nil => simp
+    | cons x xs =>
+      have ht := ((validRegions_cons _ _).mp hv).2.1
+      have hsep := ((validRegions_cons _ _).mp hv).2.2
+      have h := ih ht
+      simp only [List.getLast?_cons_cons]
+      cases he : (x :: xs).getLast? with
+      | none => simp [he] at h
+      | some r =>
+        simp only [he] at h ⊢
+        refine ⟨by simp [h.1], ?_⟩
+        intro s hs
+        rcases List.mem_cons.mp hs with rfl | hs
+        · exact Or.inr (hsep r h.1)
+        · exact h.2 s hs
+
+@[step]
+theorem neighbor_spec (rs : List AddressRange) (slot : AddressRange) (lower : Bool)
+    (hv : ValidRegions rs) (hn : ¬slot.isEmptyModel) :
+    neighbor rs slot lower ⦃ found => Neighbor rs slot lower found ⦄ := by
+  have hfilter := rangeList_sides_spec rs slot lower hv hn
+  unfold neighbor
+  simp only [_root_.alloc.collections.btree.set.BTreeSet.range,
+    _root_.PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound,
+    _root_.PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound]
+  cases lower <;> simp only [Bool.false_eq_true, ↓reduceIte,
+    _root_.alloc.collections.btree.set.checkBounds, bind_ok] at hfilter ⊢
+  all_goals
+    step with hfilter as ⟨entries, he⟩
+    subst entries
+    simp only [_root_.alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min,
+      _root_.alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max, WP.spec_ok]
+  · have h := validRegions_head _ (validRegions_filter rs (fun r => decide (slot.ltModel r)) hv)
+    cases he : (rs.filter (fun r => decide (slot.ltModel r))).head? with
+    | none =>
+      simp only [he] at h ⊢
+      simpa [Neighbor] using (List.filter_eq_nil_iff.mp h)
+    | some r =>
+      simp only [he] at h ⊢
+      simp only [List.mem_filter, decide_eq_true_eq] at h
+      exact ⟨h.1.1, h.1.2, fun s hs hp => h.2 s ⟨hs, hp⟩⟩
+  · have h := validRegions_last _ (validRegions_filter rs (fun r => decide (¬slot.ltModel r)) hv)
+    cases he : (rs.filter (fun r => decide (¬slot.ltModel r))).getLast? with
+    | none =>
+      simp only [he] at h ⊢
+      simpa [Neighbor] using (List.filter_eq_nil_iff.mp h)
+    | some r =>
+      simp only [he] at h ⊢
+      simp only [List.mem_filter, decide_eq_true_eq] at h
+      exact ⟨h.1.1, h.1.2, fun s hs hp => h.2 s ⟨hs, hp⟩⟩
+
 end resources.address_allocator.AddressAllocator

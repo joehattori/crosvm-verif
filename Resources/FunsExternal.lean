@@ -294,3 +294,84 @@ def alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEnded
   match self.reverse with
   | [] => ok (none, [])
   | x :: xs => ok (some x, xs.reverse)
+
+@[rust_fun "core::cmp::impls::{core::cmp::Ord<&'0 @A>}::cmp"]
+def Shared0A.Insts.CoreCmpOrd.cmp {A : Type} (ord : core.cmp.Ord A)
+    (x y : A) : Result Ordering := ord.cmp x y
+
+@[rust_fun
+  "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::start_bound"]
+def PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound {T : Type}
+    (bounds : resources.core.ops.range.Bound T × resources.core.ops.range.Bound T) :
+    Result (resources.core.ops.range.Bound T) := ok bounds.1
+
+@[rust_fun
+  "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::end_bound"]
+def PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound {T : Type}
+    (bounds : resources.core.ops.range.Bound T × resources.core.ops.range.Bound T) :
+    Result (resources.core.ops.range.Bound T) := ok bounds.2
+
+/-- Test one inclusive/exclusive search bound using the borrowed-key comparator. -/
+def alloc.collections.btree.set.boundAllows {K : Type} (ord : core.cmp.Ord K)
+    (lower : Bool) (bound : resources.core.ops.range.Bound K) (key : K) : Result Bool := do
+  match bound with
+  | .Unbounded => ok true
+  | .Included endpoint =>
+    let o ← ord.cmp key endpoint
+    ok (if lower then o != .lt else o != .gt)
+  | .Excluded endpoint =>
+    let o ← ord.cmp key endpoint
+    ok (if lower then o == .gt else o == .lt)
+
+/-- Preserve iteration order while retaining entries within both bounds. -/
+def alloc.collections.btree.set.rangeList {T K : Type}
+    (borrow : resources.core.borrow.Borrow T K) (ord : core.cmp.Ord K)
+    (lower upper : resources.core.ops.range.Bound K) : List T → Result (List T)
+  | [] => ok []
+  | x :: xs => do
+    let key ← borrow.borrow x
+    let lo ← alloc.collections.btree.set.boundAllows ord true lower key
+    let hi ← alloc.collections.btree.set.boundAllows ord false upper key
+    let rest ← rangeList borrow ord lower upper xs
+    ok (if lo && hi then x :: rest else rest)
+
+/-- Conservatively reject reversed bounds and equal exclusive bounds. The pinned
+    library can skip these checks for an empty tree; that shortcut is not modeled. -/
+def alloc.collections.btree.set.checkBounds {K : Type} (ord : core.cmp.Ord K)
+    (lower upper : resources.core.ops.range.Bound K) : Result Unit :=
+  match lower, upper with
+  | .Unbounded, _ | _, .Unbounded => ok ()
+  | .Excluded lo, .Excluded hi => do
+    let o ← ord.cmp lo hi
+    if o = .lt then ok () else fail .panic
+  | .Included lo, .Included hi | .Included lo, .Excluded hi | .Excluded lo, .Included hi => do
+    let o ← ord.cmp lo hi
+    if o = .gt then fail .panic else ok ()
+
+/-- Logical bounded lookup. Borrowed and owned orderings must agree, as required
+    by Rust's `BTreeSet` contract. The input and output are in comparator order. -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::range"]
+def alloc.collections.btree.set.BTreeSet.range {T A K R : Type}
+    (_allocator : resources.core.alloc.AllocatorClone A) (ord : core.cmp.Ord K)
+    (borrow : resources.core.borrow.Borrow T K) (_ordT : core.cmp.Ord T)
+    (bounds : resources.core.ops.range.RangeBounds R K)
+    (self : alloc.collections.btree.set.BTreeSet T A) (query : R) :
+    Result (alloc.collections.btree.set.Range T) := do
+  let lower ← bounds.start_bound query
+  let upper ← bounds.end_bound query
+  alloc.collections.btree.set.checkBounds ord lower upper
+  alloc.collections.btree.set.rangeList borrow ord lower upper self
+
+/-- A sorted range iterator's minimum and maximum are its first and last elements. -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::min"]
+def alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+    {T : Type} (_ord : core.cmp.Ord T) (self : alloc.collections.btree.set.Range T) :
+    Result (Option T) := ok self.head?
+
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::max"]
+def alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+    {T : Type} (_ord : core.cmp.Ord T) (self : alloc.collections.btree.set.Range T) :
+    Result (Option T) := ok self.getLast?

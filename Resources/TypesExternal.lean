@@ -36,6 +36,10 @@ abbrev alloc.collections.btree.set.BTreeSet (T _A : Type) := List T
 @[rust_type "alloc::collections::btree::set::Iter"]
 abbrev alloc.collections.btree.set.Iter (T : Type) := List T
 
+/-- Remaining elements of a bounded query, in ascending order. -/
+@[rust_type "alloc::collections::btree::set::Range"]
+abbrev alloc.collections.btree.set.Range (T : Type) := List T
+
 /-- Hashing is unobserved by the finite-map model. Direct hasher operations are
     unsupported (fail explicitly); this is not a model of hash outputs. -/
 @[rust_type "std::hash::random::DefaultHasher"]

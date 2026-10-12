@@ -46,6 +46,25 @@ structure core.hash.BuildHasher (Self : Type) (Self_Hasher : Type) where
   HasherInst : core.hash.Hasher Self_Hasher
   build_hasher : Self → Result Self_Hasher
 
+/-- [core::ops::range::Bound]
+    Source: '/rustc/library/core/src/ops/range.rs', lines 710:0-710:17
+    Name pattern: [core::ops::range::Bound]
+    Visibility: public -/
+@[discriminant isize, rust_type "core::ops::range::Bound"]
+inductive core.ops.range.Bound (T : Type) where
+| Included : T → core.ops.range.Bound T
+| Excluded : T → core.ops.range.Bound T
+| Unbounded : core.ops.range.Bound T
+
+/-- Trait declaration: [core::ops::range::RangeBounds]
+    Source: '/rustc/library/core/src/ops/range.rs', lines 838:0-838:38
+    Name pattern: [core::ops::range::RangeBounds]
+    Visibility: public -/
+@[rust_trait "core::ops::range::RangeBounds"]
+structure core.ops.range.RangeBounds (Self : Type) (T : Type) where
+  start_bound : Self → Result (core.ops.range.Bound T)
+  end_bound : Self → Result (core.ops.range.Bound T)
+
 /-- [resources::Alloc]
     Source: 'resources/src/lib.rs', lines 27:0-46:1
     Visibility: public -/

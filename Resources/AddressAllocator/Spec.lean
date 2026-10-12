@@ -1187,4 +1187,413 @@ theorem allocate_at_spec (self : AddressAllocator) (range : AddressRange)
         · simpa [hpref] using hwf.preferredAlign
         · simpa [hmin, hpref] using hwf.alignOrder
 
+/-! ### Returning a range to the free regions -/
+
+/-- Endpoint adjacency of nonempty inclusive ranges, using unbounded arithmetic. -/
+def AdjacentRanges (r s : AddressRange) : Prop :=
+  r.end.val + 1 = s.start.val ∨ s.end.val + 1 = r.start.val
+
+/-- Replace the inserted range and its directly adjacent free neighbors by one
+    region containing exactly their addresses. All other regions stay unchanged.
+    This does not merge chains of neighbors already adjacent before insertion. -/
+def CoalescedInsertion (before : List AddressRange) (slot : AddressRange)
+    (after : List AddressRange) : Prop :=
+  ∃ merged,
+    (∀ addr, merged.containsModel addr ↔ slot.containsModel addr ∨
+      ∃ r ∈ before, AdjacentRanges r slot ∧ r.containsModel addr) ∧
+    ∀ r, r ∈ after ↔ r = merged ∨ r ∈ before ∧ ¬AdjacentRanges r slot
+
+private def removeMerge (rs : List AddressRange) (region : Option AddressRange) :
+    Result (List AddressRange) := do
+  match region with
+  | none => ok rs
+  | some r =>
+    let (_, rest) ← _root_.alloc.collections.btree.set.BTreeSet.remove
+      resources.alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (resources.core.borrow.Borrow.Blanket AddressRange)
+      AddressRange.Insts.CoreCmpOrd AddressRange.Insts.CoreCmpOrd rs r
+    ok rest
+
+/-- The update performed after both overlap checks have succeeded. -/
+private def mergeSlot (self : AddressAllocator) (slot : AddressRange)
+    (left right : Option AddressRange) : Result (core.result.Result Unit resources.Error × AddressAllocator) := do
+  let rs ← removeMerge self.regions left
+  let rs ← removeMerge rs right
+  let merged := { slot with start := (left.getD slot).start, «end» := (right.getD slot).end }
+  let (_, rs) ← _root_.alloc.collections.btree.set.BTreeSet.insert
+    resources.alloc.alloc.Global.Insts.CoreAllocAllocatorClone AddressRange.Insts.CoreCmpOrd rs merged
+  ok (.Ok (), { self with regions := rs })
+
+/-- The checked endpoint comparison on either side of the inserted range. -/
+private def checkNeighbor (slot : AddressRange) (lower : Bool) (found : Option AddressRange) :
+    Result (core.result.Result (Option AddressRange) resources.Error) := do
+  match found with
+  | none => ok (.Ok none)
+  | some r =>
+    let endpoint ← lift (if lower then U64.checked_add r.end 1#u64 else U64.checked_sub r.start 1#u64)
+    match endpoint with
+    | none => ok (.Err (.RegionOverlap slot))
+    | some endpoint =>
+      let o ← lift (if lower then core.cmp.impls.OrdU64.cmp endpoint slot.start
+        else core.cmp.impls.OrdU64.cmp slot.end endpoint)
+      match o with
+      | .lt => ok (.Ok none)
+      | .eq => ok (.Ok (some r))
+      | .gt => ok (.Err (.RegionOverlap slot))
+
+private def insertBody (self : AddressAllocator) (slot : AddressRange) :
+    Result (core.result.Result Unit resources.Error × AddressAllocator) := do
+  let left ← neighbor self.regions slot true
+  let checkedLeft ← checkNeighbor slot true left
+  match checkedLeft with
+  | .Err error => ok (.Err error, self)
+  | .Ok left =>
+    let right ← neighbor self.regions slot false
+    let checkedRight ← checkNeighbor slot false right
+    match checkedRight with
+    | .Err error => ok (.Err error, self)
+    | .Ok right => mergeSlot self slot left right
+
+set_option maxHeartbeats 1000000 in
+/-- Share the repeated checks and update in the extracted function. -/
+private theorem insert_at_eq (self : AddressAllocator) (slot : AddressRange) :
+    insert_at self slot = (do
+      let empty ← AddressRange.is_empty slot
+      if empty then ok (.Err .AllocSizeZero, self) else insertBody self slot) := by
+  simp only [insert_at, insertBody, neighbor, checkNeighbor, mergeSlot, removeMerge,
+    Aeneas.Std.bind_assoc, Bool.false_eq_true, ↓reduceIte, bind_ok, lift,
+    core.option.Option.ok_or, core.result.Result.Insts.CoreOpsTry.branch,
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+    core.convert.FromSame.from]
+  repeat' first
+    | rfl
+    | (apply congrArg (Std.bind _); funext x)
+    | (rename_i x; rcases (x : Bool × List AddressRange) with ⟨added, rest⟩; simp)
+    | (simp only [bind_tc_ok])
+    | (split <;> try simp_all only [Aeneas.Std.bind_assoc, bind_ok,
+        Option.getD_none, Option.getD_some])
+
+private theorem removeMerge_spec (rs : List AddressRange) (region : Option AddressRange)
+    (hv : ValidRegions rs) (hm : ∀ r ∈ region, r ∈ rs) :
+    removeMerge rs region ⦃ rest => ValidRegions rest ∧
+      ∀ r, r ∈ rest ↔ r ∈ rs ∧ r ∉ region ⦄ := by
+  cases region with
+  | none => simp [removeMerge, hv]
+  | some r =>
+    unfold removeMerge
+    step with remove_region_spec rs r hv (hm r rfl)
+    simp_all [eq_comm]
+
+private def MergeSide (rs : List AddressRange) (slot : AddressRange) (lower : Bool)
+    (selected : Option AddressRange) : Prop :=
+  ∀ r, r ∈ selected ↔ r ∈ rs ∧
+    (if lower then r.end.val + 1 = slot.start.val else slot.end.val + 1 = r.start.val)
+
+private theorem mergeSlot_spec (self : AddressAllocator) (slot : AddressRange)
+    (left right : Option AddressRange) (hwf : WellFormed self) (hn : ¬slot.isEmptyModel)
+    (hl : MergeSide self.regions slot true left) (hr : MergeSide self.regions slot false right)
+    (hd : ∀ r ∈ self.regions, DisjointRanges slot r) :
+    mergeSlot self slot left right ⦃ result a => result = .Ok () ∧ WellFormed a ∧
+      a.pools = self.pools ∧ a.allocs = self.allocs ∧ a.min_align = self.min_align ∧
+      a.preferred_align = self.preferred_align ∧
+      (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ slot.containsModel addr) ∧
+      CoalescedInsertion self.regions slot a.regions ⦄ := by
+  have hlm : ∀ r ∈ left, r ∈ self.regions := fun r hm => ((hl r).mp hm).1
+  have hrm : ∀ r ∈ right, r ∈ self.regions := fun r hm => ((hr r).mp hm).1
+  have hlr : ∀ r ∈ right, r ∉ left := by
+    intro r hr' hl'
+    have h1 := ((hl r).mp hl').2
+    have h2 := ((hr r).mp hr').2
+    have hnon := hwf.validRegions.1 r (hrm r hr')
+    simp only [Bool.false_eq_true, ↓reduceIte, AddressRange.isEmptyModel] at *
+    omega
+  let merged : AddressRange := ⟨(left.getD slot).start, (right.getD slot).end⟩
+  have hc : ∀ addr, merged.containsModel addr ↔ slot.containsModel addr ∨
+      (∃ r ∈ left, r.containsModel addr) ∨ (∃ r ∈ right, r.containsModel addr) := by
+    intro addr
+    cases left with
+    | none =>
+      cases right with
+      | none => simp [merged]
+      | some r =>
+        have h := ((hr r).mp rfl).2
+        have hnon := hwf.validRegions.1 r (hrm r rfl)
+        simp [merged, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+        omega
+    | some l =>
+      have h := ((hl l).mp rfl).2
+      have hnon := hwf.validRegions.1 l (hlm l rfl)
+      cases right with
+      | none =>
+        simp [merged, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+        omega
+      | some r =>
+        have h' := ((hr r).mp rfl).2
+        have hnon' := hwf.validRegions.1 r (hrm r rfl)
+        simp [merged, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+        omega
+  have hmerged : ¬merged.isEmptyModel := by
+    have h := (hc slot.start.val).mpr (Or.inl (by
+      simp only [AddressRange.containsModel, AddressRange.isEmptyModel] at *; omega))
+    simp only [AddressRange.containsModel, AddressRange.isEmptyModel] at *
+    omega
+  unfold mergeSlot
+  step with removeMerge_spec self.regions left hwf.validRegions hlm as ⟨rs, hv, hm⟩
+  step with removeMerge_spec rs right hv
+    (fun r hr' => (hm r).mpr ⟨hrm r hr', hlr r hr'⟩) as ⟨rest, hvrest, hmrest⟩
+  have hdisjoint : ∀ r ∈ rest, DisjointRanges merged r := by
+    intro r hmem
+    obtain ⟨⟨hmem, hleft⟩, hright⟩ := (hmrest r).mp hmem |>.imp_left ((hm r).mp)
+    have hnon := hwf.validRegions.1 r hmem
+    have hds := hd r hmem
+    have hdl : ∀ l ∈ left, DisjointRanges l r := fun l h =>
+      hwf.validRegions.disjoint (hlm l h) hmem (fun he => hleft (he ▸ h))
+    have hdr : ∀ l ∈ right, DisjointRanges l r := fun l h =>
+      hwf.validRegions.disjoint (hrm l h) hmem (fun he => hright (he ▸ h))
+    have hcontra : ¬∃ addr, merged.containsModel addr ∧ r.containsModel addr := by
+      rintro ⟨addr, ha, hrange⟩
+      rcases (hc addr).mp ha with hs | ⟨l, hl', ha⟩ | ⟨l, hr', ha⟩
+      · simp only [DisjointRanges, AddressRange.containsModel] at *; omega
+      · have h := hdl l hl'
+        simp only [DisjointRanges, AddressRange.containsModel] at *; omega
+      · have h := hdr l hr'
+        simp only [DisjointRanges, AddressRange.containsModel] at *; omega
+    simp only [DisjointRanges, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+    by_contra h
+    exact hcontra ⟨max merged.start.val r.start.val, by omega⟩
+  step with insert_region_spec rest merged hvrest hmerged hdisjoint as ⟨added, regions, _, hvalid, hmem⟩
+  refine ⟨⟨hvalid, hwf.minAlign, hwf.preferredAlign, hwf.alignOrder⟩, ?_⟩
+  constructor
+  · intro addr
+    constructor
+    · rintro ⟨r, hr', ha⟩
+      rcases (hmem r).mp hr' with rfl | hr'
+      · rcases (hc addr).mp ha with hs | ⟨l, hl', ha⟩ | ⟨r, hr', ha⟩
+        · exact Or.inr hs
+        · exact Or.inl ⟨l, hlm l hl', ha⟩
+        · exact Or.inl ⟨r, hrm r hr', ha⟩
+      · exact Or.inl ⟨r, ((hm r).mp ((hmrest r).mp hr').1).1, ha⟩
+    · rintro (⟨r, hr', ha⟩ | hs)
+      · by_cases hl' : r ∈ left
+        · exact ⟨merged, (hmem merged).mpr (Or.inl rfl), (hc addr).mpr (Or.inr (Or.inl ⟨r, hl', ha⟩))⟩
+        · by_cases hr'' : r ∈ right
+          · exact ⟨merged, (hmem merged).mpr (Or.inl rfl), (hc addr).mpr (Or.inr (Or.inr ⟨r, hr'', ha⟩))⟩
+          · exact ⟨r, (hmem r).mpr (Or.inr ((hmrest r).mpr ⟨(hm r).mpr ⟨hr', hl'⟩, hr''⟩)), ha⟩
+      · exact ⟨merged, (hmem merged).mpr (Or.inl rfl), (hc addr).mpr (Or.inl hs)⟩
+  · refine ⟨merged, ?_, ?_⟩
+    · intro addr
+      rw [hc]
+      have hs : ∀ r, r ∈ left ∨ r ∈ right ↔ r ∈ self.regions ∧ AdjacentRanges r slot := by
+        intro r
+        simp only [hl r, hr r, Bool.false_eq_true, ↓reduceIte, AdjacentRanges]
+        tauto
+      simp only [← and_assoc]
+      simp_rw [← hs]
+      simp only [or_and_right, exists_or]
+    · intro r
+      rw [hmem, hmrest, hm, hl r, hr r]
+      simp only [Bool.false_eq_true, ↓reduceIte, AdjacentRanges]
+      tauto
+
+private theorem neighbor_separated (rs : List AddressRange) (slot : AddressRange)
+    (lower : Bool) (found : Option AddressRange) (hv : ValidRegions rs)
+    (h : Neighbor rs slot lower found)
+    (hsep : ∀ r ∈ found, if lower then r.end.val < slot.start.val else slot.end.val < r.start.val) :
+    ∀ r ∈ rs, (if lower then ¬slot.ltModel r else slot.ltModel r) → DisjointRanges slot r := by
+  cases found with
+  | none => intro r hr hs; exact False.elim (h r hr hs)
+  | some selected =>
+    intro r hr hs
+    have hselected := hv.1 selected h.1
+    have hbound := hsep selected rfl
+    rcases h.2.2 r hr hs with rfl | horder
+    all_goals
+      cases lower <;> simp only [Bool.false_eq_true, ↓reduceIte, DisjointRanges,
+        AddressRange.isEmptyModel] at * <;> omega
+
+private theorem neighbor_overlap (rs : List AddressRange) (slot selected : AddressRange)
+    (lower : Bool) (hv : ValidRegions rs) (hn : ¬slot.isEmptyModel)
+    (h : Neighbor rs slot lower (some selected))
+    (hbad : if lower then slot.start.val ≤ selected.end.val else selected.start.val ≤ slot.end.val) :
+    ∃ addr, Covers rs addr ∧ slot.containsModel addr := by
+  have hnon := hv.1 selected h.1
+  refine ⟨max slot.start.val selected.start.val, ⟨selected, h.1, ?_⟩, ?_⟩
+  all_goals
+    have hside := h.2.1
+    cases lower <;> simp only [Bool.false_eq_true, ↓reduceIte, AddressRange.ltModel,
+      AddressRange.containsModel, AddressRange.isEmptyModel] at * <;> omega
+
+/-- Once a neighbor is separated from the input, any adjacent region on that
+    side must be that neighbor. -/
+private theorem neighbor_adjacent_iff (rs : List AddressRange) (slot : AddressRange)
+    (lower : Bool) (found : Option AddressRange) (hv : ValidRegions rs) (hn : ¬slot.isEmptyModel)
+    (h : Neighbor rs slot lower found)
+    (hsep : ∀ r ∈ found, if lower then r.end.val < slot.start.val else slot.end.val < r.start.val) :
+    ∀ r, (r ∈ rs ∧ (if lower then r.end.val + 1 = slot.start.val else slot.end.val + 1 = r.start.val)) ↔
+      (r ∈ found ∧ (if lower then r.end.val + 1 = slot.start.val else slot.end.val + 1 = r.start.val)) := by
+  intro r
+  constructor
+  · rintro ⟨hm, hadj⟩
+    refine ⟨?_, hadj⟩
+    have hrn := hv.1 r hm
+    have hside : if lower then ¬slot.ltModel r else slot.ltModel r := by
+      cases lower <;> simp only [Bool.false_eq_true, ↓reduceIte,
+        AddressRange.ltModel, AddressRange.isEmptyModel] at * <;> omega
+    cases found with
+    | none => exact False.elim (h r hm hside)
+    | some selected =>
+      rcases h.2.2 r hm hside with he | ho
+      · simpa using he.symm
+      · have hbound := hsep selected rfl
+        have hnon := hv.1 selected h.1
+        cases lower <;> simp only [Bool.false_eq_true, ↓reduceIte,
+          AddressRange.isEmptyModel] at * <;> omega
+  · rintro ⟨hm, hadj⟩
+    cases found with
+    | none => simp at hm
+    | some selected =>
+      have he : selected = r := Option.mem_some_iff.mp hm
+      subst r
+      exact ⟨h.1, hadj⟩
+
+private theorem checkNeighbor_spec (rs : List AddressRange) (slot : AddressRange)
+    (lower : Bool) (found : Option AddressRange) (hv : ValidRegions rs) (hn : ¬slot.isEmptyModel)
+    (h : Neighbor rs slot lower found) :
+    checkNeighbor slot lower found ⦃ result =>
+      match result with
+      | .Err error => error = .RegionOverlap slot ∧ ∃ addr, Covers rs addr ∧ slot.containsModel addr
+      | .Ok selected => MergeSide rs slot lower selected ∧
+          ∀ r ∈ rs, (if lower then ¬slot.ltModel r else slot.ltModel r) → DisjointRanges slot r ⦄ := by
+  cases found with
+  | none =>
+    simp only [checkNeighbor, WP.spec_ok]
+    have hm := neighbor_adjacent_iff rs slot lower none hv hn h (by simp)
+    exact ⟨by intro r; simpa using (hm r).symm,
+      neighbor_separated rs slot lower none hv h (by simp)⟩
+  | some r =>
+    have hgood (hsep : if lower then r.end.val < slot.start.val else slot.end.val < r.start.val) :=
+      neighbor_separated rs slot lower (some r) hv h (by simpa using hsep)
+    have hmerge (hsep : if lower then r.end.val < slot.start.val else slot.end.val < r.start.val) :=
+      neighbor_adjacent_iff rs slot lower (some r) hv hn h (by simpa using hsep)
+    have hbad := neighbor_overlap rs slot r lower hv hn h
+    cases lower with
+    | false =>
+      have hc := U64.checked_sub_bv_spec r.start 1#u64
+      cases he : U64.checked_sub r.start 1#u64 with
+      | none =>
+        simp [he] at hc
+        simp [checkNeighbor, he, lift]
+        exact hbad (by simp only [Bool.false_eq_true, ↓reduceIte]; scalar_tac)
+      | some endpoint =>
+        simp [he] at hc
+        simp only [checkNeighbor, Bool.false_eq_true, ↓reduceIte, he, lift, bind_ok,
+          core.cmp.impls.OrdU64.cmp, compare, compareOfLessAndEq]
+        split_ifs with hlt heq
+        · simp only [WP.spec_ok]
+          have hm := hmerge (by simp only [Bool.false_eq_true, ↓reduceIte]; omega)
+          refine ⟨?_, hgood (by simp only [Bool.false_eq_true, ↓reduceIte]; omega)⟩
+          intro s
+          rw [hm s]
+          simp only [Option.not_mem_none, Option.mem_some_iff, Bool.false_eq_true, ↓reduceIte]
+          constructor
+          · exact False.elim
+          · rintro ⟨rfl, hadj⟩; omega
+        · simp only [WP.spec_ok]
+          have hm := hmerge (by simp only [Bool.false_eq_true, ↓reduceIte]; omega)
+          refine ⟨?_, hgood (by simp only [Bool.false_eq_true, ↓reduceIte]; omega)⟩
+          intro s
+          rw [hm s]
+          simp only [Option.mem_some_iff, Bool.false_eq_true, ↓reduceIte]
+          constructor
+          · rintro rfl; exact ⟨rfl, by omega⟩
+          · exact And.left
+        · simp only [WP.spec_ok, true_and]
+          exact hbad (by simp only [Bool.false_eq_true, ↓reduceIte]; omega)
+    | true =>
+      have hc := U64.checked_add_bv_spec r.end 1#u64
+      cases he : U64.checked_add r.end 1#u64 with
+      | none =>
+        simp [he] at hc
+        simp [checkNeighbor, he, lift]
+        exact hbad (by simp only [↓reduceIte]; scalar_tac)
+      | some endpoint =>
+        simp [he] at hc
+        simp only [checkNeighbor, ↓reduceIte, he, lift, bind_ok,
+          core.cmp.impls.OrdU64.cmp, compare, compareOfLessAndEq]
+        split_ifs with hlt heq
+        · simp only [WP.spec_ok]
+          have hm := hmerge (by simp only [↓reduceIte]; omega)
+          refine ⟨?_, hgood (by simp only [↓reduceIte]; omega)⟩
+          intro s
+          rw [hm s]
+          simp only [Option.not_mem_none, Option.mem_some_iff, ↓reduceIte]
+          constructor
+          · exact False.elim
+          · rintro ⟨rfl, hadj⟩; omega
+        · simp only [WP.spec_ok]
+          have hm := hmerge (by simp only [↓reduceIte]; omega)
+          refine ⟨?_, hgood (by simp only [↓reduceIte]; omega)⟩
+          intro s
+          rw [hm s]
+          simp only [Option.mem_some_iff, ↓reduceIte]
+          constructor
+          · rintro rfl; exact ⟨rfl, by omega⟩
+          · exact And.left
+        · simp only [WP.spec_ok, true_and]
+          exact hbad (by simp only [↓reduceIte]; omega)
+
+/-- Insertion adds precisely the requested addresses to the free set and coalesces
+    the input with its directly adjacent free neighbors. It rejects empty ranges
+    and any overlap with an existing free region, without mutation.
+    The helper does not check pool membership or modify allocation records. -/
+def InsertAtOutcome (self : AddressAllocator) (slot : AddressRange)
+    (result : core.result.Result Unit resources.Error) (a : AddressAllocator) : Prop :=
+  if slot.isEmptyModel then result = .Err .AllocSizeZero ∧ a = self
+  else match result with
+    | .Err error => error = .RegionOverlap slot ∧ a = self ∧
+        ∃ addr, Covers self.regions addr ∧ slot.containsModel addr
+    | .Ok () => (∀ addr, ¬(Covers self.regions addr ∧ slot.containsModel addr)) ∧
+        a.pools = self.pools ∧ a.allocs = self.allocs ∧ a.min_align = self.min_align ∧
+        a.preferred_align = self.preferred_align ∧
+        (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ slot.containsModel addr) ∧
+        CoalescedInsertion self.regions slot a.regions
+
+/-- Total correctness of free-region insertion, including both endpoint extremes.
+    The free-region and alignment invariant is preserved on success and error. -/
+@[step]
+theorem insert_at_spec (self : AddressAllocator) (slot : AddressRange) (hwf : WellFormed self) :
+    insert_at self slot ⦃ result a => WellFormed a ∧ InsertAtOutcome self slot result a ⦄ := by
+  rw [insert_at_eq]
+  step with AddressRange.is_empty_spec slot as ⟨empty, hempty⟩
+  split
+  · simp_all [InsertAtOutcome]
+  · have hn : ¬slot.isEmptyModel := by simp_all
+    unfold insertBody
+    step with neighbor_spec self.regions slot true hwf.validRegions hn as ⟨left, hleft⟩
+    step with checkNeighbor_spec self.regions slot true left hwf.validRegions hn hleft
+      as ⟨checkedLeft, hl⟩
+    cases checkedLeft with
+    | Err error => simpa [InsertAtOutcome, hn, hwf] using hl
+    | Ok left =>
+      step with neighbor_spec self.regions slot false hwf.validRegions hn as ⟨right, hright⟩
+      step with checkNeighbor_spec self.regions slot false right hwf.validRegions hn hright
+        as ⟨checkedRight, hr⟩
+      cases checkedRight with
+      | Err error => simpa [InsertAtOutcome, hn, hwf] using hr
+      | Ok right =>
+        have hd : ∀ r ∈ self.regions, DisjointRanges slot r := by
+          intro r hm
+          by_cases h : slot.ltModel r
+          · exact hr.2 r hm h
+          · exact hl.2 r hm h
+        step with mergeSlot_spec self slot left right hwf hn hl.1 hr.1 hd
+          as ⟨result, a, hresult, hwfa, hpools, hallocs, hmin, hpref, hcover, hcoalesce⟩
+        subst result
+        simp only [InsertAtOutcome, hn, ↓reduceIte]
+        refine ⟨hwfa, ?_, hpools, hallocs, hmin, hpref, hcover, hcoalesce⟩
+        rintro addr ⟨⟨r, hm, ha⟩, hs⟩
+        have h := hd r hm
+        simp only [DisjointRanges, AddressRange.containsModel] at *
+        omega
+
 end resources.address_allocator.AddressAllocator

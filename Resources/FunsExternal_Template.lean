@@ -46,6 +46,14 @@ axiom core.cmp.Ordering.then_with
   Unit Ordering) :
   Ordering → F → Result Ordering
 
+/-- [core::cmp::impls::{impl core::cmp::Ord for &'_0 A}::cmp]:
+    Source: '/rustc/library/core/src/cmp.rs', lines 2519:8-2519:47
+    Name pattern: [core::cmp::impls::{core::cmp::Ord<&'0 @A>}::cmp]
+    Visibility: public -/
+@[rust_fun "core::cmp::impls::{core::cmp::Ord<&'0 @A>}::cmp"]
+axiom Shared0A.Insts.CoreCmpOrd.cmp
+  {A : Type} (OrdInst : core.cmp.Ord A) : A → A → Result Ordering
+
 /-- [core::fmt::num::{impl core::fmt::LowerHex for u64}::fmt]:
     Source: '/rustc/library/core/src/fmt/num.rs', lines 14:12-14:68
     Name pattern: [core::fmt::num::{core::fmt::LowerHex<u64>}::fmt]
@@ -87,6 +95,28 @@ axiom U8.Insts.CoreHashHash.hash
 @[rust_fun "core::hash::impls::{core::hash::Hash<u64>}::hash"]
 axiom U64.Insts.CoreHashHash.hash
   {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
+
+/-- [core::iter::traits::iterator::Iterator::min]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
+    Name pattern: [core::iter::traits::iterator::Iterator::min]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::min"]
+axiom core.iter.traits.iterator.Iterator.min.default
+  {Self : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item) (cmpOrdInst :
+  core.cmp.Ord Clause0_Item) :
+  Self → Result (Option Clause0_Item)
+
+/-- [core::iter::traits::iterator::Iterator::max]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3261:4-3264:51
+    Name pattern: [core::iter::traits::iterator::Iterator::max]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
+axiom core.iter.traits.iterator.Iterator.max.default
+  {Self : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item) (cmpOrdInst :
+  core.cmp.Ord Clause0_Item) :
+  Self → Result (Option Clause0_Item)
 
 /-- [core::iter::traits::iterator::Iterator::find]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
@@ -157,6 +187,28 @@ axiom core.ops.range.RangeInclusive.start
 @[rust_fun "core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::end"]
 axiom core.ops.range.RangeInclusive.end
   {Idx : Type} : core.ops.range.RangeInclusive Idx → Result Idx
+
+/-- [core::ops::range::{impl core::ops::range::RangeBounds<T> for (core::ops::range::Bound<T>, core::ops::range::Bound<T>)}::end_bound]:
+    Source: '/rustc/library/core/src/ops/range.rs', lines 1202:4-1202:36
+    Name pattern: [core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::end_bound]
+    Visibility: public -/
+@[rust_fun
+  "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::end_bound"]
+axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
+  {T : Type} :
+  ((core.ops.range.Bound T) × (core.ops.range.Bound T)) → Result
+    (core.ops.range.Bound T)
+
+/-- [core::ops::range::{impl core::ops::range::RangeBounds<T> for (core::ops::range::Bound<T>, core::ops::range::Bound<T>)}::start_bound]:
+    Source: '/rustc/library/core/src/ops/range.rs', lines 1194:4-1194:38
+    Name pattern: [core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::start_bound]
+    Visibility: public -/
+@[rust_fun
+  "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::start_bound"]
+axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
+  {T : Type} :
+  ((core.ops.range.Bound T) × (core.ops.range.Bound T)) → Result
+    (core.ops.range.Bound T)
 
 /-- [core::option::{core::option::Option<&'_0 T>}::cloned]:
     Source: '/rustc/library/core/src/option.rs', lines 2162:4-2164:17
@@ -267,6 +319,21 @@ axiom
 axiom alloc.collections.btree.set.BTreeSetTGlobal.new
   (T : Type) : Result (alloc.collections.btree.set.BTreeSet T Global)
 
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::range]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 398:4-402:26
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::range]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::range"]
+axiom alloc.collections.btree.set.BTreeSet.range
+  {T : Type} {A : Type} {K : Type} {R : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord K)
+  (coreborrowBorrowInst : core.borrow.Borrow T K) (corecmpOrdInst1 :
+  core.cmp.Ord T) (coreopsrangeRangeBoundsInst : core.ops.range.RangeBounds R
+  K) :
+  alloc.collections.btree.set.BTreeSet T A → R → Result
+    (alloc.collections.btree.set.Range T)
+
 /-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::insert]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 900:4-902:15
     Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::insert]
@@ -304,6 +371,28 @@ axiom alloc.collections.btree.set.BTreeSet.iter
   alloc.collections.btree.set.BTreeSet T A → Result
     (alloc.collections.btree.set.Iter T)
 
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::max]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1784:4-1786:19
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::max]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::max"]
+axiom
+  alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  alloc.collections.btree.set.Iter T → Result (Option T)
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::min]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1777:4-1779:19
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::min]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::min"]
+axiom
+  alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  alloc.collections.btree.set.Iter T → Result (Option T)
+
 /-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::next]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1765:4-1765:39
     Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::next]
@@ -327,6 +416,28 @@ axiom
   {T : Type} :
   alloc.collections.btree.set.Iter T → Result ((Option T) ×
     (alloc.collections.btree.set.Iter T))
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Range<'a, T>}::min]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1895:4-1897:19
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::min]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::min"]
+axiom
+  alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
+  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  alloc.collections.btree.set.Range T → Result (Option T)
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Range<'a, T>}::max]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1902:4-1904:19
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::max]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::max"]
+axiom
+  alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
+  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  alloc.collections.btree.set.Range T → Result (Option T)
 
 /-- [alloc::string::{impl core::clone::Clone for alloc::string::String}::clone]:
     Source: '/rustc/library/alloc/src/string.rs', lines 2425:4-2425:27
