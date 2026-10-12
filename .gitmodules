@@ -4,3 +4,4 @@
 [submodule "aeneas"]
 	path = aeneas
 	url = https://github.com/joehattori/aeneas.git
+	branch = main
