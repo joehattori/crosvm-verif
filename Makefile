@@ -21,6 +21,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_range' \
 		--start-from 'crate::address_allocator::AddressAllocator::new' \
 		--start-from 'crate::address_allocator::AddressAllocator::internal_allocate_from_slot' \
+		--start-from 'crate::address_allocator::AddressAllocator::internal_allocate_with_align' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::address_range::{impl core::fmt::Display for _}' \

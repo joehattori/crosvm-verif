@@ -61,3 +61,10 @@ axiom std.hash.random.DefaultHasher : Type
 @[rust_type "alloc::collections::btree::set::BTreeSet"]
 axiom alloc.collections.btree.set.BTreeSet (T : Type) (A : Type) : Type
 
+/-- [alloc::collections::btree::set::Iter]
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 135:0-135:26
+    Name pattern: [alloc::collections::btree::set::Iter]
+    Visibility: public -/
+@[rust_type "alloc::collections::btree::set::Iter"]
+axiom alloc.collections.btree.set.Iter (T : Type) : Type
+

@@ -239,4 +239,22 @@ theorem eq_spec (self other : AddressRange) :
       simp_all [compare, compareOfLessAndEq]
       (split_ifs at * <;> simp_all); scalar_tac
 
+/-- The order used by the free-region set, restricted to nonempty ranges. -/
+abbrev ltModel (r s : AddressRange) : Prop :=
+  r.start.val < s.start.val ∨ (r.start.val = s.start.val ∧ r.end.val < s.end.val)
+
+@[step]
+theorem cmp_nonempty_spec (r s : AddressRange)
+    (hr : ¬r.isEmptyModel) (hs : ¬s.isEmptyModel) :
+    Insts.CoreCmpOrd.cmp r s ⦃ o =>
+      (o = .eq ↔ r = s) ∧ (o = .lt ↔ r.ltModel s) ∧ (o = .gt ↔ s.ltModel r) ⦄ := by
+  unfold Insts.CoreCmpOrd.cmp
+  simp [is_empty, isEmptyModel] at hr hs ⊢
+  simp [core.cmp.Ordering.then_with,
+    address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once,
+    compare, compareOfLessAndEq, ltModel]
+  cases r; cases s
+  simp_all
+  split_ifs <;> simp_all [lift] <;> scalar_tac
+
 end resources.address_range.AddressRange

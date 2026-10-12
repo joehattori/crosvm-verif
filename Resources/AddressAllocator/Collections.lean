@@ -16,29 +16,35 @@ theorem eq_spec (x y : Alloc) :
 
 end resources.Alloc
 
-namespace resources.address_range.AddressRange
+namespace resources.address_allocator.AddressAllocator
 
-/-- The order used by the free-region set, restricted to nonempty ranges. -/
-abbrev ltModel (r s : AddressRange) : Prop :=
-  r.start.val < s.start.val ∨ (r.start.val = s.start.val ∧ r.end.val < s.end.val)
+private theorem containsKeyList_spec (keys : List resources.Alloc) (key : resources.Alloc) :
+    _root_.std.collections.hash.map.containsKeyList
+      (resources.core.borrow.Borrow.Blanket resources.Alloc)
+      resources.Alloc.Insts.CoreCmpEq key keys ⦃ b => b = true ↔ key ∈ keys ⦄ := by
+  induction keys with
+  | nil => simp [_root_.std.collections.hash.map.containsKeyList]
+  | cons head tail ih =>
+    unfold _root_.std.collections.hash.map.containsKeyList
+    simp only [resources.core.borrow.Borrow.Blanket, _root_.core.borrow.Borrow.Blanket.borrow,
+      resources.Alloc.Insts.CoreCmpEq, resources.Alloc.Insts.CoreCmpPartialEqAlloc]
+    step with resources.Alloc.eq_spec head key as ⟨b, hb⟩
+    split
+    · simp_all
+    · step with ih
+      simp_all [eq_comm]
 
 @[step]
-theorem cmp_nonempty_spec (r s : AddressRange)
-    (hr : ¬r.isEmptyModel) (hs : ¬s.isEmptyModel) :
-    Insts.CoreCmpOrd.cmp r s ⦃ o =>
-      (o = .eq ↔ r = s) ∧ (o = .lt ↔ r.ltModel s) ∧ (o = .gt ↔ s.ltModel r) ⦄ := by
-  unfold Insts.CoreCmpOrd.cmp
-  simp [is_empty, isEmptyModel] at hr hs ⊢
-  simp [core.cmp.Ordering.then_with,
-    address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once,
-    compare, compareOfLessAndEq, ltModel]
-  cases r; cases s
-  simp_all
-  split_ifs <;> simp_all [lift] <;> scalar_tac
-
-end resources.address_range.AddressRange
-
-namespace resources.address_allocator.AddressAllocator
+theorem contains_key_spec (self : AddressAllocator) (key : resources.Alloc) :
+    _root_.std.collections.hash.map.HashMap.contains_key
+      resources.Alloc.Insts.CoreCmpEq resources.Alloc.Insts.CoreHashHash
+      resources.std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      (resources.core.borrow.Borrow.Blanket resources.Alloc)
+      resources.Alloc.Insts.CoreHashHash resources.Alloc.Insts.CoreCmpEq self.allocs key
+      ⦃ b => b = true ↔ key ∈ self.allocs ⦄ := by
+  unfold _root_.std.collections.hash.map.HashMap.contains_key
+  step with containsKeyList_spec
+  simp_all [Finmap.mem_keys]
 
 /-- Nonempty free ranges, in address order, with no overlaps. -/
 def ValidRegions (regions : List AddressRange) : Prop :=

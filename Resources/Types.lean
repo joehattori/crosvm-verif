@@ -109,4 +109,28 @@ def address_allocator.AddressAllocator.new_from_list.closure (T : Type)
   (Clause0_IntoIter : Type) :=
 Unit
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 163:37-163:84 -/
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.closure
+  :=
+  Std.U64 × address_range.AddressRange
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}]
+    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure_1
+  :=
+  Std.U64 × Std.U64
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 151:33-151:55 -/
+@[reducible]
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure
+  :=
+  address_range.AddressRange
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure :=
+  Std.U64 × Std.U64
+
 end resources

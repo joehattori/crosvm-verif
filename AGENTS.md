@@ -15,9 +15,9 @@ duplicating them here.
 | [Resources/TypesExternal_Template.lean](Resources/TypesExternal_Template.lean), [Resources/FunsExternal_Template.lean](Resources/FunsExternal_Template.lean) | Generated declarations for missing external models. |
 | [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
 | [Resources/AddressRangeSpec.lean](Resources/AddressRangeSpec.lean) | Mathematical predicates and proofs for address ranges. |
-| [Resources/AddressAllocatorCollections.lean](Resources/AddressAllocatorCollections.lean) | Free-region invariant, key equality, and collection update proofs. |
-| [Resources/AddressAllocatorSpec.lean](Resources/AddressAllocatorSpec.lean) | Allocator constructor and slot allocation proofs. |
-| [Resources/README.md](Resources/README.md) | Detailed verification scope, model assumptions, and extraction notes. |
+| [Resources/AddressAllocator/Collections.lean](Resources/AddressAllocator/Collections.lean) | Free-region invariant, key equality, and collection operation proofs. |
+| [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including alignment arithmetic and ordered search. |
+| [Resources/README.md](Resources/README.md) | Verification outline, model assumptions, and extraction prerequisites. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
 | [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 
@@ -48,6 +48,9 @@ duplicating them here.
   explicit preconditions where needed. Do not weaken a requested property or
   assume its conclusion merely to finish a proof. Report counterexamples or
   translation limitations when they prevent the intended result.
+- For known crosvm bugs, keep the pinned Rust source unchanged and add explicit
+  hypotheses excluding the bug. Mark these with `TODO(BUG-...)`, naming the fix
+  and the need to regenerate Lean before removing the restriction.
 - Follow the existing `f args ⦃ result => property ⦄` specifications and register
   reusable function specifications with `@[step]` where appropriate. Prefer
   composing proved specifications with `step`, then use `simp`, `simp_all`,

@@ -194,3 +194,81 @@ def std.hash.random.DefaultHasher.Insts.CoreHashHasher.write
     Result std.hash.random.DefaultHasher := fail .panic
 def std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
     (_ : std.hash.random.RandomState) : Result std.hash.random.DefaultHasher := fail .panic
+
+/-- Search the remaining iterator, preserving predicate mutations between calls. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+def core.iter.traits.iterator.Iterator.find.default
+    {I P T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
+    (predInst : core.ops.function.FnMut P T Bool) (iter : I) (predicate : P) :
+    Result (Option T × I) := do
+  let (item, rest) ← iterInst.next iter
+  match item with
+  | none => ok (none, rest)
+  | some value =>
+    let (keep, predicate) ← predInst.call_mut predicate value
+    if keep then ok (some value, rest)
+    else core.iter.traits.iterator.Iterator.find.default iterInst predInst rest predicate
+partial_fixpoint
+
+@[rust_fun
+  "core::iter::adapters::rev::{core::iter::traits::iterator::Iterator<core::iter::adapters::rev::Rev<@I>, @Clause0_Clause0_Item>}::find"]
+def core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
+    {I P T : Type} (iterInst : core.iter.traits.double_ended.DoubleEndedIterator I T)
+    (predInst : core.ops.function.FnMut P T Bool)
+    (iter : core.iter.adapters.rev.Rev I) (predicate : P) :
+    Result (Option T × core.iter.adapters.rev.Rev I) :=
+  core.iter.traits.iterator.Iterator.find.default
+    { next := Aeneas.Std.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.next iterInst }
+    predInst iter predicate
+
+@[rust_fun "core::option::{core::option::Option<&'0 @T>}::cloned"]
+def core.option.OptionShared0T.cloned {T : Type} (cloneInst : core.clone.Clone T)
+    (value : Option T) : Result (Option T) := do
+  match value with
+  | none => ok none
+  | some x => let x ← cloneInst.clone x; ok (some x)
+
+/-- Hash lookup abstracted as a finite search using the supplied borrow and equality.
+    Rust's equality and hashing must obey the HashMap/Borrow consistency laws. -/
+def std.collections.hash.map.containsKeyList {K Q : Type}
+    (borrow : resources.core.borrow.Borrow K Q) (eq : core.cmp.Eq Q)
+    (key : Q) : List K → Result Bool
+  | [] => ok false
+  | head :: tail => do
+    let borrowed ← borrow.borrow head
+    let same ← eq.partialEqInst.eq borrowed key
+    if same then ok true else containsKeyList borrow eq key tail
+
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key"]
+noncomputable def std.collections.hash.map.HashMap.contains_key
+    {K V S A Q H : Type} (_eq : core.cmp.Eq K) (_hash : core.hash.Hash K)
+    (_build : resources.core.hash.BuildHasher S H)
+    (borrow : resources.core.borrow.Borrow K Q) (_hashQ : core.hash.Hash Q)
+    (eqQ : core.cmp.Eq Q) (self : std.collections.hash.map.HashMap K V S A)
+    (key : Q) : Result Bool :=
+  std.collections.hash.map.containsKeyList borrow eqQ key self.keys.toList
+
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::iter"]
+def alloc.collections.btree.set.BTreeSet.iter {T A : Type}
+    (_allocator : resources.core.alloc.AllocatorClone A)
+    (self : alloc.collections.btree.set.BTreeSet T A) :
+    Result (alloc.collections.btree.set.Iter T) := ok self
+
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::next"]
+def alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.next
+    {T : Type} : alloc.collections.btree.set.Iter T →
+      Result (Option T × alloc.collections.btree.set.Iter T)
+  | [] => ok (none, [])
+  | x :: xs => ok (some x, xs)
+
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::double_ended::DoubleEndedIterator<alloc::collections::btree::set::Iter<'a, @T>, &'_ @T>}::next_back"]
+def alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT.next_back
+    {T : Type} (self : alloc.collections.btree.set.Iter T) :
+    Result (Option T × alloc.collections.btree.set.Iter T) :=
+  match self.reverse with
+  | [] => ok (none, [])
+  | x :: xs => ok (some x, xs.reverse)

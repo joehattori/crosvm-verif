@@ -88,6 +88,18 @@ axiom U8.Insts.CoreHashHash.hash
 axiom U64.Insts.CoreHashHash.hash
   {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
 
+/-- [core::iter::traits::iterator::Iterator::find]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
+    Name pattern: [core::iter::traits::iterator::Iterator::find]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+axiom core.iter.traits.iterator.Iterator.find.default
+  {Self : Type} {P : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
+  P Clause0_Item Bool) :
+  Self → P → Result ((Option Clause0_Item) × Self)
+
 /-- [core::iter::traits::iterator::Iterator::filter]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
     Name pattern: [core::iter::traits::iterator::Iterator::filter]
@@ -115,6 +127,21 @@ axiom
   core.iter.adapters.filter.Filter I P → Result ((Option Clause0_Item) ×
     (core.iter.adapters.filter.Filter I P))
 
+/-- [core::iter::adapters::rev::{impl core::iter::traits::iterator::Iterator<Clause0_Clause0_Item> for core::iter::adapters::rev::Rev<I>}::find]:
+    Source: '/rustc/library/core/src/iter/adapters/rev.rs', lines 87:4-89:38
+    Name pattern: [core::iter::adapters::rev::{core::iter::traits::iterator::Iterator<core::iter::adapters::rev::Rev<@I>, @Clause0_Clause0_Item>}::find]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::rev::{core::iter::traits::iterator::Iterator<core::iter::adapters::rev::Rev<@I>, @Clause0_Clause0_Item>}::find"]
+axiom core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
+  {I : Type} {P : Type} {Clause0_Clause0_Item : Type}
+  (traitsdouble_endedDoubleEndedIteratorInst :
+  core.iter.traits.double_ended.DoubleEndedIterator I Clause0_Clause0_Item)
+  (opsfunctionFnMutPTupleShared0Clause0_Clause0_ItemBoolInst :
+  core.ops.function.FnMut P Clause0_Clause0_Item Bool) :
+  core.iter.adapters.rev.Rev I → P → Result ((Option Clause0_Clause0_Item)
+    × (core.iter.adapters.rev.Rev I))
+
 /-- [core::ops::range::{core::ops::range::RangeInclusive<Idx>}::start]:
     Source: '/rustc/library/core/src/ops/range.rs', lines 425:4-425:37
     Name pattern: [core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::start]
@@ -131,6 +158,15 @@ axiom core.ops.range.RangeInclusive.start
 axiom core.ops.range.RangeInclusive.end
   {Idx : Type} : core.ops.range.RangeInclusive Idx → Result Idx
 
+/-- [core::option::{core::option::Option<&'_0 T>}::cloned]:
+    Source: '/rustc/library/core/src/option.rs', lines 2162:4-2164:17
+    Name pattern: [core::option::{core::option::Option<&'0 @T>}::cloned]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<&'0 @T>}::cloned"]
+axiom core.option.OptionShared0T.cloned
+  {T : Type} (cloneCloneInst : core.clone.Clone T) :
+  Option T → Result (Option T)
+
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, std::hash::random::RandomState, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 269:4-269:46
     Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, std::hash::random::RandomState, alloc::alloc::Global>}::new]
@@ -141,6 +177,20 @@ axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
   (K : Type) (V : Type) :
   Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState
     Global)
+
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::contains_key]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1268:4-1271:21
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key"]
+axiom std.collections.hash.map.HashMap.contains_key
+  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
+  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
+  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
+  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
+  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  std.collections.hash.map.HashMap K V S A → Q → Result Bool
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::insert]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1332:4-1332:53
@@ -218,4 +268,40 @@ axiom alloc.collections.btree.set.BTreeSet.remove
   (corecmpOrdInst : core.cmp.Ord T) (corecmpOrdInst1 : core.cmp.Ord Q) :
   alloc.collections.btree.set.BTreeSet T A → Q → Result (Bool ×
     (alloc.collections.btree.set.BTreeSet T A))
+
+/-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::iter]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1245:4-1245:37
+    Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::iter]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::iter"]
+axiom alloc.collections.btree.set.BTreeSet.iter
+  {T : Type} {A : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.collections.btree.set.BTreeSet T A → Result
+    (alloc.collections.btree.set.Iter T)
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::next]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1765:4-1765:39
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::next]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::next"]
+axiom
+  alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.next
+  {T : Type} :
+  alloc.collections.btree.set.Iter T → Result ((Option T) ×
+    (alloc.collections.btree.set.Iter T))
+
+/-- [alloc::collections::btree::set::{impl core::iter::traits::double_ended::DoubleEndedIterator<&'_ T> for alloc::collections::btree::set::Iter<'a, T>}::next_back]:
+    Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 1794:4-1794:44
+    Name pattern: [alloc::collections::btree::set::{core::iter::traits::double_ended::DoubleEndedIterator<alloc::collections::btree::set::Iter<'a, @T>, &'_ @T>}::next_back]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::set::{core::iter::traits::double_ended::DoubleEndedIterator<alloc::collections::btree::set::Iter<'a, @T>, &'_ @T>}::next_back"]
+axiom
+  alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT.next_back
+  {T : Type} :
+  alloc.collections.btree.set.Iter T → Result ((Option T) ×
+    (alloc.collections.btree.set.Iter T))
 

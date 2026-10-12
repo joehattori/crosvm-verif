@@ -1,0 +1,801 @@
+module
+public import Resources.AddressAllocator.Collections
+-- The pinned library does not export the unfolding equation for iterToList.
+import all Aeneas.Std.VecIter
+import all Init.Data.Nat.Power2.Basic
+@[expose] public section
+open Aeneas Aeneas.Std Result
+open resources.address_range resources.address_allocator
+
+namespace resources.address_allocator.AddressAllocator
+
+/-! ### Construction and slot allocation -/
+
+/-- Initial pools omit an empty input range. -/
+abbrev initialPools (pool : AddressRange) : List AddressRange :=
+  if pool.isEmptyModel then [] else [pool]
+
+/-- A new allocator has no allocations and all of its pool is free. -/
+def initialState (pool : AddressRange) (a : AddressAllocator) : Prop :=
+  a.pools.val = initialPools pool ∧
+  a.allocs = ∅ ∧ a.regions = initialPools pool ∧
+  a.min_align = 4#u64 ∧ a.preferred_align = 4#u64
+
+private abbrev poolIterator :=
+  core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorVecIntoIter AddressRange)
+    (new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool
+      (core.iter.traits.collect.IntoIteratorVec AddressRange))
+
+private abbrev filterState (pools : List AddressRange) (h : pools.length ≤ Usize.max) :
+    _root_.core.iter.adapters.filter.Filter (alloc.vec.into_iter.IntoIter AddressRange) Unit :=
+  ⟨alloc.vec.Vec.from pools h, ()⟩
+
+private theorem filter_next_empty :
+    poolIterator.next (filterState [] (by simp)) =
+      ok (none, filterState [] (by simp)) := by
+  change _root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next _ _ _ = _
+  rw [_root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next.eq_def]
+  change (ok (none, (alloc.vec.Vec.from [] (by simp) : alloc.vec.into_iter.IntoIter AddressRange)) >>= _) = _
+  erw [bind_tc_ok]
+  rfl
+
+private theorem filter_next_singleton (pool : AddressRange) (h) :
+    poolIterator.next (filterState [pool] h) =
+      ok ((if pool.isEmptyModel then none else some pool), filterState [] (by simp)) := by
+  change _root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next _ _ _ = _
+  rw [_root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next.eq_def]
+  change (ok (some pool, (alloc.vec.Vec.from [] (by simp) : alloc.vec.into_iter.IntoIter AddressRange)) >>= _) = _
+  erw [bind_tc_ok]
+  change (do
+    let (keep, predicate) ← new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
+      (core.iter.traits.collect.IntoIteratorVec AddressRange) () pool
+    if keep then ok (some pool, filterState [] (by simp))
+    else poolIterator.next (filterState [] (by simp))) = _
+  rw [filter_next_empty]
+  simp [new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut,
+    AddressRange.is_empty, AddressRange.isEmptyModel]
+  split <;> simp_all
+
+private theorem collect_empty (acc : List AddressRange) :
+    alloc.vec.FromIteratorVec.iterToList poolIterator (filterState [] (by simp)) acc =
+      ok acc.reverse := by
+  rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_empty]
+  erw [bind_tc_ok]
+
+private theorem collect_singleton (pool : AddressRange) (h) :
+    alloc.vec.FromIteratorVec.iterToList poolIterator (filterState [pool] h) [] =
+      ok (initialPools pool) := by
+  rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_singleton]
+  by_cases he : pool.isEmptyModel
+  · simp [he, initialPools]
+  · simp [he, collect_empty, initialPools]
+
+/-- With default alignments, construction succeeds even for an empty pool
+    and establishes the exact initial state. -/
+@[step]
+theorem new_default_spec (pool : AddressRange) :
+    AddressAllocator.new pool none none ⦃ result =>
+      ∃ a, result = .Ok a ∧ initialState pool a ⦄ := by
+  unfold AddressAllocator.new AddressAllocator.new_from_list
+  simp only [alloc.vec.IntoIteratorVec.into_iter,
+    Aeneas.Std.core.iter.traits.iterator.Iterator.filter,
+    _root_.core.iter.traits.iterator.Iterator.filter.default,
+    core.iter.traits.iterator.Iterator.collect.default,
+    alloc.vec.FromIteratorVec.from_iter,
+    core.iter.traits.collect.IntoIterator.Blanket.into_iter]
+  simp [Array.to_slice, alloc.slice.Slice.into_vec, Array.make,
+    core.option.Option.unwrap_or, lift,
+    core.num.U64.is_power_of_two, UScalar.is_power_of_two,
+    show Nat.isPowerOfTwo 4 from by decide]
+  erw [collect_singleton]
+  have hlen : (initialPools pool).length ≤ Usize.max := by
+    unfold initialPools
+    split <;> simp
+    scalar_tac
+  simp [hlen, _root_.alloc.collections.btree.set.BTreeSetTGlobal.new,
+    core.slice.Slice.iter, alloc.vec.Vec.deref,
+    _root_.std.collections.hash.map.HashMapKVRandomStateGlobal.new]
+  unfold new_from_list_loop
+  by_cases h : pool.isEmptyModel
+  all_goals
+    simp [initialPools, h]
+    rw [loop.eq_def]
+    simp [new_from_list_loop.body, core.slice.iter.IteratorSliceIter.next,
+      _root_.alloc.collections.btree.set.BTreeSet.insert,
+      _root_.alloc.collections.btree.set.insertList,
+      initialState, initialPools, h]
+  rw [loop.eq_def]
+  simp
+  rfl
+
+/-- Addresses represented by a list of ranges. -/
+def Covers (rs : List AddressRange) (addr : Nat) : Prop :=
+  ∃ r ∈ rs, r.containsModel addr
+
+/-- Initialization establishes the free-region invariant used by updates. -/
+theorem initialState.validRegions {pool : AddressRange} {a : AddressAllocator}
+    (h : initialState pool a) : ValidRegions a.regions := by
+  rw [h.2.2.1]
+  by_cases hn : pool.isEmptyModel <;> simp [initialPools, hn]
+
+private theorem covers_split (rs rest : List AddressRange) (slot range before after : AddressRange)
+    (hv : ValidRegions rs) (hslot : slot ∈ rs)
+    (hsub : slot.start.val ≤ range.start.val ∧ range.end.val ≤ slot.end.val)
+    (hcover : ∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
+      slot.containsModel addr ∧ ¬range.containsModel addr)
+    (hmem : ∀ r, r ∈ rest ↔
+      (r = after ∧ ¬after.isEmptyModel) ∨ (r = before ∧ ¬before.isEmptyModel) ∨
+        r ∈ rs ∧ r ≠ slot) :
+    ∀ addr, Covers rest addr ↔ Covers rs addr ∧ ¬range.containsModel addr := by
+  intro addr
+  constructor
+  · rintro ⟨r, hr, ha⟩
+    rcases (hmem r).mp hr with ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨hr, hne⟩
+    · have h := (hcover addr).mp (Or.inr ha)
+      exact ⟨⟨slot, hslot, h.1⟩, h.2⟩
+    · have h := (hcover addr).mp (Or.inl ha)
+      exact ⟨⟨slot, hslot, h.1⟩, h.2⟩
+    · refine ⟨⟨r, hr, ha⟩, ?_⟩
+      have hd := hv.disjoint hr hslot hne
+      simp only [DisjointRanges, AddressRange.containsModel] at *
+      omega
+  · rintro ⟨⟨r, hr, ha⟩, hn⟩
+    by_cases he : r = slot
+    · subst r
+      rcases (hcover addr).mpr ⟨ha, hn⟩ with hb | ha
+      · refine ⟨before, (hmem before).mpr (Or.inr (Or.inl ⟨rfl, ?_⟩)), hb⟩
+        simp only [AddressRange.isEmptyModel, AddressRange.containsModel] at *
+        omega
+      · refine ⟨after, (hmem after).mpr (Or.inl ⟨rfl, ?_⟩), ha⟩
+        simp only [AddressRange.isEmptyModel, AddressRange.containsModel] at *
+        omega
+    · exact ⟨r, (hmem r).mpr (Or.inr (Or.inr ⟨hr, he⟩)), ha⟩
+
+/-- Allocate a nonempty subrange of an existing free slot. The helper preserves
+    the free-region invariant, removes exactly the requested addresses, and
+    updates exactly one map entry. It checks neither containment nor key freshness. -/
+@[step]
+theorem internal_allocate_from_slot_spec (self : AddressAllocator)
+    (slot range : AddressRange) (allocation : resources.Alloc) (tag : String)
+    (hv : ValidRegions self.regions) (hslot : slot ∈ self.regions)
+    (hn : ¬range.isEmptyModel)
+    (hsub : slot.start.val ≤ range.start.val ∧ range.end.val ≤ slot.end.val) :
+    AddressAllocator.internal_allocate_from_slot self slot range allocation tag
+      ⦃ result a => result = .Ok range.start ∧
+        a.pools = self.pools ∧ a.min_align = self.min_align ∧
+        a.preferred_align = self.preferred_align ∧
+        a.allocs = Finmap.insert allocation (range, tag) self.allocs ∧
+        ValidRegions a.regions ∧
+        ∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∧ ¬range.containsModel addr ⦄ := by
+  unfold AddressAllocator.internal_allocate_from_slot
+  step with remove_region_spec self.regions slot hv hslot as ⟨removed, rs, hremoved, hvalid, hmem⟩
+  simp only [hremoved]
+  step
+  step with AddressRange.non_overlapping_ranges_spec slot range
+    as ⟨before, after, hcover, hdisjoint⟩
+  have hbd : ¬before.isEmptyModel → ∀ r ∈ rs, DisjointRanges before r := by
+    intro hb r hr
+    have hd := hv.disjoint hslot ((hmem r).mp hr).1 (Ne.symm ((hmem r).mp hr).2)
+    have hrn := hvalid.1 r hr
+    have hc := hcover (max before.start.val r.start.val)
+    simp only [DisjointRanges, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+    omega
+  have had : ¬after.isEmptyModel → ∀ r ∈ rs, DisjointRanges after r := by
+    intro ha r hr
+    have hd := hv.disjoint hslot ((hmem r).mp hr).1 (Ne.symm ((hmem r).mp hr).2)
+    have hrn := hvalid.1 r hr
+    have hc := hcover (max after.start.val r.start.val)
+    simp only [DisjointRanges, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+    omega
+  have hba : ¬before.isEmptyModel → ¬after.isEmptyModel → DisjointRanges after before := by
+    intro hb ha
+    have hd := hdisjoint hn (max before.start.val after.start.val)
+    simp only [DisjointRanges, AddressRange.containsModel, AddressRange.isEmptyModel] at *
+    omega
+  suffices h : (do
+    let rs1 ← insertRemainder rs before
+    let rs2 ← insertRemainder rs1 after
+    let (_, hm) ← _root_.std.collections.hash.map.HashMap.insert
+      resources.Alloc.Insts.CoreCmpEq resources.Alloc.Insts.CoreHashHash
+      resources.std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      self.allocs allocation (range, tag)
+    ok (core.result.Result.Ok range.start, { self with allocs := hm, regions := rs2 })) ⦃ result a =>
+      result = .Ok range.start ∧ a.pools = self.pools ∧ a.min_align = self.min_align ∧
+      a.preferred_align = self.preferred_align ∧
+      a.allocs = Finmap.insert allocation (range, tag) self.allocs ∧
+      ValidRegions a.regions ∧ ∀ addr, Covers a.regions addr ↔
+        Covers self.regions addr ∧ ¬range.containsModel addr ⦄ by
+    simpa only [insertRemainder, Aeneas.Std.bind_assoc] using h
+  step with insertRemainder_spec rs before hvalid hbd as ⟨rs1, hv1, hm1⟩
+  have had1 : ¬after.isEmptyModel → ∀ r ∈ rs1, DisjointRanges after r := by
+    intro ha r hr
+    rcases (hm1 r).mp hr with ⟨rfl, hb⟩ | hr
+    · exact hba hb ha
+    · exact had ha r hr
+  step with insertRemainder_spec rs1 after hv1 had1 as ⟨rs2, hv2, hm2⟩
+  simp [_root_.std.collections.hash.map.HashMap.insert, bind_ok]
+  refine ⟨hv2, ?_⟩
+  have hc : ∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
+      slot.containsModel addr ∧ ¬range.containsModel addr := by
+    simpa only [AddressRange.containsModel, and_assoc] using hcover
+  have hm : ∀ r, r ∈ rs2 ↔
+      (r = after ∧ ¬after.isEmptyModel) ∨ (r = before ∧ ¬before.isEmptyModel) ∨
+        r ∈ self.regions ∧ r ≠ slot := by
+    intro r
+    simp only [hm2, hm1, hmem]
+  simpa [AddressRange.containsModel] using
+    covers_split self.regions rs2 slot range before after hv hslot hsub hc hm
+
+/-! ### Alignment arithmetic and fit predicates -/
+
+/-- Round down to an alignment boundary, using unbounded arithmetic. -/
+def alignDown (addr alignment : Nat) : Nat := addr - addr % alignment
+
+/-- Round up to an alignment boundary, using unbounded arithmetic. -/
+def alignUp (addr alignment : Nat) : Nat :=
+  if addr % alignment = 0 then addr else addr + (alignment - addr % alignment)
+
+theorem alignDown_eq (x a : Nat) : alignDown x a = a * (x / a) := by
+  have := Nat.mod_add_div x a
+  unfold alignDown
+  omega
+
+theorem alignDown_le (x a : Nat) : alignDown x a ≤ x := Nat.sub_le _ _
+
+theorem alignDown_mod (x a : Nat) : alignDown x a % a = 0 := by
+  rw [alignDown_eq]
+  simp
+
+theorem le_alignDown {x a y : Nat} (hy : y % a = 0) (h : y ≤ x) :
+    y ≤ alignDown x a := by
+  rw [alignDown_eq]
+  have hdiv := Nat.div_le_div_right h (c := a)
+  have hmul := Nat.mul_le_mul_left a hdiv
+  have := Nat.mod_add_div y a
+  omega
+
+theorem alignUp_eq {x a : Nat} (ha : 0 < a) (h : x % a ≠ 0) :
+    alignUp x a = a * (x / a + 1) := by
+  have hr := Nat.mod_le x a
+  have := Nat.mod_add_div x a
+  have := Nat.mod_lt x ha
+  simp only [alignUp, h, ↓reduceIte, Nat.mul_add, Nat.mul_one]
+  omega
+
+theorem le_alignUp (x a : Nat) : x ≤ alignUp x a := by
+  unfold alignUp
+  split <;> omega
+
+theorem alignUp_mod (x a : Nat) (ha : 0 < a) : alignUp x a % a = 0 := by
+  by_cases h : x % a = 0
+  · simp [alignUp, h]
+  · rw [alignUp_eq ha h]
+    simp
+
+theorem alignUp_le {x a y : Nat} (ha : 0 < a) (hy : y % a = 0) (h : x ≤ y) :
+    alignUp x a ≤ y := by
+  by_cases hr : x % a = 0
+  · simpa [alignUp, hr] using h
+  rw [alignUp_eq ha hr]
+  have hx := Nat.mod_add_div x a
+  have hyy := Nat.mod_add_div y a
+  have hq : x / a + 1 ≤ y / a := by
+    by_contra hn
+    have hm := Nat.mul_le_mul_left a (show y / a ≤ x / a by omega)
+    omega
+  have hm := Nat.mul_le_mul_left a hq
+  omega
+
+/-- Clearing the low bits of a power-of-two alignment is mathematical rounding down. -/
+theorem mask_alignDown (x alignment mask : U64)
+    (ha : alignment.val.isPowerOfTwo) (hm : mask.val = alignment.val - 1) :
+    (x &&& (~~~mask)).val = alignDown x.val alignment.val := by
+  have hapos : 0 < alignment.val := Nat.pos_of_isPowerOfTwo ha
+  unfold Nat.isPowerOfTwo at ha
+  obtain ⟨k, hk⟩ := ha
+  have halign : alignment.bv = 2#64 ^ k := by
+    apply BitVec.eq_of_toNat_eq
+    simp only [BitVec.toNat_pow, BitVec.toNat_ofNat]
+    change alignment.val = (2 % 2^64) ^ k % 2^64
+    norm_num
+    rw [← hk]
+    exact (Nat.mod_eq_of_lt alignment.hBounds).symm
+  have hmask : mask.bv = alignment.bv - 1#64 := by
+    apply BitVec.eq_of_toNat_eq
+    rw [BitVec.toNat_sub_of_le (by change 1 ≤ alignment.val; omega)]
+    exact hm
+  have hlow : (x.bv &&& mask.bv).toNat = x.val % alignment.val := by
+    rw [hmask, halign, BitVec.and_two_pow_sub_one_eq_mod, ← halign]
+    rfl
+  have hsplit : x.bv &&& ~~~mask.bv = x.bv - (x.bv &&& mask.bv) := by
+    apply BitVec.eq_sub_iff_add_eq.mpr
+    rw [BitVec.add_eq_or_of_and_eq_zero]
+    · simp [← BitVec.and_or_distrib_left]
+    · ext i
+      simp [Bool.and_assoc, Bool.and_left_comm, Bool.and_comm]
+  change (x.bv &&& ~~~mask.bv).toNat = _
+  rw [hsplit, BitVec.toNat_sub_of_le]
+  · exact congrArg (x.val - ·) hlow
+  · simp only [BitVec.le_def, hlow]
+    exact Nat.mod_le _ _
+
+/-- There is an aligned start whose entire requested range lies in this slot. -/
+def Fits (slot : AddressRange) (size alignment : Nat) : Prop :=
+  ∃ start, slot.start.val ≤ start ∧ start % alignment = 0 ∧
+    start + (size - 1) ≤ slot.end.val
+
+theorem fits_forward_iff (slot : AddressRange) (size alignment : Nat)
+    (ha : 0 < alignment) :
+    Fits slot size alignment ↔ alignUp slot.start.val alignment + (size - 1) ≤ slot.end.val := by
+  constructor
+  · rintro ⟨start, hs, hm, he⟩
+    have := alignUp_le ha hm hs
+    omega
+  · intro he
+    exact ⟨_, le_alignUp _ _, alignUp_mod _ _ ha, he⟩
+
+theorem fits_reverse_iff (slot : AddressRange) (size alignment : Nat) :
+    Fits slot size alignment ↔ size - 1 ≤ slot.end.val ∧
+      slot.start.val ≤ alignDown (slot.end.val - (size - 1)) alignment := by
+  constructor
+  · rintro ⟨start, hs, hm, he⟩
+    have := le_alignDown hm (show start ≤ slot.end.val - (size - 1) by omega)
+    omega
+  · rintro ⟨hsize, hstart⟩
+    refine ⟨_, hstart, alignDown_mod _ _, ?_⟩
+    have := alignDown_le (slot.end.val - (size - 1)) alignment
+    omega
+
+@[step]
+theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
+    (hs : 0 < size.val) (ha : 0 < alignment.val)
+    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
+    -- and regenerating Lean.
+    (hadd : slot.start.val % alignment.val ≠ 0 →
+      size.val - 1 + alignment.val ≤ U64.max) :
+    internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+      (alignment, size) slot ⦃ b predicate => predicate = (alignment, size) ∧
+        (b = true ↔ Fits slot size.val alignment.val) ⦄ := by
+  unfold internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  step as ⟨r, hr⟩
+  split
+  · have hr0 : slot.start.val % alignment.val = 0 := by
+      change 0 = slot.start.val % alignment.val at hr
+      exact hr.symm
+    step as ⟨n, hn⟩
+    have hadd := U64.checked_add_bv_spec slot.start n
+    cases he : U64.checked_add slot.start n <;>
+      simp [he] at hadd <;>
+      simp [lift, core.option.Option.is_some_and,
+        internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
+        fits_forward_iff slot _ _ ha, alignUp, hr0] <;> scalar_tac
+  · have hrne : slot.start.val % alignment.val ≠ 0 := by
+      intro hz
+      have hzero : r = 0#u64 := by scalar_tac
+      contradiction
+    have hrlt : r.val < alignment.val := by rw [hr]; exact Nat.mod_lt _ ha
+    have hbound := hadd hrne
+    step as ⟨n, hn⟩
+    step as ⟨sum, hsum⟩
+    step as ⟨offset, hoffset⟩
+    have hchecked := U64.checked_add_bv_spec slot.start offset
+    cases he : U64.checked_add slot.start offset <;>
+      simp [he] at hchecked <;>
+      simp [lift, core.option.Option.is_some_and,
+        internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
+        fits_forward_iff slot _ _ ha, alignUp, hrne] <;> scalar_tac
+
+@[step]
+theorem reverse_fit_spec (slot : AddressRange) (size alignment : U64)
+    (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo) :
+    internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+      (size, alignment) slot ⦃ b predicate => predicate = (size, alignment) ∧
+        (b = true ↔ Fits slot size.val alignment.val) ⦄ := by
+  unfold internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  step as ⟨n, hn⟩
+  have hsub := U64.checked_sub_bv_spec slot.end n
+  cases he : U64.checked_sub slot.end n with
+  | none =>
+    simp [he] at hsub
+    simp [lift, core.option.Option.is_some_and, fits_reverse_iff]
+    scalar_tac
+  | some value =>
+    simp [he] at hsub
+    simp [lift, core.option.Option.is_some_and,
+      internal_allocate_with_align.closure_1.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once]
+    have hapos := Nat.pos_of_isPowerOfTwo ha
+    step as ⟨mask, hm⟩
+    have hmask := mask_alignDown value alignment mask ha hm
+    simp only [UScalar.val_and] at hmask
+    simp [fits_reverse_iff]
+    rw [hmask, hsub.2.1, hn]
+    omega
+
+/-! ### Ordered search -/
+
+/-- The result is the first matching element, or there are no matches. -/
+def FirstMatch {T : Type} (p : T → Prop) (xs : List T) (result : Option T) : Prop :=
+  match result with
+  | none => ∀ x ∈ xs, ¬p x
+  | some x => ∃ before after, xs = before ++ x :: after ∧
+      (∀ y ∈ before, ¬p y) ∧ p x
+
+theorem FirstMatch.mem {T : Type} {p : T → Prop} {xs : List T} {x : T}
+    (h : FirstMatch p xs (some x)) : x ∈ xs ∧ p x := by
+  obtain ⟨before, after, rfl, _, hx⟩ := h
+  exact ⟨by simp, hx⟩
+
+theorem FirstMatch.skip {T : Type} {p : T → Prop} {xs : List T} {x : T} {r : Option T}
+    (hx : ¬p x) (h : FirstMatch p xs r) : FirstMatch p (x :: xs) r := by
+  cases r with
+  | none => simpa [FirstMatch] using And.intro hx h
+  | some y =>
+    obtain ⟨before, after, rfl, hb, hy⟩ := h
+    exact ⟨x :: before, after, rfl, by simpa using And.intro hx hb, hy⟩
+
+/-- A finite iterator search terminates and returns its first match.
+    The representation parameter covers both ascending and descending traversal. -/
+theorem find_spec {I P T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
+    (predInst : core.ops.function.FnMut P T Bool)
+    (repr : List T → I)
+    (hnext : ∀ xs, iterInst.next (repr xs) =
+      match xs with
+      | [] => ok (none, repr [])
+      | x :: xs => ok (some x, repr xs))
+    (predicate : P) (p : T → Prop) (xs : List T)
+    (hp : ∀ x ∈ xs, predInst.call_mut predicate x
+      ⦃ b predicate' => predicate' = predicate ∧ (b = true ↔ p x) ⦄) :
+    _root_.core.iter.traits.iterator.Iterator.find.default iterInst predInst (repr xs) predicate
+      ⦃ result _rest => FirstMatch p xs result ⦄ := by
+  induction xs with
+  | nil =>
+    rw [_root_.core.iter.traits.iterator.Iterator.find.default.eq_def, hnext]
+    simp [FirstMatch]
+  | cons x xs ih =>
+    rw [_root_.core.iter.traits.iterator.Iterator.find.default.eq_def, hnext]
+    step with hp x (by simp) as ⟨b, predicate', he, hb⟩
+    subst predicate'
+    split
+    · simp only [WP.spec_ok]
+      exact ⟨[], xs, rfl, by simp, hb.mp (by assumption)⟩
+    · have hn : ¬p x := by simpa using mt hb.mpr (by assumption)
+      step with ih (fun y hy => hp y (by simp [hy])) as ⟨result, rest, hr⟩
+      exact hr.skip hn
+
+/-- The actual iterator search and clone sequence used by the translated helper. -/
+def findSlot (rs : List AddressRange) (size alignment : U64) (reverse : Bool) :
+    Result (Option AddressRange) := do
+  if reverse then
+    let (result, _) ←
+      _root_.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
+        (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT AddressRange)
+        internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+        ⟨rs⟩ (size, alignment)
+    _root_.core.option.OptionShared0T.cloned AddressRange.Insts.CoreCloneClone result
+  else
+    let (result, _) ←
+      _root_.core.iter.traits.iterator.Iterator.find.default
+        (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
+        internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+        rs (alignment, size)
+    _root_.core.option.OptionShared0T.cloned AddressRange.Insts.CoreCloneClone result
+
+@[step]
+theorem cloned_range_spec (value : Option AddressRange) :
+    _root_.core.option.OptionShared0T.cloned AddressRange.Insts.CoreCloneClone value
+      ⦃ result => result = value ⦄ := by
+  cases value <;> simp [_root_.core.option.OptionShared0T.cloned,
+    AddressRange.Insts.CoreCloneClone.clone]
+
+@[step]
+theorem findSlot_spec (rs : List AddressRange) (size alignment : U64) (reverse : Bool)
+    (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
+    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
+    -- and regenerating Lean.
+    (hsearch : reverse = false → ∀ slot ∈ rs, slot.start.val % alignment.val ≠ 0 →
+      size.val - 1 + alignment.val ≤ U64.max) :
+    findSlot rs size alignment reverse ⦃ result =>
+      FirstMatch (fun slot => Fits slot size.val alignment.val)
+        (if reverse then rs.reverse else rs) result ⦄ := by
+  unfold findSlot
+  cases reverse with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    step with find_spec
+      (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
+      internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+      (fun xs => xs) (by intro xs; cases xs <;> rfl) (alignment, size)
+      (fun slot => Fits slot size.val alignment.val) rs
+      (fun slot hm => forward_fit_spec slot size alignment hs (Nat.pos_of_isPowerOfTwo ha)
+        (hsearch rfl slot hm))
+    step
+    simp_all
+  | true =>
+    simp only [↓reduceIte, _root_.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find]
+    let repr := fun xs : List AddressRange =>
+      (⟨xs.reverse⟩ : core.iter.adapters.rev.Rev (List AddressRange))
+    let revIter : core.iter.traits.iterator.Iterator
+        (core.iter.adapters.rev.Rev (List AddressRange)) AddressRange :=
+      { next := Aeneas.Std.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.next
+          (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT AddressRange) }
+    have hnext : ∀ xs, revIter.next (repr xs) = match xs with
+            | [] => ok (none, repr [])
+            | x :: xs => ok (some x, repr xs) := by
+      intro xs
+      cases xs <;> simp [revIter, Aeneas.Std.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.next,
+        _root_.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT.next_back,
+        repr]
+    have hsearch := find_spec revIter
+      internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+      repr (by
+        intro xs
+        cases xs with
+        | nil => exact hnext []
+        | cons x xs => exact hnext (x :: xs)) (size, alignment) (fun slot => Fits slot size.val alignment.val) rs.reverse
+      (fun slot _ => reverse_fit_spec slot size alignment hs ha)
+    simp only [revIter, repr, List.reverse_reverse] at hsearch
+    step with hsearch
+    step
+    simp_all
+
+/-! ### Aligned allocation -/
+
+/-- A whole allocation fits within one free slot, at an aligned address. -/
+def Placement (rs : List AddressRange) (size alignment start : Nat) : Prop :=
+  ∃ slot ∈ rs, slot.start.val ≤ start ∧ start % alignment = 0 ∧
+    start + (size - 1) ≤ slot.end.val
+
+/-- Forward allocation chooses the lowest possible address; reverse chooses the highest. -/
+def BestPlacement (rs : List AddressRange) (size alignment : Nat) (reverse : Bool)
+    (start : Nat) : Prop :=
+  Placement rs size alignment start ∧
+    ∀ candidate, Placement rs size alignment candidate →
+      if reverse then candidate ≤ start else start ≤ candidate
+
+private def selectedStart (slot : AddressRange) (size alignment : Nat) (reverse : Bool) : Nat :=
+  if reverse then alignDown (slot.end.val - (size - 1)) alignment
+  else alignUp slot.start.val alignment
+
+private theorem selectedStart_fits (slot : AddressRange) (size alignment : Nat)
+    (reverse : Bool) (ha : 0 < alignment) (hf : Fits slot size alignment) :
+    slot.start.val ≤ selectedStart slot size alignment reverse ∧
+      selectedStart slot size alignment reverse % alignment = 0 ∧
+      selectedStart slot size alignment reverse + (size - 1) ≤ slot.end.val := by
+  cases reverse with
+  | false =>
+    exact ⟨le_alignUp _ _, alignUp_mod _ _ ha, (fits_forward_iff slot _ _ ha).mp hf⟩
+  | true =>
+    have hf := (fits_reverse_iff slot size alignment).mp hf
+    have hl := alignDown_le (slot.end.val - (size - 1)) alignment
+    exact ⟨hf.2, alignDown_mod _ _, by simp only [selectedStart, ↓reduceIte]; omega⟩
+
+private theorem selectedStart_best (slot : AddressRange) (size alignment : Nat)
+    (reverse : Bool) (ha : 0 < alignment) (candidate : Nat)
+    (hc : slot.start.val ≤ candidate ∧ candidate % alignment = 0 ∧
+      candidate + (size - 1) ≤ slot.end.val) :
+    if reverse then candidate ≤ selectedStart slot size alignment reverse
+    else selectedStart slot size alignment reverse ≤ candidate := by
+  cases reverse with
+  | false => exact alignUp_le ha hc.2.1 hc.1
+  | true => exact le_alignDown hc.2.1 (by omega)
+
+/-- The final start-address calculation in the generated function. -/
+private def alignedStart (slot : AddressRange) (size alignment : U64) (reverse : Bool) :
+    Result U64 := do
+  if reverse then
+    let n ← size - 1#u64
+    let start ← slot.end - n
+    let mask ← alignment - 1#u64
+    let mask ← lift (~~~mask)
+    ok (start &&& mask)
+  else
+    let remainder ← slot.start % alignment
+    match remainder with
+    | 0#uscalar => ok slot.start
+    | _ =>
+      let upper ← slot.start + alignment
+      upper - remainder
+
+@[step]
+private theorem alignedStart_spec (slot : AddressRange) (size alignment : U64)
+    (reverse : Bool) (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
+    (hf : Fits slot size.val alignment.val)
+    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
+    -- and regenerating Lean.
+    (hstart : reverse = false → slot.start.val % alignment.val ≠ 0 →
+      slot.start.val + alignment.val ≤ U64.max) :
+    alignedStart slot size alignment reverse ⦃ start =>
+      start.val = selectedStart slot size.val alignment.val reverse ⦄ := by
+  have hapos := Nat.pos_of_isPowerOfTwo ha
+  unfold alignedStart
+  cases reverse with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    have hf := (fits_forward_iff slot _ _ hapos).mp hf
+    step as ⟨r, hr⟩
+    split
+    · change 0 = slot.start.val % alignment.val at hr
+      simp [selectedStart, alignUp, hr.symm]
+    · have hrne : slot.start.val % alignment.val ≠ 0 := by
+        intro hz
+        have hzero : r = 0#u64 := by scalar_tac
+        contradiction
+      have hrlt : r.val < alignment.val := by rw [hr]; exact Nat.mod_lt _ hapos
+      have hbound := hstart rfl hrne
+      step as ⟨upper, hupper⟩
+      step
+      simp_all [selectedStart, alignUp]
+      omega
+  | true =>
+    simp only [↓reduceIte]
+    have hf := (fits_reverse_iff slot _ _).mp hf
+    step as ⟨n, hn⟩
+    step as ⟨start, hstart⟩
+    step as ⟨mask, hm⟩
+    simp only [lift, bind_ok, WP.spec_ok]
+    rw [mask_alignDown start alignment mask ha hm]
+    simp_all [selectedStart]
+
+private theorem firstMatch_best (rs : List AddressRange) (slot : AddressRange)
+    (size alignment : Nat) (reverse : Bool) (hv : ValidRegions rs) (ha : 0 < alignment)
+    (hmatch : FirstMatch (fun r => Fits r size alignment)
+      (if reverse then rs.reverse else rs) (some slot)) :
+    BestPlacement rs size alignment reverse (selectedStart slot size alignment reverse) := by
+  have hmem := hmatch.mem
+  have hm : slot ∈ rs := by cases reverse <;> simpa using hmem.1
+  have hfit := selectedStart_fits slot size alignment reverse ha hmem.2
+  refine ⟨⟨slot, hm, hfit⟩, ?_⟩
+  intro candidate ⟨r, hr, hc⟩
+  have hfr : Fits r size alignment := ⟨candidate, hc⟩
+  have hr' : r ∈ (if reverse then rs.reverse else rs) := by
+    cases reverse <;> simpa using hr
+  have horder : (if reverse then rs.reverse else rs).Pairwise
+      (fun r s => if reverse then s.end.val < r.start.val else r.end.val < s.start.val) := by
+    cases reverse <;> simpa [List.pairwise_reverse] using hv.2
+  obtain ⟨before, after, hxs, hmiss, _⟩ := hmatch
+  rw [hxs] at hr' horder
+  rcases List.mem_append.mp hr' with hb | hr'
+  · exact False.elim (hmiss r hb hfr)
+  · rcases List.mem_cons.mp hr' with rfl | hr'
+    · exact selectedStart_best _ size alignment reverse ha candidate hc
+    · have hsep := (List.pairwise_cons.mp (List.pairwise_append.mp horder).2.1).1 r hr'
+      cases reverse <;> simp only [Bool.false_eq_true, ↓reduceIte] at * <;> omega
+
+/-- Successful allocation removes precisely the requested range and inserts its tag.
+    The selected start is the lowest/highest feasible aligned address. -/
+def AlignedAllocation (self : AddressAllocator) (size : U64) (allocation : resources.Alloc)
+    (tag : String) (alignment : Nat) (reverse : Bool) (start : U64) (a : AddressAllocator) : Prop :=
+  BestPlacement self.regions size.val alignment reverse start.val ∧
+    ∃ range : AddressRange, range.start = start ∧
+      range.end.val + 1 = start.val + size.val ∧
+      a.pools = self.pools ∧ a.min_align = self.min_align ∧
+      a.preferred_align = self.preferred_align ∧
+      a.allocs = Finmap.insert allocation (range, tag) self.allocs ∧
+      ValidRegions a.regions ∧
+      ∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∧ ¬range.containsModel addr
+
+/-- Error precedence follows the API: duplicate key, zero size, bad effective alignment,
+    then lack of a fitting slot. Every error preserves the allocator. -/
+def AlignedAllocationOutcome (self : AddressAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (alignment : Nat) (reverse : Bool)
+    (result : core.result.Result U64 resources.Error) (a : AddressAllocator) : Prop :=
+  if allocation ∈ self.allocs then result = .Err (.ExistingAlloc allocation) ∧ a = self
+  else if size.val = 0 then result = .Err .AllocSizeZero ∧ a = self
+  else if ¬alignment.isPowerOfTwo then result = .Err .BadAlignment ∧ a = self
+  else match result with
+    | .Ok start => AlignedAllocation self size allocation tag alignment reverse start a
+    | .Err error => error = .OutOfSpace ∧ a = self ∧
+        ¬∃ start, Placement self.regions size.val alignment start
+
+/-- The generated continuation after the iterator search. -/
+private noncomputable def allocateFound (self : AddressAllocator) (size : U64) (allocation : resources.Alloc)
+    (tag : String) (alignment : U64) (reverse : Bool) (region : Option AddressRange) :
+    Result (core.result.Result U64 resources.Error × AddressAllocator) := do
+  match region with
+  | none => ok (.Err .OutOfSpace, self)
+  | some slot =>
+    let start ← alignedStart slot size alignment reverse
+    let upper ← start + size
+    let end_ ← upper - 1#u64
+    internal_allocate_from_slot self slot ⟨start, end_⟩ allocation tag
+
+private theorem allocateFound_spec (self : AddressAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (alignment : U64) (reverse : Bool)
+    (region : Option AddressRange) (hv : ValidRegions self.regions)
+    (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
+    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
+    -- and regenerating Lean.
+    (hstart : reverse = false → ∀ slot ∈ self.regions,
+      Fits slot size.val alignment.val → slot.start.val % alignment.val ≠ 0 →
+        slot.start.val + alignment.val ≤ U64.max)
+    (hend : ∀ start, Placement self.regions size.val alignment.val start →
+      start + size.val ≤ U64.max)
+    (hmatch : FirstMatch (fun r => Fits r size.val alignment.val)
+      (if reverse then self.regions.reverse else self.regions) region) :
+    allocateFound self size allocation tag alignment reverse region ⦃ result a =>
+      match result with
+      | .Ok start => AlignedAllocation self size allocation tag alignment.val reverse start a
+      | .Err error => error = .OutOfSpace ∧ a = self ∧
+          ¬∃ start, Placement self.regions size.val alignment.val start ⦄ := by
+  cases region with
+  | none =>
+    simp [allocateFound]
+    intro start
+    rintro ⟨slot, hm, hfit⟩
+    have hm' : slot ∈ (if reverse then self.regions.reverse else self.regions) := by
+      cases reverse <;> simpa using hm
+    exact hmatch slot hm' ⟨start, hfit⟩
+  | some slot =>
+    have hselected := hmatch.mem
+    have hm : slot ∈ self.regions := by cases reverse <;> simpa using hselected.1
+    have hfit := selectedStart_fits slot size.val alignment.val reverse
+      (Nat.pos_of_isPowerOfTwo ha) hselected.2
+    have hbest := firstMatch_best self.regions slot size.val alignment.val reverse hv
+      (Nat.pos_of_isPowerOfTwo ha) hmatch
+    unfold allocateFound
+    step with alignedStart_spec slot size alignment reverse hs ha hselected.2
+      (fun hrev hr => hstart hrev slot hm hselected.2 hr) as ⟨start, hstart⟩
+    have hlimit : start.val + size.val ≤ U64.max :=
+      hend start.val (by simpa only [hstart] using hbest.1)
+    step as ⟨upper, hupper⟩
+    step as ⟨end_, he⟩
+    step with internal_allocate_from_slot_spec self slot ⟨start, end_⟩ allocation tag hv hm
+      (by simp only [AddressRange.isEmptyModel]; omega)
+      (by simp only; omega) as ⟨result, a, hresult, hpools, hmin, hpref, hallocs, hvalid, hcover⟩
+    subst result
+    refine ⟨?_, ⟨start, end_⟩, rfl, ?_, hpools, hmin, hpref, hallocs, hvalid, hcover⟩
+    · simpa only [hstart] using hbest
+    · simp only
+      omega
+
+/-- Total correctness in both directions, subject to explicit bounds excluding
+    BUG-002 in the pinned source. Expected errors preserve the allocator. -/
+@[step]
+theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (alignment : U64) (reverse : Bool)
+    (hv : ValidRegions self.regions)
+    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
+    -- and regenerating Lean.
+    (hsearch : reverse = false → ∀ slot ∈ self.regions,
+      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
+        size.val - 1 + max self.min_align.val alignment.val ≤ U64.max)
+    (hstart : reverse = false → ∀ slot ∈ self.regions,
+      Fits slot size.val (max self.min_align.val alignment.val) →
+      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
+        slot.start.val + max self.min_align.val alignment.val ≤ U64.max)
+    (hend : ∀ start, Placement self.regions size.val
+      (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
+    internal_allocate_with_align self size allocation tag alignment reverse ⦃ result a =>
+      AlignedAllocationOutcome self size allocation tag
+        (max self.min_align.val alignment.val) reverse result a ⦄ := by
+  unfold internal_allocate_with_align
+  step as ⟨effective, heffective⟩
+  step with contains_key_spec self allocation as ⟨exists_, hexists⟩
+  split
+  · simp_all [AlignedAllocationOutcome]
+  · have hfresh : allocation ∉ self.allocs := by simp_all
+    split
+    · simp_all [AlignedAllocationOutcome]
+    · have hs : 0 < size.val := by scalar_tac
+      step as ⟨power, hpower⟩
+      split
+      · have ha : effective.val.isPowerOfTwo := by simp_all
+        simp only [_root_.alloc.collections.btree.set.BTreeSet.iter,
+          core.iter.traits.iterator.Iterator.rev.trait_default,
+          core.iter.traits.iterator.Iterator.rev.default, bind_ok]
+        change (do
+          let region ← findSlot self.regions size effective reverse
+          allocateFound self size allocation tag effective reverse region) ⦃ result a =>
+            AlignedAllocationOutcome self size allocation tag
+              (max self.min_align.val alignment.val) reverse result a ⦄
+        step with findSlot_spec self.regions size effective reverse hs ha
+          (by simpa only [heffective] using hsearch) as ⟨region, hmatch⟩
+        step with allocateFound_spec self size allocation tag effective reverse region hv hs ha
+          (by simpa only [heffective] using hstart)
+          (by simpa only [heffective] using hend) hmatch
+          as ⟨result, a, hresult⟩
+        simpa [AlignedAllocationOutcome, hfresh, Nat.ne_of_gt hs, ← heffective, ha] using hresult
+      · simp_all [AlignedAllocationOutcome, Nat.ne_of_gt hs]
+
+end resources.address_allocator.AddressAllocator
