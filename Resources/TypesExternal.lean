@@ -19,6 +19,10 @@ structure core.iter.adapters.filter.Filter (I P : Type) where
 abbrev std.collections.hash.map.HashMap (K V _S _A : Type) :=
   Finmap (fun _ : K => V)
 
+/-- Remaining entries in an unspecified iteration order. -/
+@[rust_type "std::collections::hash::map::Iter"]
+abbrev std.collections.hash.map.Iter (K V : Type) := List (K × V)
+
 @[rust_type "std::hash::random::RandomState"]
 def std.hash.random.RandomState := Unit
 

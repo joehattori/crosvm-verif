@@ -47,6 +47,13 @@ axiom std.collections.hash.map.HashMap (K : Type) (V : Type) (S : Type) (A :
 @[rust_type "std::hash::random::RandomState"]
 axiom std.hash.random.RandomState : Type
 
+/-- [std::collections::hash::map::Iter]
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1575:0-1575:33
+    Name pattern: [std::collections::hash::map::Iter]
+    Visibility: public -/
+@[rust_type "std::collections::hash::map::Iter"]
+axiom std.collections.hash.map.Iter (K : Type) (V : Type) : Type
+
 /-- [std::hash::random::DefaultHasher]
     Source: '/rustc/library/std/src/hash/random.rs', lines 94:0-94:24
     Name pattern: [std::hash::random::DefaultHasher]

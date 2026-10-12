@@ -178,6 +178,17 @@ axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
   Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState
     Global)
 
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::iter]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 675:4-675:40
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::iter]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::iter"]
+axiom std.collections.hash.map.HashMap.iter
+  {K : Type} {V : Type} {S : Type} {A : Type} :
+  std.collections.hash.map.HashMap K V S A → Result
+    (std.collections.hash.map.Iter K V)
+
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::contains_key]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1268:4-1271:21
     Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key]
@@ -204,6 +215,18 @@ axiom std.collections.hash.map.HashMap.insert
   (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher) :
   std.collections.hash.map.HashMap K V S A → K → V → Result ((Option V)
     × (std.collections.hash.map.HashMap K V S A))
+
+/-- [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}::next]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2105:4-2105:48
+    Name pattern: [std::collections::hash::map::{core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next"]
+axiom
+  std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
+  {K : Type} {V : Type} :
+  std.collections.hash.map.Iter K V → Result ((Option (K × V)) ×
+    (std.collections.hash.map.Iter K V))
 
 /-- [std::hash::random::{impl core::hash::Hasher for std::hash::random::DefaultHasher}::finish]:
     Source: '/rustc/library/std/src/hash/random.rs', lines 140:4-140:27

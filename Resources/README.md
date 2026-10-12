@@ -2,11 +2,11 @@
 
 - [AddressRange](AddressRange/Spec.lean): extracted range operations.
 - [AddressAllocator](AddressAllocator/Spec.lean): single-pool construction,
-  slot allocation, and forward/reverse allocation with explicit
-  alignment or preferred-alignment fallback,
+  slot allocation, fixed-address allocation, and forward/reverse allocation with
+  explicit alignment or preferred-alignment fallback,
   subject to the stated well-formedness and arithmetic assumptions.
 
-Multi-pool construction, fixed-address allocation, release, and full accounting
+Multi-pool construction, release, and full accounting
 between pools, free regions, and allocations remain unverified.
 
 # Assumptions and limitations
@@ -19,6 +19,8 @@ The handwritten [external types](TypesExternal.lean) and
 [functions](FunsExternal.lean) are part of the trust boundary: their correspondence
 to Rust's standard library is assumed. Storage layout and allocation failure are
 abstracted away. Generated `_Template.lean` files are not imported.
+Hash-map iteration uses an arbitrary enumeration of the finite-map entries;
+the overlap specification accepts any conflicting key.
 
 # Extraction and checks
 

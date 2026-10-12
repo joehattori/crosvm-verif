@@ -18,6 +18,23 @@ end resources.Alloc
 
 namespace resources.address_allocator.AddressAllocator
 
+/-- Hash-map iteration contains exactly the map entries, regardless of order. -/
+@[step]
+theorem hashMap_iter_spec {K V S A : Type} [DecidableEq K]
+    (m : _root_.std.collections.hash.map.HashMap K V S A) :
+    _root_.std.collections.hash.map.HashMap.iter m ⦃ entries =>
+      ∀ key value, (key, value) ∈ entries ↔ Finmap.lookup key m = some value ⦄ := by
+  simp only [_root_.std.collections.hash.map.HashMap.iter, WP.spec_ok]
+  intro key value
+  rw [Finmap.lookup_eq_some_iff]
+  simp only [List.mem_map, Multiset.mem_toList]
+  constructor
+  · rintro ⟨⟨k, v⟩, hm, he⟩
+    cases he
+    exact hm
+  · intro hm
+    exact ⟨⟨key, value⟩, hm, rfl⟩
+
 private theorem containsKeyList_spec (keys : List resources.Alloc) (key : resources.Alloc) :
     _root_.std.collections.hash.map.containsKeyList
       (resources.core.borrow.Borrow.Blanket resources.Alloc)

@@ -1049,4 +1049,142 @@ theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
   rintro ⟨result, a⟩ hresult
   exact ⟨hresult.wellFormed hwf, hresult⟩
 
+/-! ### Fixed-address allocation -/
+
+/-- The whole requested range lies in a single free slot. -/
+def RangeAvailable (rs : List AddressRange) (range : AddressRange) : Prop :=
+  ∃ slot ∈ rs, ∀ addr, range.containsModel addr → slot.containsModel addr
+
+/-- The named allocation shares an address with the requested range. -/
+def AllocationOverlap (self : AddressAllocator) (range : AddressRange)
+    (allocation : resources.Alloc) : Prop :=
+  ∃ allocated tag, Finmap.lookup allocation self.allocs = some (allocated, tag) ∧
+    ∃ addr, allocated.containsModel addr ∧ range.containsModel addr
+
+/-- Return an overlapping allocation, or establish that none exists. Any overlapping key
+    may be returned; no hash-map iteration order is specified. -/
+@[step]
+theorem find_overlapping_spec (self : AddressAllocator) (range : AddressRange) :
+    find_overlapping self range ⦃ result =>
+      match result with
+      | some allocation => AllocationOverlap self range allocation
+      | none => ∀ allocation, ¬AllocationOverlap self range allocation ⦄ := by
+  unfold find_overlapping
+  step with AddressRange.is_empty_spec range as ⟨empty, hempty⟩
+  split
+  · simp only [WP.spec_ok]
+    rintro allocation ⟨allocated, tag, _, addr, _, hr⟩
+    have he := hempty.mp (by assumption)
+    simp only [AddressRange.isEmptyModel, AddressRange.containsModel] at *
+    omega
+  · step with hashMap_iter_spec self.allocs as ⟨entries, hentries⟩
+    step with find_spec
+      (resources.std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+        resources.Alloc (AddressRange × String))
+      find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+      (fun xs => xs) (by intro xs; cases xs <;> rfl) range
+      (fun entry => ∃ addr, entry.2.1.containsModel addr ∧ range.containsModel addr) entries
+      (by
+        rintro ⟨key, allocated, tag⟩ _
+        simp only [find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut]
+        step with AddressRange.overlaps_spec allocated range
+        simp_all) as ⟨entry, rest, hmatch⟩
+    cases entry with
+    | none =>
+      simp only [core.option.Option.map, WP.spec_ok]
+      rintro allocation ⟨allocated, tag, hlookup, hoverlap⟩
+      apply hmatch (allocation, (allocated, tag)) ((hentries _ _).mpr hlookup)
+      simpa only [AddressRange.containsModel, and_assoc] using hoverlap
+    | some entry =>
+      rcases entry with ⟨key, allocated, tag⟩
+      have hm := hmatch.mem
+      simp [core.option.Option.map,
+        find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc.call_once]
+      refine ⟨allocated, tag, (hentries _ _).mp hm.1, ?_⟩
+      simpa only [AddressRange.containsModel, and_assoc] using hm.2
+
+/-- A successful fixed-address allocation records exactly the requested range and
+    removes its addresses from the free regions. Errors preserve the allocator;
+    overlap errors identify an actual conflicting allocation. Alignment is ignored. -/
+def AllocationAtOutcome (self : AddressAllocator) (range : AddressRange)
+    (allocation : resources.Alloc) (tag : String)
+    (result : core.result.Result Unit resources.Error) (a : AddressAllocator) : Prop :=
+  if allocation ∈ self.allocs then result = .Err (.ExistingAlloc allocation) ∧ a = self
+  else if range.isEmptyModel then result = .Err .AllocSizeZero ∧ a = self
+  else match result with
+    | .Ok () => RangeAvailable self.regions range ∧
+        a.pools = self.pools ∧ a.min_align = self.min_align ∧
+        a.preferred_align = self.preferred_align ∧
+        a.allocs = Finmap.insert allocation (range, tag) self.allocs ∧
+        ∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∧ ¬range.containsModel addr
+    | .Err error => a = self ∧ ¬RangeAvailable self.regions range ∧
+        match error with
+        | .ExistingAlloc existing => AllocationOverlap self range existing
+        | .OutOfSpace => ∀ existing, ¬AllocationOverlap self range existing
+        | _ => False
+
+/-- Fixed-address allocation is correct for every range, including empty ranges
+    and ranges ending at `u64::MAX`; it requires no alignment or overflow bounds. -/
+@[step]
+theorem allocate_at_spec (self : AddressAllocator) (range : AddressRange)
+    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self) :
+    allocate_at self range allocation tag ⦃ result a =>
+      WellFormed a ∧ AllocationAtOutcome self range allocation tag result a ⦄ := by
+  unfold allocate_at
+  step with contains_key_spec self allocation as ⟨exists_, hexists⟩
+  split
+  · simp_all [AllocationAtOutcome]
+  · have hfresh : allocation ∉ self.allocs := by simp_all
+    step with AddressRange.is_empty_spec range as ⟨empty, hempty⟩
+    split
+    · simp_all [AllocationAtOutcome]
+    · have hn : ¬range.isEmptyModel := by simp_all
+      simp only [_root_.alloc.collections.btree.set.BTreeSet.iter, bind_ok]
+      step with find_spec
+        (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
+        allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+        (fun xs => xs) (by intro xs; cases xs <;> rfl) range
+        (fun slot => ∀ addr, range.containsModel addr → slot.containsModel addr) self.regions
+        (by
+          intro slot _
+          simp only [allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut]
+          step with AddressRange.contains_range_spec slot range as ⟨b, hb⟩
+          rw [hb]
+          simp only [hn, not_false_eq_true, true_and]
+          constructor
+          · intro h addr hr
+            simp only [AddressRange.containsModel] at *
+            omega
+          · intro h
+            have hs := h range.start.val
+            have he := h range.end.val
+            simp only [AddressRange.containsModel, AddressRange.isEmptyModel] at *
+            omega) as ⟨slot, rest, hmatch⟩
+      cases slot with
+      | none =>
+        have hunavailable : ¬RangeAvailable self.regions range := by
+          rintro ⟨slot, hm, hc⟩
+          apply hmatch slot hm
+          simpa only [AddressRange.containsModel, and_imp] using hc
+        step with find_overlapping_spec self range as ⟨overlap, hoverlap⟩
+        cases overlap <;> simp_all [AllocationAtOutcome]
+      | some slot =>
+        have hmem : slot ∈ self.regions ∧
+            ∀ addr, range.containsModel addr → slot.containsModel addr := by
+          simpa only [AddressRange.containsModel, and_imp] using hmatch.mem
+        have hsub : slot.start.val ≤ range.start.val ∧ range.end.val ≤ slot.end.val := by
+          have hs := hmem.2 range.start.val
+          have he := hmem.2 range.end.val
+          simp only [AddressRange.containsModel, AddressRange.isEmptyModel] at *
+          omega
+        step with internal_allocate_from_slot_spec self slot range allocation tag hwf.validRegions
+          hmem.1 hn hsub as ⟨result, a, hresult, hpools, hmin, hpref, hallocs, hvalid, hcover⟩
+        subst result
+        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok]
+        simp only [WP.spec_ok, AllocationAtOutcome, hfresh, hn, ↓reduceIte]
+        refine ⟨⟨hvalid, ?_, ?_, ?_⟩, ⟨slot, hmem⟩, hpools, hmin, hpref, hallocs, hcover⟩
+        · simpa [hmin] using hwf.minAlign
+        · simpa [hpref] using hwf.preferredAlign
+        · simpa [hmin, hpref] using hwf.alignOrder
+
 end resources.address_allocator.AddressAllocator

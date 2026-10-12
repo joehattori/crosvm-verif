@@ -133,4 +133,21 @@ def address_allocator.AddressAllocator.internal_allocate_with_align.closure.clos
 def address_allocator.AddressAllocator.internal_allocate_with_align.closure :=
   Std.U64 × Std.U64
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}]
+    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+@[reducible]
+def address_allocator.AddressAllocator.find_overlapping.closure_1 := Unit
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+@[reducible]
+def address_allocator.AddressAllocator.find_overlapping.closure :=
+  address_range.AddressRange
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+@[reducible]
+def address_allocator.AddressAllocator.allocate_at.closure :=
+  address_range.AddressRange
+
 end resources

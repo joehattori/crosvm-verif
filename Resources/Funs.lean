@@ -56,6 +56,19 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
 }
 
+/-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2101:0-2101:42
+    Name pattern: [core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>"]
+impl_def
+  std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+  (K : Type) (V : Type) : core.iter.traits.iterator.Iterator
+  (std.collections.hash.map.Iter K V) (K × V) := {
+  next :=
+    std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
+}
+
 /-- Trait implementation: [std::hash::random::{impl core::hash::Hasher for std::hash::random::DefaultHasher}]
     Source: '/rustc/library/std/src/hash/random.rs', lines 125:0-125:29
     Name pattern: [core::hash::Hasher<std::hash::random::DefaultHasher>] -/
@@ -1010,6 +1023,243 @@ def address_allocator.AddressAllocator.allocate
     address_allocator.AddressAllocator.allocate_with_align self1 size alloc1
       tag self1.min_align
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+def
+  address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc.call_once
+  (c : address_allocator.AddressAllocator.find_overlapping.closure_1)
+  (tupled_args : (Alloc × (address_range.AddressRange × String))) :
+  Result Alloc
+  := do
+  let (alloc1, _) := tupled_args
+  ok alloc1
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}]
+    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc
+  : core.ops.function.FnOnce
+  address_allocator.AddressAllocator.find_overlapping.closure_1 (Alloc ×
+  (address_range.AddressRange × String)) Alloc := {
+  call_once :=
+    address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc.call_once
+}
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::intersect]:
+    Source: 'resources/src/address_range.rs', lines 72:4-76:5
+    Visibility: public -/
+def address_range.AddressRange.intersect
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result address_range.AddressRange
+  := do
+  let start ← core.cmp.max core.cmp.OrdU64 self.start other.start
+  let «end» ← core.cmp.min core.cmp.OrdU64 self.end other.end
+  ok { start, «end» }
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::overlaps]:
+    Source: 'resources/src/address_range.rs', lines 65:4-67:5
+    Visibility: public -/
+def address_range.AddressRange.overlaps
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result Bool
+  := do
+  let ar ← address_range.AddressRange.intersect self other
+  let b ← address_range.AddressRange.is_empty ar
+  ok (¬ b)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_mut]:
+    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+def
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+  (c : address_allocator.AddressAllocator.find_overlapping.closure)
+  (tupled_args : (Alloc × (address_range.AddressRange × String))) :
+  Result (Bool × address_allocator.AddressAllocator.find_overlapping.closure)
+  := do
+  let (_, (alloc_range, _)) := tupled_args
+  let b ← address_range.AddressRange.overlaps alloc_range c
+  ok (b, c)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+def
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_once
+  (c : address_allocator.AddressAllocator.find_overlapping.closure)
+  (p : (Alloc × (address_range.AddressRange × String))) :
+  Result Bool
+  := do
+  let (b, _) ←
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+      c p
+  ok b
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
+    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+  : core.ops.function.FnOnce
+  address_allocator.AddressAllocator.find_overlapping.closure (Alloc ×
+  (address_range.AddressRange × String)) Bool := {
+  call_once :=
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_once
+}
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
+    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+  : core.ops.function.FnMut
+  address_allocator.AddressAllocator.find_overlapping.closure (Alloc ×
+  (address_range.AddressRange × String)) Bool := {
+  FnOnceInst :=
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+  call_mut :=
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+}
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping]:
+    Source: 'resources/src/address_allocator.rs', lines 289:4-298:5 -/
+def address_allocator.AddressAllocator.find_overlapping
+  (self : address_allocator.AddressAllocator)
+  (range : address_range.AddressRange) :
+  Result (Option Alloc)
+  := do
+  let b ← address_range.AddressRange.is_empty range
+  if b
+  then ok none
+  else
+    let i ← std.collections.hash.map.HashMap.iter self.allocs
+    let (o, _) ←
+      core.iter.traits.iterator.Iterator.find.default
+        (std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
+        Alloc (address_range.AddressRange × String))
+        address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+        i range
+    core.option.Option.map
+      address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc
+      o ()
+
+/-- [resources::address_range::{resources::address_range::AddressRange}::contains_range]:
+    Source: 'resources/src/address_range.rs', lines 60:4-62:5
+    Visibility: public -/
+def address_range.AddressRange.contains_range
+  (self : address_range.AddressRange) (other : address_range.AddressRange) :
+  Result Bool
+  := do
+  let b ← address_range.AddressRange.is_empty other
+  if b
+  then ok false
+  else
+    if other.start >= self.start
+    then ok (other.end <= self.end)
+    else ok false
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_mut]:
+    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+def
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+  (c : address_allocator.AddressAllocator.allocate_at.closure)
+  (tupled_args : address_range.AddressRange) :
+  Result (Bool × address_allocator.AddressAllocator.allocate_at.closure)
+  := do
+  let b ← address_range.AddressRange.contains_range tupled_args c
+  ok (b, c)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+def
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool.call_once
+  (c : address_allocator.AddressAllocator.allocate_at.closure)
+  (ar : address_range.AddressRange) :
+  Result Bool
+  := do
+  let (b, _) ←
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+      c ar
+  ok b
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
+    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool
+  : core.ops.function.FnOnce
+  address_allocator.AddressAllocator.allocate_at.closure
+  address_range.AddressRange Bool := {
+  call_once :=
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool.call_once
+}
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
+    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+  : core.ops.function.FnMut
+  address_allocator.AddressAllocator.allocate_at.closure
+  address_range.AddressRange Bool := {
+  FnOnceInst :=
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool
+  call_mut :=
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+}
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at]:
+    Source: 'resources/src/address_allocator.rs', lines 236:4-262:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.allocate_at
+  (self : address_allocator.AddressAllocator)
+  (range : address_range.AddressRange) (alloc1 : Alloc) (tag : String) :
+  Result ((core.result.Result Unit Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let b ←
+    std.collections.hash.map.HashMap.contains_key Alloc.Insts.CoreCmpEq
+      Alloc.Insts.CoreHashHash
+      std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      (core.borrow.Borrow.Blanket Alloc) Alloc.Insts.CoreHashHash
+      Alloc.Insts.CoreCmpEq self.allocs alloc1
+  if b
+  then ok (core.result.Result.Err (Error.ExistingAlloc alloc1), self)
+  else
+    let b1 ← address_range.AddressRange.is_empty range
+    if b1
+    then ok (core.result.Result.Err Error.AllocSizeZero, self)
+    else
+      let i ←
+        alloc.collections.btree.set.BTreeSet.iter
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone self.regions
+      let (o, _) ←
+        core.iter.traits.iterator.Iterator.find.default
+          (alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT
+          address_range.AddressRange)
+          address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+          i range
+      match o with
+      | none =>
+        let o1 ←
+          address_allocator.AddressAllocator.find_overlapping self range
+        match o1 with
+        | none => ok (core.result.Result.Err Error.OutOfSpace, self)
+        | some existing_alloc =>
+          ok (core.result.Result.Err (Error.ExistingAlloc existing_alloc),
+            self)
+      | some slot =>
+        let (r, self1) ←
+          address_allocator.AddressAllocator.internal_allocate_from_slot self
+            slot range alloc1 tag
+        let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue _ =>
+          ok (core.result.Result.Ok (), self1)
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          let r1 ←
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              Unit (core.convert.FromSame Error) residual
+          ok (r1, self1)
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]
@@ -1060,43 +1310,6 @@ def address_range.AddressRange.contains
   if address >= self.start
   then ok (address <= self.end)
   else ok false
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::contains_range]:
-    Source: 'resources/src/address_range.rs', lines 60:4-62:5
-    Visibility: public -/
-def address_range.AddressRange.contains_range
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result Bool
-  := do
-  let b ← address_range.AddressRange.is_empty other
-  if b
-  then ok false
-  else
-    if other.start >= self.start
-    then ok (other.end <= self.end)
-    else ok false
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::intersect]:
-    Source: 'resources/src/address_range.rs', lines 72:4-76:5
-    Visibility: public -/
-def address_range.AddressRange.intersect
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result address_range.AddressRange
-  := do
-  let start ← core.cmp.max core.cmp.OrdU64 self.start other.start
-  let «end» ← core.cmp.min core.cmp.OrdU64 self.end other.end
-  ok { start, «end» }
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::overlaps]:
-    Source: 'resources/src/address_range.rs', lines 65:4-67:5
-    Visibility: public -/
-def address_range.AddressRange.overlaps
-  (self : address_range.AddressRange) (other : address_range.AddressRange) :
-  Result Bool
-  := do
-  let ar ← address_range.AddressRange.intersect self other
-  let b ← address_range.AddressRange.is_empty ar
-  ok (¬ b)
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::split_at]:
     Source: 'resources/src/address_range.rs', lines 123:4-140:5

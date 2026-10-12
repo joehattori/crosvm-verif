@@ -114,6 +114,23 @@ def std.collections.hash.map.HashMapKVRandomStateGlobal.new (K V : Type) :
   Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState Global) :=
   ok ∅
 
+/-- Enumerate each entry once in an arbitrary order. The chosen order abstracts
+    Rust's hash-table layout; specifications must not depend on that order. -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::iter"]
+noncomputable def std.collections.hash.map.HashMap.iter {K V S A : Type}
+    (self : std.collections.hash.map.HashMap K V S A) :
+    Result (std.collections.hash.map.Iter K V) :=
+  ok (self.entries.toList.map fun entry => (entry.1, entry.2))
+
+@[rust_fun
+  "std::collections::hash::map::{core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next"]
+def std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
+    {K V : Type} : std.collections.hash.map.Iter K V →
+      Result (Option (K × V) × std.collections.hash.map.Iter K V)
+  | [] => ok (none, [])
+  | entry :: rest => ok (some entry, rest)
+
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new"]
 def alloc.collections.btree.set.BTreeSetTGlobal.new (T : Type) :
