@@ -1607,6 +1607,78 @@ def address_allocator.AddressAllocator.release_containing
   | none => ok (core.result.Result.Err Error.OutOfSpace, self)
   | some alloc1 => address_allocator.AddressAllocator.release self alloc1
 
+/-- [resources::address_range::{resources::address_range::AddressRange}::from_start_and_size]:
+    Source: 'resources/src/address_range.rs', lines 32:4-40:5
+    Visibility: public -/
+def address_range.AddressRange.from_start_and_size
+  (start : Std.U64) (size : Std.U64) :
+  Result (Option address_range.AddressRange)
+  := do
+  if size = 0#u64
+  then let ar ← address_range.AddressRange.empty
+       ok (some ar)
+  else
+    let i ← size - 1#u64
+    let o ← lift (U64.checked_add start i)
+    match o with
+    | none => ok none
+    | some «end» => ok (some { start, «end» })
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::address_from_pci_offset]:
+    Source: 'resources/src/address_allocator.rs', lines 375:4-397:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.address_from_pci_offset
+  (self : address_allocator.AddressAllocator) (alloc1 : Alloc)
+  (offset : Std.U64) (size : Std.U64) :
+  Result (core.result.Result Std.U64 Error)
+  := do
+  match alloc1 with
+  | Alloc.Anon _ => ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+  | Alloc.PciBar _ _ _ _ =>
+    let o ←
+      std.collections.hash.map.HashMap.get Alloc.Insts.CoreCmpEq
+        Alloc.Insts.CoreHashHash
+        std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+        (core.borrow.Borrow.Blanket Alloc) Alloc.Insts.CoreHashHash
+        Alloc.Insts.CoreCmpEq self.allocs alloc1
+    match o with
+    | none => ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+    | some p =>
+      let (pci_bar_range, _) := p
+      let o1 ← lift (U64.checked_add pci_bar_range.start offset)
+      let r ← core.option.Option.ok_or o1 Error.OutOfBounds
+      let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        let o2 ← address_range.AddressRange.from_start_and_size val size
+        let r1 ← core.option.Option.ok_or o2 Error.OutOfBounds
+        let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+        match cf1 with
+        | core.ops.control_flow.ControlFlow.Continue val1 =>
+          let b ←
+            address_range.AddressRange.contains_range pci_bar_range val1
+          if b
+          then ok (core.result.Result.Ok val)
+          else ok (core.result.Result.Err Error.OutOfBounds)
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            Std.U64 (core.convert.FromSame Error) residual
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+          Std.U64 (core.convert.FromSame Error) residual
+  | Alloc.GpuRenderNode =>
+    ok (core.result.Result.Err (Error.InvalidAlloc Alloc.GpuRenderNode))
+  | Alloc.PmemDevice _ =>
+    ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+  | Alloc.Pstore =>
+    ok (core.result.Result.Err (Error.InvalidAlloc Alloc.Pstore))
+  | Alloc.PciBridgeWindow _ _ _ =>
+    ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+  | Alloc.PciBridgePrefetchWindow _ _ _ =>
+    ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+  | Alloc.FileBacked _ =>
+    ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]
@@ -1631,23 +1703,6 @@ def address_range.AddressRange.from_start_and_end
   Result address_range.AddressRange
   := do
   ok { start, «end» }
-
-/-- [resources::address_range::{resources::address_range::AddressRange}::from_start_and_size]:
-    Source: 'resources/src/address_range.rs', lines 32:4-40:5
-    Visibility: public -/
-def address_range.AddressRange.from_start_and_size
-  (start : Std.U64) (size : Std.U64) :
-  Result (Option address_range.AddressRange)
-  := do
-  if size = 0#u64
-  then let ar ← address_range.AddressRange.empty
-       ok (some ar)
-  else
-    let i ← size - 1#u64
-    let o ← lift (U64.checked_add start i)
-    match o with
-    | none => ok none
-    | some «end» => ok (some { start, «end» })
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::contains]:
     Source: 'resources/src/address_range.rs', lines 53:4-55:5

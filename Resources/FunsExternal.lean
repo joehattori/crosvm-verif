@@ -291,6 +291,23 @@ def std.collections.hash.map.findKeyList {K Q : Type}
     let same ← eq.partialEqInst.eq key borrowed
     if same then ok (some head) else findKeyList borrow eq key tail
 
+/-- Return the value stored under the matching borrowed key. Hashing and storage
+    are abstracted away under the same assumptions as `contains_key`. -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::get"]
+noncomputable def std.collections.hash.map.HashMap.get
+    {K V S A Q H : Type} (_eq : core.cmp.Eq K) (_hash : core.hash.Hash K)
+    (_build : resources.core.hash.BuildHasher S H)
+    (borrow : resources.core.borrow.Borrow K Q) (_hashQ : core.hash.Hash Q)
+    (eqQ : core.cmp.Eq Q) (self : std.collections.hash.map.HashMap K V S A)
+    (key : Q) : Result (Option V) := by
+  classical
+  exact do
+    let found ← std.collections.hash.map.findKeyList borrow eqQ key self.keys.toList
+    match found with
+    | none => ok none
+    | some stored => ok (Finmap.lookup stored self)
+
 /-- Remove the matching entry and return its previous value. Hashing and storage
     are abstracted away under the same assumptions as insertion and lookup. -/
 @[rust_fun

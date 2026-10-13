@@ -1606,4 +1606,69 @@ theorem release_containing_spec (self : AddressAllocator) (value : U64)
     step with release_spec self allocation hwf as ⟨result, a, hwfa, hrelease⟩
     exact ⟨hwfa, Or.inr ⟨allocation, range, tag, hlookup, hrange, hrelease⟩⟩
 
+/-! ### PCI offsets -/
+
+/-- A PCI offset resolves exactly when a nonempty request fits in the recorded BAR.
+    Non-PCI or missing keys are invalid; other rejected requests are out of bounds. -/
+def PciOffsetOutcome (self : AddressAllocator) (allocation : resources.Alloc)
+    (offset size : U64) (result : core.result.Result U64 resources.Error) : Prop :=
+  match allocation with
+  | .PciBar _ _ _ _ =>
+    match Finmap.lookup allocation self.allocs with
+    | none => result = .Err (.InvalidAlloc allocation)
+    | some (range, _) =>
+      let start := range.start.val + offset.val
+      let end_ := start + (size.val - 1)
+      if 0 < size.val ∧ range.start.val ≤ start ∧ end_ ≤ range.end.val then
+        ∃ address, result = .Ok address ∧ address.val = start
+      else result = .Err .OutOfBounds
+  | _ => result = .Err (.InvalidAlloc allocation)
+
+/-- Total correctness of PCI offset lookup, without allocator invariant assumptions. -/
+@[step]
+theorem address_from_pci_offset_spec (self : AddressAllocator) (allocation : resources.Alloc)
+    (offset size : U64) :
+    address_from_pci_offset self allocation offset size ⦃ result =>
+      PciOffsetOutcome self allocation offset size result ⦄ := by
+  cases allocation <;> unfold address_from_pci_offset
+  all_goals try simp [PciOffsetOutcome]
+  rename_i bus dev func bar
+  step with get_alloc_spec self (.PciBar bus dev func bar) as ⟨found, hfound⟩
+  subst found
+  cases hlookup : Finmap.lookup (.PciBar bus dev func bar) self.allocs with
+  | none => simp
+  | some entry =>
+    rcases entry with ⟨range, tag⟩
+    have hadd := U64.checked_add_bv_spec range.start offset
+    cases haddress : U64.checked_add range.start offset with
+    | none =>
+      simp only [haddress] at hadd
+      simp [lift, haddress, core.result.Result.Insts.CoreOpsTry.branch,
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+        core.convert.FromSame.from]
+      scalar_tac
+    | some address =>
+      simp only [haddress] at hadd
+      simp [lift, haddress,
+        core.result.Result.Insts.CoreOpsTry.branch]
+      step with AddressRange.from_start_and_size_spec address size as ⟨request, hrequest⟩
+      by_cases hz : size.val = 0
+      · simp only [hz, ↓reduceIte] at hrequest
+        obtain ⟨requested, rfl, hempty⟩ := hrequest
+        simp only [core.option.Option.ok_or_some, bind_ok]
+        step with AddressRange.contains_range_spec range requested as ⟨contains, hcontains⟩
+        simp_all
+      · by_cases hbound : address.val + (size.val - 1) ≤ U64.max
+        · simp only [hz, hbound, ↓reduceIte] at hrequest
+          obtain ⟨requested, rfl, hstart, hend, hnonempty⟩ := hrequest
+          simp only [core.option.Option.ok_or_some, bind_ok]
+          step with AddressRange.contains_range_spec range requested as ⟨contains, hcontains⟩
+          split <;> simp_all
+          scalar_tac
+        · simp only [hz, hbound, ↓reduceIte] at hrequest
+          subst request
+          simp [core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+            core.convert.FromSame.from]
+          scalar_tac
+
 end resources.address_allocator.AddressAllocator

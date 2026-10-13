@@ -80,6 +80,26 @@ private theorem findKeyList_spec (keys : List resources.Alloc) (key : resources.
     · step with ih
       simp_all
 
+/-- Looking up an allocation returns exactly its finite-map entry. -/
+@[step]
+theorem get_alloc_spec (self : AddressAllocator) (key : resources.Alloc) :
+    _root_.std.collections.hash.map.HashMap.get
+      resources.Alloc.Insts.CoreCmpEq resources.Alloc.Insts.CoreHashHash
+      resources.std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      (resources.core.borrow.Borrow.Blanket resources.Alloc)
+      resources.Alloc.Insts.CoreHashHash resources.Alloc.Insts.CoreCmpEq self.allocs key
+      ⦃ found => found = Finmap.lookup key self.allocs ⦄ := by
+  unfold _root_.std.collections.hash.map.HashMap.get
+  step with findKeyList_spec self.allocs.keys.toList key as ⟨found, hfound⟩
+  simp only [Finset.mem_toList, Finmap.mem_keys] at hfound
+  cases hlookup : Finmap.lookup key self.allocs with
+  | none =>
+    have hmissing := Finmap.lookup_eq_none.mp hlookup
+    simp_all
+  | some entry =>
+    have hpresent := Finmap.mem_of_lookup_eq_some hlookup
+    simp_all
+
 /-- Removing an allocation returns its previous value and erases exactly its key;
     a missing key leaves the map unchanged. -/
 @[step]

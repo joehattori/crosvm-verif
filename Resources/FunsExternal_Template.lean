@@ -251,6 +251,20 @@ axiom std.collections.hash.map.HashMap.iter
   std.collections.hash.map.HashMap K V S A → Result
     (std.collections.hash.map.Iter K V)
 
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::get]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1034:4-1037:21
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::get]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::get"]
+axiom std.collections.hash.map.HashMap.get
+  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
+  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
+  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
+  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
+  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  std.collections.hash.map.HashMap K V S A → Q → Result (Option V)
+
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::contains_key]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1268:4-1271:21
     Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key]

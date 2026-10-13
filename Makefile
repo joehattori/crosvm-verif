@@ -28,6 +28,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_allocator::AddressAllocator::insert_at' \
 		--start-from 'crate::address_allocator::AddressAllocator::release' \
 		--start-from 'crate::address_allocator::AddressAllocator::release_containing' \
+		--start-from 'crate::address_allocator::AddressAllocator::address_from_pci_offset' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::address_range::{impl core::fmt::Display for _}' \
