@@ -175,4 +175,40 @@ def address_allocator.AddressAllocator.find_overlapping.closure :=
 def address_allocator.AddressAllocator.allocate_at.closure :=
   address_range.AddressRange
 
+/-- [resources::system_allocator::SystemAllocatorConfig]
+    Source: 'resources/src/system_allocator.rs', lines 87:0-106:1
+    Visibility: public -/
+structure system_allocator.SystemAllocatorConfig where
+  io : Option address_range.AddressRange
+  low_mmio : address_range.AddressRange
+  high_mmio : address_range.AddressRange
+  platform_mmio : Option address_range.AddressRange
+  first_irq : Std.U32
+
+/-- [resources::system_allocator::SystemAllocator]
+    Source: 'resources/src/system_allocator.rs', lines 109:0-123:1
+    Visibility: public -/
+structure system_allocator.SystemAllocator where
+  io_address_space : Option address_allocator.AddressAllocator
+  mmio_address_spaces : Array address_allocator.AddressAllocator 2#usize
+  mmio_platform_address_spaces : Option address_allocator.AddressAllocator
+  reserved_region : Option address_range.AddressRange
+  pci_allocator : alloc.collections.btree.map.BTreeMap Std.U8
+    address_allocator.AddressAllocator Global
+  irq_allocator : address_allocator.AddressAllocator
+  gpe_allocator : address_allocator.AddressAllocator
+  next_anon_id : Std.Usize
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+@[reducible]
+def system_allocator.SystemAllocator.new.closure.closure :=
+  address_range.AddressRange
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 166:35-175:9 -/
+@[reducible]
+def system_allocator.SystemAllocator.new.closure :=
+  Slice address_range.AddressRange
+
 end resources

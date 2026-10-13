@@ -13,6 +13,8 @@ all: verify
 aeneas-bin:
 	nix build path:$(CURDIR)/aeneas#aeneas -o $(CURDIR)/aeneas-bin
 
+# SliceIter::find is an unused override with an unsupported higher-ranked
+# signature in the pinned translator. The mapped slice iterator uses next.
 $(LLBC_DIR)/resources.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -29,6 +31,9 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_allocator::AddressAllocator::release' \
 		--start-from 'crate::address_allocator::AddressAllocator::release_containing' \
 		--start-from 'crate::address_allocator::AddressAllocator::address_from_pci_offset' \
+		--start-from 'crate::system_allocator::SystemAllocator::new' \
+		--opaque 'base::sys::unix::system_info::pagesize' \
+		--exclude 'core::slice::iter::{impl core::iter::traits::iterator::Iterator for _}::find' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::address_range::{impl core::fmt::Display for _}' \

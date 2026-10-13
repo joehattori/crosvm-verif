@@ -429,3 +429,33 @@ def alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorShared
 def alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
     {T : Type} (_ord : core.cmp.Ord T) (self : alloc.collections.btree.set.Range T) :
     Result (Option T) := ok self.getLast?
+
+/-- Opaque host result. The witness only inhabits the model; constructor proofs
+    assume an explicit successful return and never rely on this witness's size.
+    Correspondence to the host's `sysconf` call is an external assumption. -/
+@[rust_fun "base::sys::unix::system_info::pagesize"]
+opaque base.sys.unix.system_info.pagesize : Result Usize := ok 4096#usize
+
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new"]
+def alloc.collections.btree.map.BTreeMapKVGlobal.new (K V : Type) :
+    Result (alloc.collections.btree.map.BTreeMap K V Global) := ok ∅
+
+/-- Rust's default lazy map adapter. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+def core.iter.traits.iterator.Iterator.map.default {I F T B : Type}
+    (_iter : core.iter.traits.iterator.Iterator I T) (_f : core.ops.function.FnMut F T B)
+    (iter : I) (f : F) : Result (core.iter.adapters.map.Map I F) := ok ⟨iter, f⟩
+
+@[rust_fun
+  "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
+def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
+    {B I F T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
+    (fInst : core.ops.function.FnMut F T B) (self : core.iter.adapters.map.Map I F) :
+    Result (Option B × core.iter.adapters.map.Map I F) := do
+  let (item, iter) ← iterInst.next self.iter
+  match item with
+  | none => ok (none, ⟨iter, self.f⟩)
+  | some x =>
+    let (y, f) ← fInst.call_mut self.f x
+    ok (some y, ⟨iter, f⟩)

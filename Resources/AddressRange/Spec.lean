@@ -16,6 +16,10 @@ abbrev isEmptyModel (r : AddressRange) : Prop :=
 abbrev containsModel (r : AddressRange) (a : Nat) : Prop :=
   r.start.val ≤ a ∧ a ≤ r.end.val
 
+/-- Inclusive length in unbounded arithmetic; empty ranges have length zero. -/
+def lenModel (r : AddressRange) : Nat :=
+  if r.isEmptyModel then 0 else r.end.val - r.start.val + 1
+
 /-- A range is nonempty exactly when it contains an address. -/
 theorem not_isEmptyModel_iff_exists_containsModel (r : AddressRange) :
     ¬r.isEmptyModel ↔ ∃ addr, r.containsModel addr := by
@@ -183,19 +187,17 @@ theorem non_overlapping_ranges_spec (self other : AddressRange) :
 @[step]
 theorem len_spec (self : AddressRange) :
     AddressRange.len self ⦃ opt =>
-      if self.isEmptyModel then
-        opt = some 0#u64
-      else if self.end.val - self.start.val + 1 ≤ U64.max then
-        ∃ n, opt = some n ∧ n.val = self.end.val - self.start.val + 1
+      if self.lenModel ≤ U64.max then
+        ∃ n, opt = some n ∧ n.val = self.lenModel
       else
         opt = none ⦄ := by
   unfold AddressRange.len
   step
   split
-  · simp_all
+  · simp_all [lenModel]
   · step
     have h := U64.checked_add_bv_spec i 1#u64
-    split at h <;> simp_all
+    split at h <;> simp_all [lenModel, Nat.not_lt_of_ge]
 
 /-- Splitting outside the range or at its start returns the original range and an empty range. -/
 @[step]

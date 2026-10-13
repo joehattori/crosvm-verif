@@ -78,6 +78,21 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
 }
 
+/-- Trait implementation: [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}]
+    Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 99:0-101:27
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>"]
+impl_def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator {B :
+  Type} {I : Type} {F : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst
+  : core.iter.traits.iterator.Iterator I Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
+  Clause0_Item B) : core.iter.traits.iterator.Iterator
+  (core.iter.adapters.map.Map I F) B := {
+  next := core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemBInst
+}
+
 /-- Trait implementation: [core::ops::range::{impl core::ops::range::RangeBounds<T> for (core::ops::range::Bound<T>, core::ops::range::Bound<T>)}]
     Source: '/rustc/library/core/src/ops/range.rs', lines 1193:0-1193:53
     Name pattern: [core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>] -/
@@ -1803,5 +1818,687 @@ def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange :
   «from» :=
     core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
 }
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_mut]:
+    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+def
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+  (c : system_allocator.SystemAllocator.new.closure.closure)
+  (tupled_args : address_range.AddressRange) :
+  Result (address_range.AddressRange ×
+    system_allocator.SystemAllocator.new.closure.closure)
+  := do
+  let ar ← address_range.AddressRange.intersect tupled_args c
+  ok (ar, c)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+def
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange.call_once
+  (c : system_allocator.SystemAllocator.new.closure.closure)
+  (ar : address_range.AddressRange) :
+  Result address_range.AddressRange
+  := do
+  let (ar1, _) ←
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+      c ar
+  ok ar1
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
+    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.new.closure.closure
+  address_range.AddressRange address_range.AddressRange := {
+  call_once :=
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange.call_once
+}
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
+    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
+  : core.ops.function.FnMut
+  system_allocator.SystemAllocator.new.closure.closure
+  address_range.AddressRange address_range.AddressRange := {
+  FnOnceInst :=
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange
+  call_mut :=
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{impl core::ops::function::Fn<(resources::address_range::AddressRange,), core::result::Result<alloc::vec::Vec<resources::address_range::AddressRange>, resources::Error>> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}<'_0>}::call]:
+    Source: 'resources/src/system_allocator.rs', lines 166:35-175:9 -/
+def
+  system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+  (c : system_allocator.SystemAllocator.new.closure)
+  (tupled_args : address_range.AddressRange) :
+  Result (core.result.Result (alloc.vec.Vec address_range.AddressRange) Error)
+  := do
+  let b ← core.slice.Slice.is_empty c
+  if b
+  then
+    let y ←
+      lift (Std.Array.to_slice (Array.make 1#usize [ tupled_args ] : Array
+        address_range.AddressRange 1#usize))
+    let ret := alloc.slice.Slice.into_vec y
+    ok (core.result.Result.Ok ret)
+  else
+    let i ← core.slice.Slice.iter c
+    let m ←
+      core.iter.traits.iterator.Iterator.map.default
+        (core.iter.traits.iterator.IteratorSliceIter
+        address_range.AddressRange)
+        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
+        i tupled_args
+    let ret ←
+      core.iter.traits.iterator.Iterator.collect.default
+        (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+        (core.iter.traits.iterator.IteratorSliceIter
+        address_range.AddressRange)
+        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange)
+        (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) m
+    ok (core.result.Result.Ok ret)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new]:
+    Source: 'resources/src/system_allocator.rs', lines 135:4-234:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.new
+  (config : system_allocator.SystemAllocatorConfig)
+  (reserve_region_size : Option Std.U64)
+  (mmio_address_ranges : Slice address_range.AddressRange) :
+  Result (core.result.Result system_allocator.SystemAllocator Error)
+  := do
+  let i ← base.sys.unix.system_info.pagesize
+  let page_size ← lift (UScalar.cast .U64 i)
+  match reserve_region_size with
+  | none =>
+    match config.io with
+    | none =>
+      let r ←
+        system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+          mmio_address_ranges config.low_mmio
+      let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        let r1 ←
+          address_allocator.AddressAllocator.new_from_list
+            (core.iter.traits.collect.IntoIteratorVec
+            address_range.AddressRange) val (some page_size) none
+        let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+        match cf1 with
+        | core.ops.control_flow.ControlFlow.Continue val1 =>
+          let r2 ←
+            system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+              mmio_address_ranges config.high_mmio
+          let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+          match cf2 with
+          | core.ops.control_flow.ControlFlow.Continue val2 =>
+            let r3 ←
+              address_allocator.AddressAllocator.new_from_list
+                (core.iter.traits.collect.IntoIteratorVec
+                address_range.AddressRange) val2 (some page_size) none
+            let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            match cf3 with
+            | core.ops.control_flow.ControlFlow.Continue val3 =>
+              let bm ←
+                alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
+                  address_allocator.AddressAllocator
+              match config.platform_mmio with
+              | none =>
+                let i1 ← lift (UScalar.cast .U64 config.first_irq)
+                let r4 ←
+                  address_allocator.AddressAllocator.new
+                    { start := i1, «end» := 1023#u64 } (some 1#u64) none
+                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                match cf4 with
+                | core.ops.control_flow.ControlFlow.Continue val4 =>
+                  let r5 ←
+                    address_allocator.AddressAllocator.new
+                      { start := 0#u64, «end» := 255#u64 } (some 1#u64) none
+                  let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                  match cf5 with
+                  | core.ops.control_flow.ControlFlow.Continue val5 =>
+                    ok (core.result.Result.Ok
+                      {
+                        io_address_space := none,
+                        mmio_address_spaces :=
+                          (Array.make 2#usize [ val1, val3 ]),
+                        mmio_platform_address_spaces := none,
+                        reserved_region := none,
+                        pci_allocator := bm,
+                        irq_allocator := val4,
+                        gpe_allocator := val5,
+                        next_anon_id := 0#usize
+                      })
+                  | core.ops.control_flow.ControlFlow.Break residual =>
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      system_allocator.SystemAllocator (core.convert.FromSame
+                      Error) residual
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    system_allocator.SystemAllocator (core.convert.FromSame
+                    Error) residual
+              | some platform =>
+                let r4 ←
+                  address_allocator.AddressAllocator.new platform (some
+                    page_size) none
+                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                match cf4 with
+                | core.ops.control_flow.ControlFlow.Continue val4 =>
+                  let i1 ← lift (UScalar.cast .U64 config.first_irq)
+                  let r5 ←
+                    address_allocator.AddressAllocator.new
+                      { start := i1, «end» := 1023#u64 } (some 1#u64) none
+                  let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                  match cf5 with
+                  | core.ops.control_flow.ControlFlow.Continue val5 =>
+                    let r6 ←
+                      address_allocator.AddressAllocator.new
+                        { start := 0#u64, «end» := 255#u64 } (some 1#u64)
+                        none
+                    let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                    match cf6 with
+                    | core.ops.control_flow.ControlFlow.Continue val6 =>
+                      ok (core.result.Result.Ok
+                        {
+                          io_address_space := none,
+                          mmio_address_spaces :=
+                            (Array.make 2#usize [ val1, val3 ]),
+                          mmio_platform_address_spaces := (some val4),
+                          reserved_region := none,
+                          pci_allocator := bm,
+                          irq_allocator := val5,
+                          gpe_allocator := val6,
+                          next_anon_id := 0#usize
+                        })
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                  | core.ops.control_flow.ControlFlow.Break residual =>
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      system_allocator.SystemAllocator (core.convert.FromSame
+                      Error) residual
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    system_allocator.SystemAllocator (core.convert.FromSame
+                    Error) residual
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                system_allocator.SystemAllocator (core.convert.FromSame Error)
+                residual
+          | core.ops.control_flow.ControlFlow.Break residual =>
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              system_allocator.SystemAllocator (core.convert.FromSame Error)
+              residual
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            system_allocator.SystemAllocator (core.convert.FromSame Error)
+            residual
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+          system_allocator.SystemAllocator (core.convert.FromSame Error)
+          residual
+    | some io =>
+      if io.end > 65535#u64
+      then ok (core.result.Result.Err (Error.IOPortOutOfRange io))
+      else
+        let r ←
+          address_allocator.AddressAllocator.new io (some 1024#u64) none
+        let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue val =>
+          let r1 ←
+            system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+              mmio_address_ranges config.low_mmio
+          let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+          match cf1 with
+          | core.ops.control_flow.ControlFlow.Continue val1 =>
+            let r2 ←
+              address_allocator.AddressAllocator.new_from_list
+                (core.iter.traits.collect.IntoIteratorVec
+                address_range.AddressRange) val1 (some page_size) none
+            let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+            match cf2 with
+            | core.ops.control_flow.ControlFlow.Continue val2 =>
+              let r3 ←
+                system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                  mmio_address_ranges config.high_mmio
+              let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+              match cf3 with
+              | core.ops.control_flow.ControlFlow.Continue val3 =>
+                let r4 ←
+                  address_allocator.AddressAllocator.new_from_list
+                    (core.iter.traits.collect.IntoIteratorVec
+                    address_range.AddressRange) val3 (some page_size) none
+                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                match cf4 with
+                | core.ops.control_flow.ControlFlow.Continue val4 =>
+                  let bm ←
+                    alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
+                      address_allocator.AddressAllocator
+                  match config.platform_mmio with
+                  | none =>
+                    let i1 ← lift (UScalar.cast .U64 config.first_irq)
+                    let r5 ←
+                      address_allocator.AddressAllocator.new
+                        { start := i1, «end» := 1023#u64 } (some 1#u64) none
+                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    match cf5 with
+                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                      let r6 ←
+                        address_allocator.AddressAllocator.new
+                          { start := 0#u64, «end» := 255#u64 } (some 1#u64)
+                          none
+                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        ok (core.result.Result.Ok
+                          {
+                            io_address_space := (some val),
+                            mmio_address_spaces :=
+                              (Array.make 2#usize [ val2, val4 ]),
+                            mmio_platform_address_spaces := none,
+                            reserved_region := none,
+                            pci_allocator := bm,
+                            irq_allocator := val5,
+                            gpe_allocator := val6,
+                            next_anon_id := 0#usize
+                          })
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                  | some platform =>
+                    let r5 ←
+                      address_allocator.AddressAllocator.new platform (some
+                        page_size) none
+                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    match cf5 with
+                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                      let i1 ← lift (UScalar.cast .U64 config.first_irq)
+                      let r6 ←
+                        address_allocator.AddressAllocator.new
+                          { start := i1, «end» := 1023#u64 } (some 1#u64)
+                          none
+                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        let r7 ←
+                          address_allocator.AddressAllocator.new
+                            { start := 0#u64, «end» := 255#u64 } (some 1#u64)
+                            none
+                        let cf7 ←
+                          core.result.Result.Insts.CoreOpsTry.branch r7
+                        match cf7 with
+                        | core.ops.control_flow.ControlFlow.Continue val7 =>
+                          ok (core.result.Result.Ok
+                            {
+                              io_address_space := (some val),
+                              mmio_address_spaces :=
+                                (Array.make 2#usize [ val2, val4 ]),
+                              mmio_platform_address_spaces := (some val5),
+                              reserved_region := none,
+                              pci_allocator := bm,
+                              irq_allocator := val6,
+                              gpe_allocator := val7,
+                              next_anon_id := 0#usize
+                            })
+                        | core.ops.control_flow.ControlFlow.Break residual =>
+                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                            system_allocator.SystemAllocator
+                            (core.convert.FromSame Error) residual
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    system_allocator.SystemAllocator (core.convert.FromSame
+                    Error) residual
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  system_allocator.SystemAllocator (core.convert.FromSame
+                  Error) residual
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                system_allocator.SystemAllocator (core.convert.FromSame Error)
+                residual
+          | core.ops.control_flow.ControlFlow.Break residual =>
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              system_allocator.SystemAllocator (core.convert.FromSame Error)
+              residual
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            system_allocator.SystemAllocator (core.convert.FromSame Error)
+            residual
+  | some reserved_len =>
+    let o ← address_range.AddressRange.len config.high_mmio
+    let r ← core.option.Option.ok_or o Error.OutOfBounds
+    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      if reserved_len > val
+      then ok (core.result.Result.Err Error.OutOfSpace)
+      else
+        let i1 ← config.high_mmio.start + reserved_len
+        let reserved_end ← i1 - 1#u64
+        let high_mmio_start ← reserved_end + 1#u64
+        match config.io with
+        | none =>
+          let r1 ←
+            system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+              mmio_address_ranges config.low_mmio
+          let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+          match cf1 with
+          | core.ops.control_flow.ControlFlow.Continue val1 =>
+            let r2 ←
+              address_allocator.AddressAllocator.new_from_list
+                (core.iter.traits.collect.IntoIteratorVec
+                address_range.AddressRange) val1 (some page_size) none
+            let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+            match cf2 with
+            | core.ops.control_flow.ControlFlow.Continue val2 =>
+              let r3 ←
+                system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                  mmio_address_ranges
+                  { config.high_mmio with start := high_mmio_start }
+              let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+              match cf3 with
+              | core.ops.control_flow.ControlFlow.Continue val3 =>
+                let r4 ←
+                  address_allocator.AddressAllocator.new_from_list
+                    (core.iter.traits.collect.IntoIteratorVec
+                    address_range.AddressRange) val3 (some page_size) none
+                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                match cf4 with
+                | core.ops.control_flow.ControlFlow.Continue val4 =>
+                  let bm ←
+                    alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
+                      address_allocator.AddressAllocator
+                  match config.platform_mmio with
+                  | none =>
+                    let i2 ← lift (UScalar.cast .U64 config.first_irq)
+                    let r5 ←
+                      address_allocator.AddressAllocator.new
+                        { start := i2, «end» := 1023#u64 } (some 1#u64) none
+                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    match cf5 with
+                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                      let r6 ←
+                        address_allocator.AddressAllocator.new
+                          { start := 0#u64, «end» := 255#u64 } (some 1#u64)
+                          none
+                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        ok (core.result.Result.Ok
+                          {
+                            io_address_space := none,
+                            mmio_address_spaces :=
+                              (Array.make 2#usize [ val2, val4 ]),
+                            mmio_platform_address_spaces := none,
+                            reserved_region :=
+                              (some
+                                { config.high_mmio with «end» := reserved_end
+                                }),
+                            pci_allocator := bm,
+                            irq_allocator := val5,
+                            gpe_allocator := val6,
+                            next_anon_id := 0#usize
+                          })
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                  | some platform =>
+                    let r5 ←
+                      address_allocator.AddressAllocator.new platform (some
+                        page_size) none
+                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    match cf5 with
+                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                      let i2 ← lift (UScalar.cast .U64 config.first_irq)
+                      let r6 ←
+                        address_allocator.AddressAllocator.new
+                          { start := i2, «end» := 1023#u64 } (some 1#u64)
+                          none
+                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        let r7 ←
+                          address_allocator.AddressAllocator.new
+                            { start := 0#u64, «end» := 255#u64 } (some 1#u64)
+                            none
+                        let cf7 ←
+                          core.result.Result.Insts.CoreOpsTry.branch r7
+                        match cf7 with
+                        | core.ops.control_flow.ControlFlow.Continue val7 =>
+                          ok (core.result.Result.Ok
+                            {
+                              io_address_space := none,
+                              mmio_address_spaces :=
+                                (Array.make 2#usize [ val2, val4 ]),
+                              mmio_platform_address_spaces := (some val5),
+                              reserved_region :=
+                                (some
+                                  {
+                                    config.high_mmio
+                                      with
+                                      «end» := reserved_end
+                                  }),
+                              pci_allocator := bm,
+                              irq_allocator := val6,
+                              gpe_allocator := val7,
+                              next_anon_id := 0#usize
+                            })
+                        | core.ops.control_flow.ControlFlow.Break residual =>
+                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                            system_allocator.SystemAllocator
+                            (core.convert.FromSame Error) residual
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    system_allocator.SystemAllocator (core.convert.FromSame
+                    Error) residual
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  system_allocator.SystemAllocator (core.convert.FromSame
+                  Error) residual
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                system_allocator.SystemAllocator (core.convert.FromSame Error)
+                residual
+          | core.ops.control_flow.ControlFlow.Break residual =>
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              system_allocator.SystemAllocator (core.convert.FromSame Error)
+              residual
+        | some io =>
+          if io.end > 65535#u64
+          then ok (core.result.Result.Err (Error.IOPortOutOfRange io))
+          else
+            let r1 ←
+              address_allocator.AddressAllocator.new io (some 1024#u64) none
+            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+            match cf1 with
+            | core.ops.control_flow.ControlFlow.Continue val1 =>
+              let r2 ←
+                system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                  mmio_address_ranges config.low_mmio
+              let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+              match cf2 with
+              | core.ops.control_flow.ControlFlow.Continue val2 =>
+                let r3 ←
+                  address_allocator.AddressAllocator.new_from_list
+                    (core.iter.traits.collect.IntoIteratorVec
+                    address_range.AddressRange) val2 (some page_size) none
+                let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+                match cf3 with
+                | core.ops.control_flow.ControlFlow.Continue val3 =>
+                  let r4 ←
+                    system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                      mmio_address_ranges
+                      { config.high_mmio with start := high_mmio_start }
+                  let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                  match cf4 with
+                  | core.ops.control_flow.ControlFlow.Continue val4 =>
+                    let r5 ←
+                      address_allocator.AddressAllocator.new_from_list
+                        (core.iter.traits.collect.IntoIteratorVec
+                        address_range.AddressRange) val4 (some page_size) none
+                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    match cf5 with
+                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                      let bm ←
+                        alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
+                          address_allocator.AddressAllocator
+                      match config.platform_mmio with
+                      | none =>
+                        let i2 ← lift (UScalar.cast .U64 config.first_irq)
+                        let r6 ←
+                          address_allocator.AddressAllocator.new
+                            { start := i2, «end» := 1023#u64 } (some 1#u64)
+                            none
+                        let cf6 ←
+                          core.result.Result.Insts.CoreOpsTry.branch r6
+                        match cf6 with
+                        | core.ops.control_flow.ControlFlow.Continue val6 =>
+                          let r7 ←
+                            address_allocator.AddressAllocator.new
+                              { start := 0#u64, «end» := 255#u64 } (some
+                              1#u64) none
+                          let cf7 ←
+                            core.result.Result.Insts.CoreOpsTry.branch r7
+                          match cf7 with
+                          | core.ops.control_flow.ControlFlow.Continue val7 =>
+                            ok (core.result.Result.Ok
+                              {
+                                io_address_space := (some val1),
+                                mmio_address_spaces :=
+                                  (Array.make 2#usize [ val3, val5 ]),
+                                mmio_platform_address_spaces := none,
+                                reserved_region :=
+                                  (some
+                                    {
+                                      config.high_mmio
+                                        with
+                                        «end» := reserved_end
+                                    }),
+                                pci_allocator := bm,
+                                irq_allocator := val6,
+                                gpe_allocator := val7,
+                                next_anon_id := 0#usize
+                              })
+                          | core.ops.control_flow.ControlFlow.Break residual =>
+                            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                              system_allocator.SystemAllocator
+                              (core.convert.FromSame Error) residual
+                        | core.ops.control_flow.ControlFlow.Break residual =>
+                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                            system_allocator.SystemAllocator
+                            (core.convert.FromSame Error) residual
+                      | some platform =>
+                        let r6 ←
+                          address_allocator.AddressAllocator.new platform (some
+                            page_size) none
+                        let cf6 ←
+                          core.result.Result.Insts.CoreOpsTry.branch r6
+                        match cf6 with
+                        | core.ops.control_flow.ControlFlow.Continue val6 =>
+                          let i2 ← lift (UScalar.cast .U64 config.first_irq)
+                          let r7 ←
+                            address_allocator.AddressAllocator.new
+                              { start := i2, «end» := 1023#u64 } (some 1#u64)
+                              none
+                          let cf7 ←
+                            core.result.Result.Insts.CoreOpsTry.branch r7
+                          match cf7 with
+                          | core.ops.control_flow.ControlFlow.Continue val7 =>
+                            let r8 ←
+                              address_allocator.AddressAllocator.new
+                                { start := 0#u64, «end» := 255#u64 } (some
+                                1#u64) none
+                            let cf8 ←
+                              core.result.Result.Insts.CoreOpsTry.branch r8
+                            match cf8 with
+                            | core.ops.control_flow.ControlFlow.Continue val8
+                              =>
+                              ok (core.result.Result.Ok
+                                {
+                                  io_address_space := (some val1),
+                                  mmio_address_spaces :=
+                                    (Array.make 2#usize [ val3, val5 ]),
+                                  mmio_platform_address_spaces := (some val6),
+                                  reserved_region :=
+                                    (some
+                                      {
+                                        config.high_mmio
+                                          with
+                                          «end» := reserved_end
+                                      }),
+                                  pci_allocator := bm,
+                                  irq_allocator := val7,
+                                  gpe_allocator := val8,
+                                  next_anon_id := 0#usize
+                                })
+                            | core.ops.control_flow.ControlFlow.Break residual
+                              =>
+                              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                                system_allocator.SystemAllocator
+                                (core.convert.FromSame Error) residual
+                          | core.ops.control_flow.ControlFlow.Break residual =>
+                            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                              system_allocator.SystemAllocator
+                              (core.convert.FromSame Error) residual
+                        | core.ops.control_flow.ControlFlow.Break residual =>
+                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                            system_allocator.SystemAllocator
+                            (core.convert.FromSame Error) residual
+                    | core.ops.control_flow.ControlFlow.Break residual =>
+                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                        system_allocator.SystemAllocator (core.convert.FromSame
+                        Error) residual
+                  | core.ops.control_flow.ControlFlow.Break residual =>
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      system_allocator.SystemAllocator (core.convert.FromSame
+                      Error) residual
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    system_allocator.SystemAllocator (core.convert.FromSame
+                    Error) residual
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  system_allocator.SystemAllocator (core.convert.FromSame
+                  Error) residual
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                system_allocator.SystemAllocator (core.convert.FromSame Error)
+                residual
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        system_allocator.SystemAllocator (core.convert.FromSame Error) residual
 
 end resources

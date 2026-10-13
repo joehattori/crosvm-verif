@@ -142,6 +142,18 @@ axiom core.iter.traits.iterator.Iterator.filter.default
   Clause0_Item Bool) :
   Self → P → Result (core.iter.adapters.filter.Filter Self P)
 
+/-- [core::iter::traits::iterator::Iterator::map]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 845:4-848:34
+    Name pattern: [core::iter::traits::iterator::Iterator::map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+axiom core.iter.traits.iterator.Iterator.map.default
+  {Self : Type} {B : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
+  Clause0_Item B) :
+  Self → F → Result (core.iter.adapters.map.Map Self F)
+
 /-- [core::iter::adapters::filter::{impl core::iter::traits::iterator::Iterator<Clause0_Item> for core::iter::adapters::filter::Filter<I, P>}::next]:
     Source: '/rustc/library/core/src/iter/adapters/filter.rs', lines 97:4-97:41
     Name pattern: [core::iter::adapters::filter::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>}::next]
@@ -156,6 +168,20 @@ axiom
   P Clause0_Item Bool) :
   core.iter.adapters.filter.Filter I P → Result ((Option Clause0_Item) ×
     (core.iter.adapters.filter.Filter I P))
+
+/-- [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 106:4-106:35
+    Name pattern: [core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
+axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
+  {B : Type} {I : Type} {F : Type} {Clause0_Item : Type}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
+  core.ops.function.FnMut F Clause0_Item B) :
+  core.iter.adapters.map.Map I F → Result ((Option B) ×
+    (core.iter.adapters.map.Map I F))
 
 /-- [core::iter::adapters::rev::{impl core::iter::traits::iterator::Iterator<Clause0_Clause0_Item> for core::iter::adapters::rev::Rev<I>}::find]:
     Source: '/rustc/library/core/src/iter/adapters/rev.rs', lines 87:4-89:38
@@ -349,6 +375,16 @@ axiom
   std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
   : std.hash.random.RandomState → Result std.hash.random.DefaultHasher
 
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, alloc::alloc::Global>}::new]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 653:4-653:40
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new"]
+axiom alloc.collections.btree.map.BTreeMapKVGlobal.new
+  (K : Type) (V : Type) :
+  Result (alloc.collections.btree.map.BTreeMap K V Global)
+
 /-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 344:4-344:37
     Name pattern: [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new]
@@ -484,4 +520,11 @@ axiom
     Visibility: public -/
 @[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
 axiom alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
+
+/-- [base::sys::unix::system_info::pagesize]:
+    Source: 'base/src/sys/unix/system_info.rs', lines 32:0-32:26
+    Name pattern: [base::sys::unix::system_info::pagesize]
+    Visibility: public -/
+@[rust_fun "base::sys::unix::system_info::pagesize"]
+axiom base.sys.unix.system_info.pagesize : Result Std.Usize
 

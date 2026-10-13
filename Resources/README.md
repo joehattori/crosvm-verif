@@ -7,6 +7,8 @@
   allocation, and forward/reverse allocation with explicit alignment or
   preferred-alignment fallback, release by key or containing address, and PCI
   offset lookup, subject to the stated preconditions.
+- [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
+  resource pools, component well-formedness, and configuration errors.
 
 Full accounting between pools, free regions, and allocations remains unverified.
 
@@ -14,6 +16,9 @@ Full accounting between pools, free regions, and allocations remains unverified.
 
 The Lean specifications state the precise guarantees and preconditions.
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
+System allocator construction assumes disjoint MMIO restrictions, a successful
+host page-size query, and explicit bounds excluding unchecked reservation
+arithmetic failures (`TODO(BUG-003)`).
 
 The handwritten [external types](TypesExternal.lean) and
 [functions](FunsExternal.lean) are part of the trust boundary: their correspondence
@@ -21,6 +26,8 @@ to Rust's standard library is assumed. Storage layout and allocation failure are
 abstracted away. Generated `_Template.lean` files are not imported.
 Hash-map iteration uses an arbitrary enumeration of the finite-map entries;
 the overlap specification accepts any conflicting key.
+The page-size result is opaque and supplied as a theorem hypothesis; the host OS
+query is not verified. The B-tree map model currently supports only construction.
 
 # Extraction and checks
 
