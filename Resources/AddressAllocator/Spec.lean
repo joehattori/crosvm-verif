@@ -47,6 +47,23 @@ theorem initialState.wellFormed {pool : AddressRange} {a : AddressAllocator}
   exact ⟨hv, by simpa [hminimum] using hmin, by simpa [hpreferred] using hpref,
     by simpa [hminimum, hpreferred] using horder⟩
 
+/-- Distinct nonempty input pools do not overlap; order and duplicates are unrestricted. -/
+def DisjointPools (pools : List AddressRange) : Prop :=
+  ∀ r ∈ pools, ∀ s ∈ pools, ¬r.isEmptyModel → ¬s.isEmptyModel →
+    r ≠ s → DisjointRanges r s
+
+/-- Construction preserves the nonempty input pools in their original order. -/
+abbrev nonemptyPools (pools : List AddressRange) : List AddressRange :=
+  pools.filter (fun r => decide (¬r.isEmptyModel))
+
+/-- The pool vector preserves order and duplicates; the free set contains exactly
+    the nonempty input ranges. There are no recorded allocations. -/
+def initialStateFromList (pools : List AddressRange) (a : AddressAllocator)
+    (min_align : U64 := 4#u64) (preferred_align : U64 := min_align) : Prop :=
+  a.pools.val = nonemptyPools pools ∧ a.allocs = ∅ ∧
+  (∀ r, r ∈ a.regions ↔ r ∈ nonemptyPools pools) ∧
+  a.min_align = min_align ∧ a.preferred_align = preferred_align
+
 private abbrev poolIterator :=
   core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     (core.iter.traits.iterator.IteratorVecIntoIter AddressRange)
@@ -66,82 +83,125 @@ private theorem filter_next_empty :
   erw [bind_tc_ok]
   rfl
 
-private theorem filter_next_singleton (pool : AddressRange) (h) :
-    poolIterator.next (filterState [pool] h) =
-      ok ((if pool.isEmptyModel then none else some pool), filterState [] (by simp)) := by
+private theorem filter_next_cons (pool : AddressRange) (pools : List AddressRange)
+    (h : (pool :: pools).length ≤ Usize.max) :
+    poolIterator.next (filterState (pool :: pools) h) =
+      if pool.isEmptyModel then
+        poolIterator.next (filterState pools (Nat.le_trans (Nat.le_succ _) h))
+      else ok (some pool, filterState pools (Nat.le_trans (Nat.le_succ _) h)) := by
   change _root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next _ _ _ = _
   rw [_root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next.eq_def]
-  change (ok (some pool, (alloc.vec.Vec.from [] (by simp) : alloc.vec.into_iter.IntoIter AddressRange)) >>= _) = _
-  erw [bind_tc_ok]
+  have hnext : (core.iter.traits.iterator.IteratorVecIntoIter AddressRange).next
+      (filterState (pool :: pools) h).iter =
+      ok (some pool, (alloc.vec.Vec.from pools (Nat.le_trans (Nat.le_succ _) h) :
+        alloc.vec.into_iter.IntoIter AddressRange)) := by
+    simp only
+    unfold alloc.vec.into_iter.IteratorIntoIter.next
+    split
+    · rename_i he
+      change (alloc.vec.Vec.from (pool :: pools) h).val = [] at he
+      simp at he
+    · rename_i head tail he
+      change (alloc.vec.Vec.from (pool :: pools) h).val = head :: tail at he
+      simp only [alloc.vec.Vec.from_val, List.cons.injEq] at he
+      rcases he with ⟨rfl, rfl⟩
+      rfl
+  rw [hnext]
+  erw [bind_ok]
   change (do
-    let (keep, predicate) ← new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
+    let (keep, _) ← new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
       (core.iter.traits.collect.IntoIteratorVec AddressRange) () pool
-    if keep then ok (some pool, filterState [] (by simp))
-    else poolIterator.next (filterState [] (by simp))) = _
-  rw [filter_next_empty]
+    if keep then ok (some pool, filterState pools (Nat.le_trans (Nat.le_succ _) h))
+    else poolIterator.next (filterState pools (Nat.le_trans (Nat.le_succ _) h))) = _
   simp [new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut,
     AddressRange.is_empty, AddressRange.isEmptyModel]
-  split <;> simp_all
+  split <;> simp_all [filterState]
 
-private theorem collect_empty (acc : List AddressRange) :
-    alloc.vec.FromIteratorVec.iterToList poolIterator (filterState [] (by simp)) acc =
-      ok acc.reverse := by
-  rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_empty]
-  erw [bind_tc_ok]
+private theorem collect_pools (pools : List AddressRange)
+    (h : pools.length ≤ Usize.max) (acc : List AddressRange) :
+    alloc.vec.FromIteratorVec.iterToList poolIterator (filterState pools h) acc =
+      ok (acc.reverse ++ nonemptyPools pools) := by
+  induction pools generalizing acc with
+  | nil =>
+    rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_empty]
+    simp [nonemptyPools]
+  | cons pool pools ih =>
+    rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_cons]
+    by_cases he : pool.isEmptyModel
+    · simp only [he, ↓reduceIte]
+      have htail := ih (by simp_all; omega) acc
+      rw [alloc.vec.FromIteratorVec.iterToList.eq_def] at htail
+      simpa [nonemptyPools, he] using htail
+    · simp only [he, ↓reduceIte, bind_tc_ok]
+      rw [ih]
+      simp [nonemptyPools, List.filter_cons, AddressRange.isEmptyModel,
+        List.reverse_cons, List.append_assoc] at he ⊢
+      simp_all
 
-private theorem collect_singleton (pool : AddressRange) (h) :
-    alloc.vec.FromIteratorVec.iterToList poolIterator (filterState [pool] h) [] =
-      ok (initialPools pool) := by
-  rw [alloc.vec.FromIteratorVec.iterToList.eq_def, filter_next_singleton]
-  by_cases he : pool.isEmptyModel
-  · simp [he, initialPools]
-  · simp [he, collect_empty, initialPools]
-
-private theorem initial_regions_spec (pool : AddressRange)
-    (h : (initialPools pool).length ≤ Usize.max) :
-    new_from_list_loop { slice := Slice.from (initialPools pool) h, i := 0 } []
-      ⦃ regions => regions = initialPools pool ⦄ := by
+private theorem initial_regions_loop_spec (pools : Slice AddressRange) (i : Nat)
+    (rs : List AddressRange) (hi : i ≤ pools.val.length)
+    (hn : ∀ r ∈ pools.val, ¬r.isEmptyModel) (hd : DisjointPools pools.val)
+    (hv : ValidRegions rs) (hm : ∀ r, r ∈ rs ↔ r ∈ pools.val.take i) :
+    new_from_list_loop ⟨pools, i⟩ rs ⦃ regions =>
+      ValidRegions regions ∧ ∀ r, r ∈ regions ↔ r ∈ pools.val ⦄ := by
   unfold new_from_list_loop
-  by_cases he : pool.isEmptyModel
-  all_goals
-    simp [initialPools, he]
-    rw [loop.eq_def]
-    simp [new_from_list_loop.body, core.slice.iter.IteratorSliceIter.next,
-      _root_.alloc.collections.btree.set.BTreeSet.insert,
-      _root_.alloc.collections.btree.set.insertList]
   rw [loop.eq_def]
-  simp
-  rfl
+  simp only [new_from_list_loop.body, core.slice.iter.IteratorSliceIter.next,
+    Slice.len_val, Slice.length]
+  split
+  · rename_i hnext
+    simp
+    have hpool : pools.val[i] ∈ pools.val := List.getElem_mem hnext
+    step with insert_region_or_existing_spec rs pools.val[i] hv (hn _ hpool)
+      (fun r hr hne => hd _ hpool r (List.mem_of_mem_take ((hm r).mp hr))
+        (hn _ hpool) (hv.1 r hr) hne) as ⟨pair, hvalid, hmem⟩
+    rcases pair with ⟨added, rest⟩
+    simp
+    have hmem' : ∀ r, r ∈ rest ↔ r ∈ pools.val.take (i + 1) := by
+      intro r
+      simp only [hmem, hm, List.take_succ_eq_append_getElem hnext, List.mem_append,
+        List.mem_singleton, or_comm]
+    exact initial_regions_loop_spec pools (i + 1) rest (by omega) hn hd hvalid hmem'
+  · rename_i hdone
+    simp
+    exact ⟨hv, by simpa [List.take_of_length_le (by omega : pools.val.length ≤ i)] using hm⟩
+termination_by pools.val.length - i
 
-/-- Construction establishes well-formedness and the exact initial state, including
-    custom alignments. Invalid alignment configurations return `BadAlignment`. -/
+/-- Construct from a finite vector of pools in any order, allowing empty pools and
+    duplicates. Distinct nonempty pools must be disjoint to establish well-formedness.
+    Invalid alignment configurations return `BadAlignment`. -/
 @[step]
-theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) :
-    AddressAllocator.new pool min_align preferred_align ⦃ result =>
+theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
+    (min_align preferred_align : Option U64) (hd : DisjointPools pools.val) :
+    AddressAllocator.new_from_list (core.iter.traits.collect.IntoIteratorVec AddressRange)
+      pools min_align preferred_align ⦃ result =>
       let minimum := min_align.getD 4#u64
       let preferred := preferred_align.getD minimum
       match result with
-      | .Ok a => initialState pool a minimum preferred ∧ WellFormed a
+      | .Ok a => initialStateFromList pools.val a minimum preferred ∧ WellFormed a
       | .Err error => error = .BadAlignment ∧
           ¬(minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧
             minimum.val ≤ preferred.val) ⦄ := by
   have hunwrap (x : Option U64) (d : U64) : core.option.Option.unwrap_or x d = x.getD d := by
     cases x <;> rfl
-  unfold AddressAllocator.new AddressAllocator.new_from_list
+  have hcollect : alloc.vec.FromIteratorVec.iterToList poolIterator ⟨pools, ()⟩ [] =
+      ok (nonemptyPools pools.val) := by
+    simpa only [filterState, alloc.vec.Vec.val_from, List.reverse_nil, List.nil_append]
+      using collect_pools pools.val pools.property []
+  have hlen : (nonemptyPools pools.val).length ≤ Usize.max :=
+    le_trans (List.length_filter_le _ _) pools.property
+  have hd' : DisjointPools (nonemptyPools pools.val) := by
+    intro r hr s hs
+    exact hd r (List.mem_of_mem_filter hr) s (List.mem_of_mem_filter hs)
+  unfold AddressAllocator.new_from_list
   simp only [alloc.vec.IntoIteratorVec.into_iter,
     Aeneas.Std.core.iter.traits.iterator.Iterator.filter,
     _root_.core.iter.traits.iterator.Iterator.filter.default,
     core.iter.traits.iterator.Iterator.collect.default,
     alloc.vec.FromIteratorVec.from_iter,
     core.iter.traits.collect.IntoIterator.Blanket.into_iter]
-  simp [Array.to_slice, alloc.slice.Slice.into_vec, Array.make,
-    hunwrap, lift,
-    core.num.U64.is_power_of_two, UScalar.is_power_of_two]
-  erw [collect_singleton]
-  have hlen : (initialPools pool).length ≤ Usize.max := by
-    unfold initialPools
-    split <;> simp
-    scalar_tac
+  simp [hunwrap, lift, core.num.U64.is_power_of_two, UScalar.is_power_of_two]
+  erw [hcollect]
   simp [hlen, _root_.alloc.collections.btree.set.BTreeSetTGlobal.new,
     core.slice.Slice.iter, alloc.vec.Vec.deref,
     _root_.std.collections.hash.map.HashMapKVRandomStateGlobal.new]
@@ -157,13 +217,67 @@ theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) 
         split
         · simp_all
         · rename_i horder
-          step with initial_regions_spec pool hlen as ⟨regions, hregions⟩
-          subst regions
-          refine (fun h : initialState pool _ minimum preferred =>
-            ⟨h, h.wellFormed hmin hpref (Nat.le_of_not_gt horder)⟩) ?_
-          simp [initialState]
+          step with initial_regions_loop_spec (Slice.from (nonemptyPools pools.val) hlen) 0 []
+            (by simp) (by simp [nonemptyPools]) (by simpa using hd') (by simp) (by simp)
+            as ⟨regions, hvalid, hmem⟩
+          simp only [Slice.from_val] at hmem
+          refine ⟨?_, ⟨hvalid, hmin, hpref, Nat.le_of_not_gt horder⟩⟩
+          simp [initialStateFromList, hmem]
       · simp_all
   · simp_all
+
+private theorem initialStateFromList_singleton {pool : AddressRange} {a : AddressAllocator}
+    {minimum preferred : U64} (h : initialStateFromList [pool] a minimum preferred)
+    (hv : ValidRegions a.regions) : initialState pool a minimum preferred := by
+  rcases h with ⟨hpools, hallocs, hmem, hmin, hpref⟩
+  have hp : nonemptyPools [pool] = initialPools pool := by
+    by_cases he : pool.isEmptyModel <;>
+      simp_all [nonemptyPools, initialPools, List.filter_cons, AddressRange.isEmptyModel]
+  rw [hp] at hpools hmem
+  refine ⟨hpools, hallocs, ?_, hmin, hpref⟩
+  by_cases he : pool.isEmptyModel
+  · simp only [initialPools, he, ↓reduceIte, List.not_mem_nil, iff_false] at hmem ⊢
+    exact List.eq_nil_iff_forall_not_mem.mpr hmem
+  · simp only [initialPools, he, ↓reduceIte, List.mem_singleton] at hmem ⊢
+    cases hr : a.regions with
+    | nil => simpa [hr] using (hmem pool).mpr rfl
+    | cons head tail =>
+      have hh : head = pool := (hmem head).mp (by simp [hr])
+      subst head
+      have hsep := ((validRegions_cons _ _).mp (hr ▸ hv)).2.2
+      have ht : tail = [] := by
+        apply List.eq_nil_iff_forall_not_mem.mpr
+        intro r hm
+        have heq : r = pool := (hmem r).mp (by simp [hr, hm])
+        subst r
+        have := hsep pool hm
+        simp only [AddressRange.isEmptyModel] at he
+        omega
+      simp [ht]
+
+/-- Construction establishes well-formedness and the exact initial state, including
+    custom alignments. Invalid alignment configurations return `BadAlignment`. -/
+@[step]
+theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) :
+    AddressAllocator.new pool min_align preferred_align ⦃ result =>
+      let minimum := min_align.getD 4#u64
+      let preferred := preferred_align.getD minimum
+      match result with
+      | .Ok a => initialState pool a minimum preferred ∧ WellFormed a
+      | .Err error => error = .BadAlignment ∧
+          ¬(minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧
+            minimum.val ≤ preferred.val) ⦄ := by
+  unfold AddressAllocator.new
+  simp [Array.to_slice, Array.make, alloc.slice.Slice.into_vec, lift]
+  have hnew := new_from_list_spec (alloc.vec.Vec.from [pool] (by scalar_tac))
+    min_align preferred_align (by simp [DisjointPools])
+  simp only [alloc.vec.Vec.from] at hnew
+  step with hnew as ⟨result, hresult⟩
+  cases result with
+  | Ok a =>
+    exact ⟨initialStateFromList_singleton
+      (by simpa [alloc.vec.Vec.val] using hresult.1) hresult.2.validRegions, hresult.2⟩
+  | Err error => simpa using hresult
 
 /-- Addresses represented by a list of ranges. -/
 def Covers (rs : List AddressRange) (addr : Nat) : Prop :=

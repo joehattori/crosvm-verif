@@ -267,6 +267,51 @@ theorem ValidRegions.disjoint {rs : List AddressRange} (hv : ValidRegions rs)
       · exact Or.inr (hsep r hrt)
       · exact ih ht hrt hs
 
+private theorem insertList_existing_spec (rs : List AddressRange) (value : AddressRange)
+    (hv : ValidRegions rs) (hm : value ∈ rs) :
+    _root_.alloc.collections.btree.set.insertList AddressRange.Insts.CoreCmpOrd value rs
+      ⦃ added rest => added = false ∧ rest = rs ⦄ := by
+  induction rs with
+  | nil => simp at hm
+  | cons head tail ih =>
+    rcases (validRegions_cons _ _).mp hv with ⟨hh, ht, hsep⟩
+    have hn := hv.1 value hm
+    unfold _root_.alloc.collections.btree.set.insertList
+    step with AddressRange.cmp_nonempty_spec value head hn hh as ⟨o, heq, hlt, hgt⟩
+    cases o with
+    | eq => simp
+    | lt =>
+      have hl := hlt.mp rfl
+      rcases List.mem_cons.mp hm with he | hm
+      · subst value
+        simp [AddressRange.ltModel] at hl
+      · have hs := hsep value hm
+        simp only [AddressRange.ltModel, AddressRange.isEmptyModel] at *
+        omega
+    | gt =>
+      have hne : value ≠ head := fun he => by simpa using heq.mpr he
+      have hm : value ∈ tail := (List.mem_cons.mp hm).resolve_left hne
+      step with ih ht hm
+      simp_all
+
+/-- Inserting a nonempty range preserves validity if it is disjoint from every
+    distinct existing range. Reinserting an existing range leaves the set unchanged. -/
+@[step]
+theorem insert_region_or_existing_spec (rs : List AddressRange) (value : AddressRange)
+    (hv : ValidRegions rs) (hn : ¬value.isEmptyModel)
+    (hd : ∀ r ∈ rs, value ≠ r → DisjointRanges value r) :
+    _root_.alloc.collections.btree.set.BTreeSet.insert
+      resources.alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      AddressRange.Insts.CoreCmpOrd rs value
+      ⦃ _added rest => ValidRegions rest ∧ ∀ r, r ∈ rest ↔ r = value ∨ r ∈ rs ⦄ := by
+  by_cases hm : value ∈ rs
+  · unfold _root_.alloc.collections.btree.set.BTreeSet.insert
+    step with insertList_existing_spec rs value hv hm
+    subst_vars
+    exact ⟨hv, fun r => by constructor <;> aesop⟩
+  · step with insert_region_spec rs value hv hn (fun r hr => hd r hr (by aesop))
+    simp_all
+
 /-- Insert a remainder only when it is nonempty. This abbreviates the exact
     conditional update in the extracted allocator helper. -/
 def insertRemainder (rs : List AddressRange) (r : AddressRange) :
