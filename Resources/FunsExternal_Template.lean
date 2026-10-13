@@ -210,6 +210,16 @@ axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
   ((core.ops.range.Bound T) × (core.ops.range.Bound T)) → Result
     (core.ops.range.Bound T)
 
+/-- [core::option::{core::option::Option<T>}::and_then]:
+    Source: '/rustc/library/core/src/option.rs', lines 1539:4-1541:61
+    Name pattern: [core::option::{core::option::Option<@T>}::and_then]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
+axiom core.option.Option.and_then
+  {T : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTOptionInst :
+  core.ops.function.FnOnce F T (Option U)) :
+  Option T → F → Result (Option U)
+
 /-- [core::option::{core::option::Option<&'_0 T>}::cloned]:
     Source: '/rustc/library/core/src/option.rs', lines 2162:4-2164:17
     Name pattern: [core::option::{core::option::Option<&'0 @T>}::cloned]

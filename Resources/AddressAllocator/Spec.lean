@@ -240,7 +240,7 @@ theorem internal_allocate_from_slot_spec (self : AddressAllocator)
     omega
   have hba : ¬before.isEmptyModel → ¬after.isEmptyModel → DisjointRanges after before := by
     intro hb ha
-    have hd := hdisjoint hn (max before.start.val after.start.val)
+    have hd := hdisjoint (max before.start.val after.start.val)
     simp only [DisjointRanges, AddressRange.containsModel, AddressRange.isEmptyModel] at *
     omega
   suffices h : (do
@@ -399,11 +399,7 @@ theorem fits_reverse_iff (slot : AddressRange) (size alignment : Nat) :
 
 @[step]
 theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
-    (hs : 0 < size.val) (ha : 0 < alignment.val)
-    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
-    -- and regenerating Lean.
-    (hadd : slot.start.val % alignment.val ≠ 0 →
-      size.val - 1 + alignment.val ≤ U64.max) :
+    (hs : 0 < size.val) (ha : 0 < alignment.val) :
     internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
       (alignment, size) slot ⦃ b predicate => predicate = (alignment, size) ∧
         (b = true ↔ Fits slot size.val alignment.val) ⦄ := by
@@ -418,23 +414,32 @@ theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
     cases he : U64.checked_add slot.start n <;>
       simp [he] at hadd <;>
       simp [lift, core.option.Option.is_some_and,
-        internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
+        internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
         fits_forward_iff slot _ _ ha, alignUp, hr0] <;> scalar_tac
   · have hrne : slot.start.val % alignment.val ≠ 0 := by
       intro hz
       have hzero : r = 0#u64 := by scalar_tac
       contradiction
     have hrlt : r.val < alignment.val := by rw [hr]; exact Nat.mod_lt _ ha
-    have hbound := hadd hrne
     step as ⟨n, hn⟩
-    step as ⟨sum, hsum⟩
-    step as ⟨offset, hoffset⟩
-    have hchecked := U64.checked_add_bv_spec slot.start offset
-    cases he : U64.checked_add slot.start offset <;>
-      simp [he] at hchecked <;>
-      simp [lift, core.option.Option.is_some_and,
-        internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
-        fits_forward_iff slot _ _ ha, alignUp, hrne] <;> scalar_tac
+    have hchecked := U64.checked_add_bv_spec slot.start n
+    cases he : U64.checked_add slot.start n with
+    | none =>
+      simp [he] at hchecked
+      simp [lift, core.option.Option.and_then, core.option.Option.is_some_and,
+        fits_forward_iff slot _ _ ha, alignUp, hrne]
+      scalar_tac
+    | some base =>
+      simp [he] at hchecked
+      simp only [lift, bind_ok, core.option.Option.and_then,
+        internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64.call_once]
+      step as ⟨offset, hoffset⟩
+      have hchecked' := U64.checked_add_bv_spec base offset
+      cases he' : U64.checked_add base offset <;>
+        simp [he'] at hchecked' <;>
+        simp [core.option.Option.is_some_and,
+          internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
+          fits_forward_iff slot _ _ ha, alignUp, hrne] <;> scalar_tac
 
 @[step]
 theorem reverse_fit_spec (slot : AddressRange) (size alignment : U64)
@@ -540,11 +545,7 @@ theorem cloned_range_spec (value : Option AddressRange) :
 
 @[step]
 theorem findSlot_spec (rs : List AddressRange) (size alignment : U64) (reverse : Bool)
-    (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
-    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
-    -- and regenerating Lean.
-    (hsearch : reverse = false → ∀ slot ∈ rs, slot.start.val % alignment.val ≠ 0 →
-      size.val - 1 + alignment.val ≤ U64.max) :
+    (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo) :
     findSlot rs size alignment reverse ⦃ result =>
       FirstMatch (fun slot => Fits slot size.val alignment.val)
         (if reverse then rs.reverse else rs) result ⦄ := by
@@ -557,8 +558,7 @@ theorem findSlot_spec (rs : List AddressRange) (size alignment : U64) (reverse :
       internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
       (fun xs => xs) (by intro xs; cases xs <;> rfl) (alignment, size)
       (fun slot => Fits slot size.val alignment.val) rs
-      (fun slot hm => forward_fit_spec slot size alignment hs (Nat.pos_of_isPowerOfTwo ha)
-        (hsearch rfl slot hm))
+      (fun slot _ => forward_fit_spec slot size alignment hs (Nat.pos_of_isPowerOfTwo ha))
     step
     simp_all
   | true =>
@@ -651,17 +651,13 @@ private def alignedStart (slot : AddressRange) (size alignment : U64) (reverse :
     match remainder with
     | 0#uscalar => ok slot.start
     | _ =>
-      let upper ← slot.start + alignment
-      upper - remainder
+      let offset ← alignment - remainder
+      slot.start + offset
 
 @[step]
 private theorem alignedStart_spec (slot : AddressRange) (size alignment : U64)
     (reverse : Bool) (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
-    (hf : Fits slot size.val alignment.val)
-    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
-    -- and regenerating Lean.
-    (hstart : reverse = false → slot.start.val % alignment.val ≠ 0 →
-      slot.start.val + alignment.val ≤ U64.max) :
+    (hf : Fits slot size.val alignment.val) :
     alignedStart slot size alignment reverse ⦃ start =>
       start.val = selectedStart slot size.val alignment.val reverse ⦄ := by
   have hapos := Nat.pos_of_isPowerOfTwo ha
@@ -679,11 +675,10 @@ private theorem alignedStart_spec (slot : AddressRange) (size alignment : U64)
         have hzero : r = 0#u64 := by scalar_tac
         contradiction
       have hrlt : r.val < alignment.val := by rw [hr]; exact Nat.mod_lt _ hapos
-      have hbound := hstart rfl hrne
-      step as ⟨upper, hupper⟩
+      simp only [alignUp, hrne, ↓reduceIte] at hf
+      step as ⟨offset, hoffset⟩
       step
       simp_all [selectedStart, alignUp]
-      omega
   | true =>
     simp only [↓reduceIte]
     have hf := (fits_reverse_iff slot _ _).mp hf
@@ -780,21 +775,14 @@ private noncomputable def allocateFound (self : AddressAllocator) (size : U64) (
   | none => ok (.Err .OutOfSpace, self)
   | some slot =>
     let start ← alignedStart slot size alignment reverse
-    let upper ← start + size
-    let end_ ← upper - 1#u64
+    let offset ← size - 1#u64
+    let end_ ← start + offset
     internal_allocate_from_slot self slot ⟨start, end_⟩ allocation tag
 
 private theorem allocateFound_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64) (reverse : Bool)
     (region : Option AddressRange) (hv : ValidRegions self.regions)
     (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo)
-    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
-    -- and regenerating Lean.
-    (hstart : reverse = false → ∀ slot ∈ self.regions,
-      Fits slot size.val alignment.val → slot.start.val % alignment.val ≠ 0 →
-        slot.start.val + alignment.val ≤ U64.max)
-    (hend : ∀ start, Placement self.regions size.val alignment.val start →
-      start + size.val ≤ U64.max)
     (hmatch : FirstMatch (fun r => Fits r size.val alignment.val)
       (if reverse then self.regions.reverse else self.regions) region) :
     allocateFound self size allocation tag alignment reverse region ⦃ result a =>
@@ -818,11 +806,8 @@ private theorem allocateFound_spec (self : AddressAllocator) (size : U64)
     have hbest := firstMatch_best self.regions slot size.val alignment.val reverse hv
       (Nat.pos_of_isPowerOfTwo ha) hmatch
     unfold allocateFound
-    step with alignedStart_spec slot size alignment reverse hs ha hselected.2
-      (fun hrev hr => hstart hrev slot hm hselected.2 hr) as ⟨start, hstart⟩
-    have hlimit : start.val + size.val ≤ U64.max :=
-      hend start.val (by simpa only [hstart] using hbest.1)
-    step as ⟨upper, hupper⟩
+    step with alignedStart_spec slot size alignment reverse hs ha hselected.2 as ⟨start, hstart⟩
+    step as ⟨offset, hoffset⟩
     step as ⟨end_, he⟩
     step with internal_allocate_from_slot_spec self slot ⟨start, end_⟩ allocation tag hv hm
       (by simp only [AddressRange.isEmptyModel]; omega)
@@ -833,23 +818,11 @@ private theorem allocateFound_spec (self : AddressAllocator) (size : U64)
     · simp only
       omega
 
-/-- Total correctness in both directions, subject to explicit bounds excluding
-    BUG-002 in the pinned source. Expected errors preserve the allocator. -/
+/-- Total correctness in both directions. Expected errors preserve the allocator. -/
 @[step]
 theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64) (reverse : Bool)
-    (hv : ValidRegions self.regions)
-    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
-    -- and regenerating Lean.
-    (hsearch : reverse = false → ∀ slot ∈ self.regions,
-      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
-        size.val - 1 + max self.min_align.val alignment.val ≤ U64.max)
-    (hstart : reverse = false → ∀ slot ∈ self.regions,
-      Fits slot size.val (max self.min_align.val alignment.val) →
-      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
-        slot.start.val + max self.min_align.val alignment.val ≤ U64.max)
-    (hend : ∀ start, Placement self.regions size.val
-      (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
+    (hv : ValidRegions self.regions) :
     internal_allocate_with_align self size allocation tag alignment reverse ⦃ result a =>
       AlignedAllocationOutcome self size allocation tag
         (max self.min_align.val alignment.val) reverse result a ⦄ := by
@@ -873,11 +846,8 @@ theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
           allocateFound self size allocation tag effective reverse region) ⦃ result a =>
             AlignedAllocationOutcome self size allocation tag
               (max self.min_align.val alignment.val) reverse result a ⦄
-        step with findSlot_spec self.regions size effective reverse hs ha
-          (by simpa only [heffective] using hsearch) as ⟨region, hmatch⟩
-        step with allocateFound_spec self size allocation tag effective reverse region hv hs ha
-          (by simpa only [heffective] using hstart)
-          (by simpa only [heffective] using hend) hmatch
+        step with findSlot_spec self.regions size effective reverse hs ha as ⟨region, hmatch⟩
+        step with allocateFound_spec self size allocation tag effective reverse region hv hs ha hmatch
           as ⟨result, a, hresult⟩
         simpa [AlignedAllocationOutcome, hfresh, Nat.ne_of_gt hs, ← heffective, ha] using hresult
       · simp_all [AlignedAllocationOutcome, Nat.ne_of_gt hs]
@@ -888,18 +858,7 @@ open scoped Classical in
 /-- The shared two-attempt allocation sequence, parameterized by search direction. -/
 private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (reverse : Bool)
-    (hwf : WellFormed self)
-    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
-    -- and regenerating Lean.
-    (hsearch : reverse = false →
-      ∀ alignment ∈ [self.preferred_align.val, self.min_align.val], ∀ slot ∈ self.regions,
-        slot.start.val % alignment ≠ 0 → size.val - 1 + alignment ≤ U64.max)
-    (hstart : reverse = false →
-      ∀ alignment ∈ [self.preferred_align.val, self.min_align.val], ∀ slot ∈ self.regions,
-        Fits slot size.val alignment → slot.start.val % alignment ≠ 0 →
-          slot.start.val + alignment ≤ U64.max)
-    (hend : ∀ start, Placement self.regions size.val self.min_align.val start →
-      start + size.val ≤ U64.max) :
+    (hwf : WellFormed self) :
     (do
       let (result, a) ← internal_allocate_with_align self size allocation tag self.preferred_align reverse
       match result with
@@ -911,18 +870,8 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
         AlignedAllocationOutcome self size allocation tag alignment reverse result a ⦄ := by
   classical
   rcases hwf with ⟨hv, hmin, hpref, horder⟩
-  have hdvd : self.min_align.val ∣ self.preferred_align.val := by
-    obtain ⟨m, hm⟩ := hmin
-    obtain ⟨p, hp⟩ := hpref
-    rw [hm, hp] at horder ⊢
-    exact Nat.pow_dvd_pow 2 ((Nat.pow_le_pow_iff_right (by decide)).mp horder)
   have hmax := max_eq_right horder
   step with internal_allocate_with_align_spec self size allocation tag self.preferred_align reverse hv
-    (by simpa only [hmax] using
-      fun hrev => hsearch hrev self.preferred_align.val (by simp))
-    (by simpa only [hmax] using
-      fun hrev => hstart hrev self.preferred_align.val (by simp))
-    (by simpa only [hmax] using fun start h => hend start (h.of_dvd hdvd))
     as ⟨result, a, hfirst⟩
   cases result with
   | Ok start =>
@@ -937,12 +886,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
       simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
       split_ifs at hfirst <;> tauto
     subst a
-    step with internal_allocate_with_align_spec self size allocation tag self.min_align reverse hv
-      (by simpa only [max_self] using
-        fun hrev => hsearch hrev self.min_align.val (by simp))
-      (by simpa only [max_self] using
-        fun hrev => hstart hrev self.min_align.val (by simp))
-      (by simpa only [max_self] using hend) as ⟨result, a, hsecond⟩
+    step with internal_allocate_with_align_spec self size allocation tag self.min_align reverse hv as ⟨result, a, hsecond⟩
     by_cases hk : allocation ∈ self.allocs
     · simpa [AlignedAllocationOutcome, hk] using hsecond
     by_cases hz : size.val = 0
@@ -960,24 +904,13 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
 @[step]
 theorem allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64)
-    (hwf : WellFormed self)
-    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
-    -- and regenerating Lean.
-    (hsearch : ∀ slot ∈ self.regions,
-      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
-        size.val - 1 + max self.min_align.val alignment.val ≤ U64.max)
-    (hstart : ∀ slot ∈ self.regions,
-      Fits slot size.val (max self.min_align.val alignment.val) →
-      slot.start.val % (max self.min_align.val alignment.val) ≠ 0 →
-        slot.start.val + max self.min_align.val alignment.val ≤ U64.max)
-    (hend : ∀ start, Placement self.regions size.val
-      (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
+    (hwf : WellFormed self) :
     allocate_with_align self size allocation tag alignment ⦃ result a =>
       WellFormed a ∧ AlignedAllocationOutcome self size allocation tag
         (max self.min_align.val alignment.val) false result a ⦄ := by
   unfold allocate_with_align
   step with internal_allocate_with_align_spec self size allocation tag alignment false hwf.validRegions
-    (fun _ => hsearch) (fun _ => hstart) hend as ⟨result, a, hresult⟩
+    as ⟨result, a, hresult⟩
   exact ⟨hresult.wellFormed hwf, hresult⟩
 
 /-- Explicit-alignment reverse allocation chooses the highest feasible address.
@@ -985,17 +918,13 @@ theorem allocate_with_align_spec (self : AddressAllocator) (size : U64)
 @[step]
 theorem reverse_allocate_with_align_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (alignment : U64)
-    (hwf : WellFormed self)
-    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
-    -- and regenerating Lean.
-    (hend : ∀ start, Placement self.regions size.val
-      (max self.min_align.val alignment.val) start → start + size.val ≤ U64.max) :
+    (hwf : WellFormed self) :
     reverse_allocate_with_align self size allocation tag alignment ⦃ result a =>
       WellFormed a ∧ AlignedAllocationOutcome self size allocation tag
         (max self.min_align.val alignment.val) true result a ⦄ := by
   unfold reverse_allocate_with_align
   step with internal_allocate_with_align_spec self size allocation tag alignment true hwf.validRegions
-    (by simp) (by simp) hend as ⟨result, a, hresult⟩
+    as ⟨result, a, hresult⟩
   exact ⟨hresult.wellFormed hwf, hresult⟩
 
 open scoped Classical in
@@ -1004,26 +933,14 @@ open scoped Classical in
     satisfy the constructor's requirements. Expected errors preserve the allocator. -/
 @[step]
 theorem allocate_spec (self : AddressAllocator) (size : U64)
-    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self)
-    -- TODO(BUG-002): Remove these preconditions after updating to CL 8548175
-    -- and regenerating Lean.
-    (hsearch : ∀ alignment ∈ [self.preferred_align.val, self.min_align.val],
-      ∀ slot ∈ self.regions,
-        slot.start.val % alignment ≠ 0 → size.val - 1 + alignment ≤ U64.max)
-    (hstart : ∀ alignment ∈ [self.preferred_align.val, self.min_align.val],
-      ∀ slot ∈ self.regions,
-        Fits slot size.val alignment → slot.start.val % alignment ≠ 0 →
-          slot.start.val + alignment ≤ U64.max)
-    (hend : ∀ start, Placement self.regions size.val self.min_align.val start →
-      start + size.val ≤ U64.max) :
+    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self) :
     allocate self size allocation tag ⦃ result a =>
       let alignment := if ∃ start, Placement self.regions size.val self.preferred_align.val start
         then self.preferred_align.val else self.min_align.val
       WellFormed a ∧ AlignedAllocationOutcome self size allocation tag alignment false result a ⦄ := by
   unfold allocate allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
-  apply WP.spec_mono (allocate_preferred_spec self size allocation tag false hwf
-    (fun _ => hsearch) (fun _ => hstart) hend)
+  apply WP.spec_mono (allocate_preferred_spec self size allocation tag false hwf)
   rintro ⟨result, a⟩ hresult
   exact ⟨hresult.wellFormed hwf, hresult⟩
 
@@ -1033,19 +950,14 @@ open scoped Classical in
     satisfy the constructor's requirements. Expected errors preserve the allocator. -/
 @[step]
 theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
-    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self)
-    -- TODO(BUG-002): Remove this precondition after updating to CL 8548175
-    -- and regenerating Lean.
-    (hend : ∀ start, Placement self.regions size.val self.min_align.val start →
-      start + size.val ≤ U64.max) :
+    (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self) :
     reverse_allocate self size allocation tag ⦃ result a =>
       let alignment := if ∃ start, Placement self.regions size.val self.preferred_align.val start
         then self.preferred_align.val else self.min_align.val
       WellFormed a ∧ AlignedAllocationOutcome self size allocation tag alignment true result a ⦄ := by
   unfold reverse_allocate reverse_allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
-  apply WP.spec_mono (allocate_preferred_spec self size allocation tag true hwf
-    (by simp) (by simp) hend)
+  apply WP.spec_mono (allocate_preferred_spec self size allocation tag true hwf)
   rintro ⟨result, a⟩ hresult
   exact ⟨hresult.wellFormed hwf, hresult⟩
 

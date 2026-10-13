@@ -117,7 +117,8 @@ theorem overlaps_spec (self other : AddressRange) :
 /-- Internal endpoint characterization, including the safety of the unchecked arithmetic. -/
 private theorem non_overlapping_ranges_bounds_spec (self other : AddressRange) :
     AddressRange.non_overlapping_ranges self other ⦃ before after =>
-      (if self.start.val ≥ other.start.val then
+      if other.isEmptyModel then before = self ∧ after.isEmptyModel
+      else (if self.start.val ≥ other.start.val then
         before.isEmptyModel
       else
         before.start.val = self.start.val ∧
@@ -128,52 +129,56 @@ private theorem non_overlapping_ranges_bounds_spec (self other : AddressRange) :
         after.start.val = max (other.end.val + 1) self.start.val ∧
         after.end.val = self.end.val) ⦄ := by
   unfold AddressRange.non_overlapping_ranges
+  step with is_empty_spec other as ⟨empty, he⟩
   split
   · step
+    simp_all
+  · simp_all only
     split
     · step
-      simp_all
+      split
+      · step
+        simp_all
+      · step
+        step
+        step
+        step
+        simp_all
+        split_ifs <;> omega
     · step
       step
       step
       step
-      simp_all
-      split_ifs <;> omega
-  · step
-    step
-    step
-    step
-    split
-    · step
-      simp_all
-      split_ifs <;> omega
-    · step
-      step
-      step
-      step
-      simp_all
-      split_ifs <;> omega
+      split
+      · step
+        simp_all
+        split_ifs <;> omega
+      · step
+        step
+        step
+        step
+        simp_all
+        split_ifs <;> omega
 
-/-- `non_overlapping_ranges` succeeds and returns exactly the addresses in `self`
-    that are not in `other`: `before ∪ after = self \ other`.
-    This holds even for empty inputs. When `other` is nonempty, `before` and
-    `after` are also disjoint; for empty `other`, they may overlap. -/
+/-- `non_overlapping_ranges` succeeds and returns disjoint remainders containing
+    exactly the addresses in `self` but not in `other`, even for empty inputs. -/
 @[step]
 theorem non_overlapping_ranges_spec (self other : AddressRange) :
     AddressRange.non_overlapping_ranges self other ⦃ before after =>
       (∀ addr, (before.containsModel addr ∨ after.containsModel addr) ↔
         self.containsModel addr ∧ ¬other.containsModel addr) ∧
-      -- TODO(BUG-001): Remove this precondition after updating to CL 8546718
-      -- and regenerating Lean.
-      (¬other.isEmptyModel →
-        ∀ addr, ¬(before.containsModel addr ∧ after.containsModel addr)) ⦄ := by
-  step with non_overlapping_ranges_bounds_spec as ⟨before, after, hbefore, hafter⟩
-  simp only [containsModel, isEmptyModel] at *
-  split_ifs at hbefore hafter
-  all_goals
-    constructor
-    · intro addr; omega
-    · intro hn addr; omega
+      (∀ addr, ¬(before.containsModel addr ∧ after.containsModel addr)) ⦄ := by
+  step with non_overlapping_ranges_bounds_spec as ⟨before, after, hbounds⟩
+  by_cases ho : other.isEmptyModel
+  · simp only [ho, ↓reduceIte] at hbounds
+    rcases hbounds with ⟨rfl, hafter⟩
+    simp only [containsModel, isEmptyModel] at *
+    constructor <;> intro addr <;> omega
+  · simp only [ho, ↓reduceIte] at hbounds
+    rcases hbounds with ⟨hbefore, hafter⟩
+    simp only [containsModel, isEmptyModel] at *
+    split_ifs at hbefore hafter
+    all_goals constructor <;> intro addr <;> omega
 
 @[step]
 theorem len_spec (self : AddressRange) :

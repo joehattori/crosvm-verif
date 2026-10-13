@@ -250,6 +250,15 @@ def core.option.OptionShared0T.cloned {T : Type} (cloneInst : core.clone.Clone T
   | none => ok none
   | some x => let x ← cloneInst.clone x; ok (some x)
 
+/-- Apply the closure only to a present value, propagating its optional result. -/
+@[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
+def core.option.Option.and_then {T U F : Type}
+    (fnInst : core.ops.function.FnOnce F T (Option U))
+    (value : Option T) (f : F) : Result (Option U) :=
+  match value with
+  | none => ok none
+  | some x => fnInst.call_once f x
+
 /-- Hash lookup abstracted as a finite search using the supplied borrow and equality.
     Rust's equality and hashing must obey the HashMap/Borrow consistency laws. -/
 def std.collections.hash.map.containsKeyList {K Q : Type}

@@ -1,7 +1,6 @@
 # crosvm-verif
 
-We aim to verify core components of crosvm, such as `AddressAllocator`, using
-Aeneas and Lean.
+Verify core components of crosvm using Aeneas and Lean.
 
 ## Build and extraction
 

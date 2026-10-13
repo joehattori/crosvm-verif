@@ -167,7 +167,7 @@ def
 }
 
 /-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}::call_once]:
-    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
+    Source: 'resources/src/address_range.rs', lines 212:27-212:54 -/
 def
   address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering.call_once
   (c : address_range.OrdAddressRange.cmp.closure) (_ : Unit) :
@@ -177,7 +177,7 @@ def
   ok (core.cmp.impls.OrdU64.cmp ar.end ar1.end)
 
 /-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{impl core::ops::function::FnOnce<(), core::cmp::Ordering> for resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}<'_0, '_1>}]
-    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
+    Source: 'resources/src/address_range.rs', lines 212:27-212:54 -/
 @[reducible]
 def
   address_range.OrdAddressRange.cmp.closure.Insts.CoreOpsFunctionFnOnceTupleOrdering
@@ -195,7 +195,7 @@ def address_range.AddressRange.is_empty
   ok (self.end < self.start)
 
 /-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp]:
-    Source: 'resources/src/address_range.rs', lines 194:4-208:5
+    Source: 'resources/src/address_range.rs', lines 200:4-214:5
     Visibility: public -/
 def address_range.AddressRange.Insts.CoreCmpOrd.cmp
   (self : address_range.AddressRange) (other : address_range.AddressRange) :
@@ -217,7 +217,7 @@ def address_range.AddressRange.Insts.CoreCmpOrd.cmp
         o (self, other)
 
 /-- [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}::eq]:
-    Source: 'resources/src/address_range.rs', lines 218:4-220:5
+    Source: 'resources/src/address_range.rs', lines 224:4-226:5
     Visibility: public -/
 def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
   (self : address_range.AddressRange) (other : address_range.AddressRange) :
@@ -227,7 +227,7 @@ def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange.eq
   core.cmp.Ordering.Insts.CoreCmpPartialEqOrdering.eq o Ordering.eq
 
 /-- Trait implementation: [resources::address_range::{impl core::cmp::PartialEq<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 217:0-221:1 -/
+    Source: 'resources/src/address_range.rs', lines 223:0-227:1 -/
 @[reducible]
 def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange :
   core.cmp.PartialEq address_range.AddressRange address_range.AddressRange := {
@@ -235,7 +235,7 @@ def address_range.AddressRange.Insts.CoreCmpPartialEqAddressRange :
 }
 
 /-- Trait implementation: [resources::address_range::{impl core::cmp::Eq for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 224:0-224:32 -/
+    Source: 'resources/src/address_range.rs', lines 230:0-230:32 -/
 @[reducible]
 impl_def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
   address_range.AddressRange := {
@@ -246,7 +246,7 @@ impl_def address_range.AddressRange.Insts.CoreCmpEq : core.cmp.Eq
 }
 
 /-- [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}::partial_cmp]:
-    Source: 'resources/src/address_range.rs', lines 212:4-214:5
+    Source: 'resources/src/address_range.rs', lines 218:4-220:5
     Visibility: public -/
 def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
   (self : address_range.AddressRange) (other : address_range.AddressRange) :
@@ -256,7 +256,7 @@ def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange.partial_cmp
   ok (some o)
 
 /-- Trait implementation: [resources::address_range::{impl core::cmp::PartialOrd<resources::address_range::AddressRange> for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 211:0-215:1 -/
+    Source: 'resources/src/address_range.rs', lines 217:0-221:1 -/
 @[reducible]
 def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange :
   core.cmp.PartialOrd address_range.AddressRange address_range.AddressRange
@@ -268,7 +268,7 @@ def address_range.AddressRange.Insts.CoreCmpPartialOrdAddressRange :
 }
 
 /-- Trait implementation: [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 193:0-209:1 -/
+    Source: 'resources/src/address_range.rs', lines 199:0-215:1 -/
 @[reducible]
 def address_range.AddressRange.Insts.CoreCmpOrd : core.cmp.Ord
   address_range.AddressRange := {
@@ -644,31 +644,36 @@ def address_range.AddressRange.empty : Result address_range.AddressRange := do
   ok { start := 1#u64, «end» := 0#u64 }
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::non_overlapping_ranges]:
-    Source: 'resources/src/address_range.rs', lines 85:4-117:5
+    Source: 'resources/src/address_range.rs', lines 87:4-123:5
     Visibility: public -/
 def address_range.AddressRange.non_overlapping_ranges
   (self : address_range.AddressRange) (other : address_range.AddressRange) :
   Result (address_range.AddressRange × address_range.AddressRange)
   := do
-  let before ←
-    if self.start >= other.start
-    then address_range.AddressRange.empty
-    else
-      do
-      let start ← core.cmp.min core.cmp.OrdU64 self.start other.start
-      let i ← core.cmp.max core.cmp.OrdU64 self.start other.start
-      let «end» ← i - 1#u64
-      let end1 ← core.cmp.min core.cmp.OrdU64 «end» self.end
-      ok ({ start, «end» := end1 } : address_range.AddressRange)
-  if self.end <= other.end
-  then let after ← address_range.AddressRange.empty
-       ok (before, after)
+  let b ← address_range.AddressRange.is_empty other
+  if b
+  then let ar ← address_range.AddressRange.empty
+       ok (self, ar)
   else
-    let i ← core.cmp.min core.cmp.OrdU64 self.end other.end
-    let start ← i + 1#u64
-    let start1 ← core.cmp.max core.cmp.OrdU64 start self.start
-    let «end» ← core.cmp.max core.cmp.OrdU64 self.end other.end
-    ok (before, { start := start1, «end» })
+    let before ←
+      if self.start >= other.start
+      then address_range.AddressRange.empty
+      else
+        do
+        let start ← core.cmp.min core.cmp.OrdU64 self.start other.start
+        let i ← core.cmp.max core.cmp.OrdU64 self.start other.start
+        let «end» ← i - 1#u64
+        let end1 ← core.cmp.min core.cmp.OrdU64 «end» self.end
+        ok ({ start, «end» := end1 } : address_range.AddressRange)
+    if self.end <= other.end
+    then let after ← address_range.AddressRange.empty
+         ok (before, after)
+    else
+      let i ← core.cmp.min core.cmp.OrdU64 self.end other.end
+      let start ← i + 1#u64
+      let start1 ← core.cmp.max core.cmp.OrdU64 start self.start
+      let «end» ← core.cmp.max core.cmp.OrdU64 self.end other.end
+      ok (before, { start := start1, «end» })
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_from_slot]:
     Source: 'resources/src/address_allocator.rs', lines 99:4-120:5 -/
@@ -734,7 +739,7 @@ def address_range.AddressRange.Insts.CoreCloneClone : core.clone.Clone
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{closure}<'_0, '_1>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 163:37-163:84 -/
+    Source: 'resources/src/address_allocator.rs', lines 166:37-166:84 -/
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
   (c :
@@ -749,7 +754,7 @@ def
   ok (i3 >= ar.start)
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{closure}<'_0, '_1>}]
-    Source: 'resources/src/address_allocator.rs', lines 163:37-163:84 -/
+    Source: 'resources/src/address_allocator.rs', lines 166:37-166:84 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool
@@ -761,7 +766,7 @@ def
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}::call_mut]:
-    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
   (c :
@@ -780,7 +785,7 @@ def
   ok (b, c)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
   (c :
@@ -794,7 +799,7 @@ def
   ok b
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}]
-    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
@@ -806,7 +811,7 @@ def
 }
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}]
-    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
@@ -819,31 +824,56 @@ def
     address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
 }
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}<'_0>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 151:33-151:55 -/
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure#1}<'_0>}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 154:33-154:55 -/
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
   (c :
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure)
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1)
   (tupled_args : Std.U64) :
   Result Bool
   := do
   ok (tupled_args <= c.end)
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}<'_0>}]
-    Source: 'resources/src/address_allocator.rs', lines 151:33-151:55 -/
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure#1}<'_0>}]
+    Source: 'resources/src/address_allocator.rs', lines 154:33-154:55 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool
   : core.ops.function.FnOnce
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1
   Std.U64 Bool := {
   call_once :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
+}
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), core::option::Option<u64>> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}<'_0, '_1>}::call_once]:
+    Source: 'resources/src/address_allocator.rs', lines 152:38-152:78 -/
+def
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64.call_once
+  (c :
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure)
+  (tupled_args : Std.U64) :
+  Result (Option Std.U64)
+  := do
+  let (i, i1) := c
+  let i2 ← i - i1
+  ok (U64.checked_add tupled_args i2)
+
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), core::option::Option<u64>> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}<'_0, '_1>}]
+    Source: 'resources/src/address_allocator.rs', lines 152:38-152:78 -/
+@[reducible]
+def
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64
+  : core.ops.function.FnOnce
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure
+  Std.U64 (Option Std.U64) := {
+  call_once :=
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64.call_once
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}::call_mut]:
-    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
   (c : address_allocator.AddressAllocator.internal_allocate_with_align.closure)
@@ -859,22 +889,24 @@ def
     let o ← lift (U64.checked_add tupled_args.start i2)
     let b ←
       core.option.Option.is_some_and
-        address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool
+        address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool
         o tupled_args
     ok (b, c)
   | _ =>
     let i2 ← i1 - 1#u64
-    let i3 ← i2 + i
-    let i4 ← i3 - r
-    let o ← lift (U64.checked_add tupled_args.start i4)
+    let o ← lift (U64.checked_add tupled_args.start i2)
+    let o1 ←
+      core.option.Option.and_then
+        address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64
+        o (i, r)
     let b ←
       core.option.Option.is_some_and
-        address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool
-        o tupled_args
+        address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool
+        o1 tupled_args
     ok (b, c)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
   (c : address_allocator.AddressAllocator.internal_allocate_with_align.closure)
@@ -887,7 +919,7 @@ def
   ok b
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}]
-    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
@@ -899,7 +931,7 @@ def
 }
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}]
-    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
@@ -913,7 +945,7 @@ def
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align]:
-    Source: 'resources/src/address_allocator.rs', lines 122:4-185:5 -/
+    Source: 'resources/src/address_allocator.rs', lines 122:4-188:5 -/
 def address_allocator.AddressAllocator.internal_allocate_with_align
   (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
   (tag : String) (alignment : Std.U64) (reverse : Bool) :
@@ -987,16 +1019,16 @@ def address_allocator.AddressAllocator.internal_allocate_with_align
               let r ← slot.start % alignment1
               match r with
               | 0#uscalar => ok slot.start
-              | _ => let i ← slot.start + alignment1
-                     i - r
-          let i ← start + size
-          let «end» ← i - 1#u64
+              | _ => let i ← alignment1 - r
+                     slot.start + i
+          let i ← size - 1#u64
+          let «end» ← start + i
           address_allocator.AddressAllocator.internal_allocate_from_slot self
             slot { start, «end» } alloc1 tag
       else ok (core.result.Result.Err Error.BadAlignment, self)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::reverse_allocate_with_align]:
-    Source: 'resources/src/address_allocator.rs', lines 190:4-198:5
+    Source: 'resources/src/address_allocator.rs', lines 193:4-201:5
     Visibility: public -/
 def address_allocator.AddressAllocator.reverse_allocate_with_align
   (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
@@ -1008,7 +1040,7 @@ def address_allocator.AddressAllocator.reverse_allocate_with_align
     alloc1 tag alignment true
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::reverse_allocate]:
-    Source: 'resources/src/address_allocator.rs', lines 201:4-208:5
+    Source: 'resources/src/address_allocator.rs', lines 204:4-211:5
     Visibility: public -/
 def address_allocator.AddressAllocator.reverse_allocate
   (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
@@ -1027,7 +1059,7 @@ def address_allocator.AddressAllocator.reverse_allocate
       alloc1 tag self1.min_align
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_with_align]:
-    Source: 'resources/src/address_allocator.rs', lines 213:4-221:5
+    Source: 'resources/src/address_allocator.rs', lines 216:4-224:5
     Visibility: public -/
 def address_allocator.AddressAllocator.allocate_with_align
   (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
@@ -1039,7 +1071,7 @@ def address_allocator.AddressAllocator.allocate_with_align
     alloc1 tag alignment false
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate]:
-    Source: 'resources/src/address_allocator.rs', lines 223:4-230:5
+    Source: 'resources/src/address_allocator.rs', lines 226:4-233:5
     Visibility: public -/
 def address_allocator.AddressAllocator.allocate
   (self : address_allocator.AddressAllocator) (size : Std.U64) (alloc1 : Alloc)
@@ -1058,7 +1090,7 @@ def address_allocator.AddressAllocator.allocate
       tag self1.min_align
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+    Source: 'resources/src/address_allocator.rs', lines 300:17-300:36 -/
 def
   address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc.call_once
   (c : address_allocator.AddressAllocator.find_overlapping.closure_1)
@@ -1069,7 +1101,7 @@ def
   ok alloc1
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}]
-    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+    Source: 'resources/src/address_allocator.rs', lines 300:17-300:36 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc
@@ -1103,7 +1135,7 @@ def address_range.AddressRange.overlaps
   ok (¬ b)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_mut]:
-    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+    Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 def
   address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
   (c : address_allocator.AddressAllocator.find_overlapping.closure)
@@ -1115,7 +1147,7 @@ def
   ok (b, c)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+    Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 def
   address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_once
   (c : address_allocator.AddressAllocator.find_overlapping.closure)
@@ -1128,7 +1160,7 @@ def
   ok b
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
-    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+    Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
@@ -1140,7 +1172,7 @@ def
 }
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
-    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+    Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
@@ -1154,7 +1186,7 @@ def
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping]:
-    Source: 'resources/src/address_allocator.rs', lines 289:4-298:5 -/
+    Source: 'resources/src/address_allocator.rs', lines 292:4-301:5 -/
 def address_allocator.AddressAllocator.find_overlapping
   (self : address_allocator.AddressAllocator)
   (range : address_range.AddressRange) :
@@ -1191,7 +1223,7 @@ def address_range.AddressRange.contains_range
     else ok false
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_mut]:
-    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+    Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 def
   address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
   (c : address_allocator.AddressAllocator.allocate_at.closure)
@@ -1202,7 +1234,7 @@ def
   ok (b, c)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_once]:
-    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+    Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 def
   address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool.call_once
   (c : address_allocator.AddressAllocator.allocate_at.closure)
@@ -1215,7 +1247,7 @@ def
   ok b
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
-    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+    Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool
@@ -1227,7 +1259,7 @@ def
 }
 
 /-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
-    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+    Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 @[reducible]
 def
   address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
@@ -1241,7 +1273,7 @@ def
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at]:
-    Source: 'resources/src/address_allocator.rs', lines 236:4-262:5
+    Source: 'resources/src/address_allocator.rs', lines 239:4-265:5
     Visibility: public -/
 def address_allocator.AddressAllocator.allocate_at
   (self : address_allocator.AddressAllocator)
@@ -1295,7 +1327,7 @@ def address_allocator.AddressAllocator.allocate_at
           ok (r1, self1)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::insert_at]:
-    Source: 'resources/src/address_allocator.rs', lines 311:4-369:5 -/
+    Source: 'resources/src/address_allocator.rs', lines 314:4-372:5 -/
 def address_allocator.AddressAllocator.insert_at
   (self : address_allocator.AddressAllocator)
   (slot : address_range.AddressRange) :
@@ -1528,7 +1560,7 @@ def address_allocator.AddressAllocator.insert_at
         ok (r2, self)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::release]:
-    Source: 'resources/src/address_allocator.rs', lines 265:4-272:5
+    Source: 'resources/src/address_allocator.rs', lines 268:4-275:5
     Visibility: public -/
 def address_allocator.AddressAllocator.release
   (self : address_allocator.AddressAllocator) (alloc1 : Alloc) :
@@ -1561,7 +1593,7 @@ def address_allocator.AddressAllocator.release
       ok (r1, self1)
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::release_containing]:
-    Source: 'resources/src/address_allocator.rs', lines 275:4-284:5
+    Source: 'resources/src/address_allocator.rs', lines 278:4-287:5
     Visibility: public -/
 def address_allocator.AddressAllocator.release_containing
   (self : address_allocator.AddressAllocator) (value : Std.U64) :
@@ -1627,7 +1659,7 @@ def address_range.AddressRange.contains
   else ok false
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::split_at]:
-    Source: 'resources/src/address_range.rs', lines 123:4-140:5
+    Source: 'resources/src/address_range.rs', lines 129:4-146:5
     Visibility: public -/
 def address_range.AddressRange.split_at
   (self : address_range.AddressRange) (split_start : Std.U64) :
@@ -1645,7 +1677,7 @@ def address_range.AddressRange.split_at
       ok ({ self with «end» := i }, { self with start := split_start })
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::len]:
-    Source: 'resources/src/address_range.rs', lines 146:4-153:5
+    Source: 'resources/src/address_range.rs', lines 152:4-159:5
     Visibility: public -/
 def address_range.AddressRange.len
   (self : address_range.AddressRange) : Result (Option Std.U64) := do
@@ -1656,7 +1688,7 @@ def address_range.AddressRange.len
        ok (U64.checked_add i 1#u64)
 
 /-- [resources::address_range::{resources::address_range::AddressRange}::log]:
-    Source: 'resources/src/address_range.rs', lines 155:4-161:5 -/
+    Source: 'resources/src/address_range.rs', lines 161:4-167:5 -/
 def address_range.AddressRange.log
   (self : address_range.AddressRange) (f : core.fmt.Formatter) :
   Result ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter)
@@ -1678,7 +1710,7 @@ def address_range.AddressRange.log
     core.fmt.Formatter.write_fmt f a2
 
 /-- [resources::address_range::{impl core::convert::From<core::ops::range::RangeInclusive<u64>> for resources::address_range::AddressRange}::from]:
-    Source: 'resources/src/address_range.rs', lines 177:4-182:5
+    Source: 'resources/src/address_range.rs', lines 183:4-188:5
     Visibility: public -/
 def address_range.AddressRange.Insts.CoreConvertFromRangeInclusiveU64.from
   (range : core.ops.range.RangeInclusive Std.U64) :
@@ -1689,7 +1721,7 @@ def address_range.AddressRange.Insts.CoreConvertFromRangeInclusiveU64.from
   ok { start := i, «end» := i1 }
 
 /-- Trait implementation: [resources::address_range::{impl core::convert::From<core::ops::range::RangeInclusive<u64>> for resources::address_range::AddressRange}]
-    Source: 'resources/src/address_range.rs', lines 176:0-183:1 -/
+    Source: 'resources/src/address_range.rs', lines 182:0-189:1 -/
 @[reducible]
 def address_range.AddressRange.Insts.CoreConvertFromRangeInclusiveU64 :
   core.convert.From address_range.AddressRange (core.ops.range.RangeInclusive
@@ -1699,7 +1731,7 @@ def address_range.AddressRange.Insts.CoreConvertFromRangeInclusiveU64 :
 }
 
 /-- [resources::address_range::{impl core::convert::From<resources::address_range::AddressRange> for core::ops::range::RangeInclusive<u64>}::from]:
-    Source: 'resources/src/address_range.rs', lines 186:4-188:5
+    Source: 'resources/src/address_range.rs', lines 192:4-194:5
     Visibility: public -/
 def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
   (address_range1 : address_range.AddressRange) :
@@ -1708,7 +1740,7 @@ def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
   core.ops.range.RangeInclusive.new address_range1.start address_range1.end
 
 /-- Trait implementation: [resources::address_range::{impl core::convert::From<resources::address_range::AddressRange> for core::ops::range::RangeInclusive<u64>}]
-    Source: 'resources/src/address_range.rs', lines 185:0-189:1 -/
+    Source: 'resources/src/address_range.rs', lines 191:0-195:1 -/
 @[reducible]
 def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange :
   core.convert.From (core.ops.range.RangeInclusive Std.U64)

@@ -5,7 +5,7 @@
   slot allocation, free-region insertion with neighbor coalescing, fixed-address
   allocation, and forward/reverse allocation with explicit alignment or
   preferred-alignment fallback, plus release by key or containing address,
-  subject to the stated well-formedness and arithmetic assumptions.
+  subject to the stated well-formedness assumptions.
 
 Multi-pool construction and full accounting between pools, free regions, and
 allocations remain unverified.
@@ -13,8 +13,7 @@ allocations remain unverified.
 # Assumptions and limitations
 
 The Lean specifications state the precise guarantees and preconditions.
-Restrictions caused by [known bugs](../FIXED_BUGS.md) are marked with
-`TODO(BUG-...)`; the crosvm source remains unchanged.
+The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
 
 The handwritten [external types](TypesExternal.lean) and
 [functions](FunsExternal.lean) are part of the trust boundary: their correspondence

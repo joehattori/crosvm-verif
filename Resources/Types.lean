@@ -117,7 +117,7 @@ inductive Error where
 | RegionOverlap : address_range.AddressRange → Error
 
 /-- [resources::address_range::{impl core::cmp::Ord for resources::address_range::AddressRange}::cmp::{closure}]
-    Source: 'resources/src/address_range.rs', lines 206:27-206:54 -/
+    Source: 'resources/src/address_range.rs', lines 212:27-212:54 -/
 def address_range.OrdAddressRange.cmp.closure :=
   address_range.AddressRange × address_range.AddressRange
 
@@ -129,42 +129,48 @@ def address_allocator.AddressAllocator.new_from_list.closure (T : Type)
 Unit
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{closure}]
-    Source: 'resources/src/address_allocator.rs', lines 163:37-163:84 -/
+    Source: 'resources/src/address_allocator.rs', lines 166:37-166:84 -/
 def address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.closure
   :=
   Std.U64 × address_range.AddressRange
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}]
-    Source: 'resources/src/address_allocator.rs', lines 159:22-164:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 def address_allocator.AddressAllocator.internal_allocate_with_align.closure_1
   :=
   Std.U64 × Std.U64
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}]
-    Source: 'resources/src/address_allocator.rs', lines 151:33-151:55 -/
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure#1}]
+    Source: 'resources/src/address_allocator.rs', lines 154:33-154:55 -/
 @[reducible]
-def address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure_1
   :=
   address_range.AddressRange
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure}]
+    Source: 'resources/src/address_allocator.rs', lines 152:38-152:78 -/
+def address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure
+  :=
+  Std.U64 × Std.U64
+
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}]
-    Source: 'resources/src/address_allocator.rs', lines 146:22-152:17 -/
+    Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 def address_allocator.AddressAllocator.internal_allocate_with_align.closure :=
   Std.U64 × Std.U64
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}]
-    Source: 'resources/src/address_allocator.rs', lines 297:17-297:36 -/
+    Source: 'resources/src/address_allocator.rs', lines 300:17-300:36 -/
 @[reducible]
 def address_allocator.AddressAllocator.find_overlapping.closure_1 := Unit
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}]
-    Source: 'resources/src/address_allocator.rs', lines 296:18-296:70 -/
+    Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 @[reducible]
 def address_allocator.AddressAllocator.find_overlapping.closure :=
   address_range.AddressRange
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}]
-    Source: 'resources/src/address_allocator.rs', lines 248:18-248:65 -/
+    Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 @[reducible]
 def address_allocator.AddressAllocator.allocate_at.closure :=
   address_range.AddressRange
