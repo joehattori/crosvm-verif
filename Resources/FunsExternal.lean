@@ -271,6 +271,34 @@ noncomputable def std.collections.hash.map.HashMap.contains_key
     (key : Q) : Result Bool :=
   std.collections.hash.map.containsKeyList borrow eqQ key self.keys.toList
 
+/-- Find the stored key equal to the borrowed query. As with `contains_key`,
+    equality and hashing must obey the HashMap/Borrow consistency laws. -/
+def std.collections.hash.map.findKeyList {K Q : Type}
+    (borrow : resources.core.borrow.Borrow K Q) (eq : core.cmp.Eq Q)
+    (key : Q) : List K → Result (Option K)
+  | [] => ok none
+  | head :: tail => do
+    let borrowed ← borrow.borrow head
+    let same ← eq.partialEqInst.eq key borrowed
+    if same then ok (some head) else findKeyList borrow eq key tail
+
+/-- Remove the matching entry and return its previous value. Hashing and storage
+    are abstracted away under the same assumptions as insertion and lookup. -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::remove"]
+noncomputable def std.collections.hash.map.HashMap.remove
+    {K V S A Q H : Type} (_eq : core.cmp.Eq K) (_hash : core.hash.Hash K)
+    (_build : resources.core.hash.BuildHasher S H)
+    (borrow : resources.core.borrow.Borrow K Q) (_hashQ : core.hash.Hash Q)
+    (eqQ : core.cmp.Eq Q) (self : std.collections.hash.map.HashMap K V S A)
+    (key : Q) : Result (Option V × std.collections.hash.map.HashMap K V S A) := by
+  classical
+  exact do
+    let found ← std.collections.hash.map.findKeyList borrow eqQ key self.keys.toList
+    match found with
+    | none => ok (none, self)
+    | some stored => ok (Finmap.lookup stored self, Finmap.erase stored self)
+
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::iter"]
 def alloc.collections.btree.set.BTreeSet.iter {T A : Type}

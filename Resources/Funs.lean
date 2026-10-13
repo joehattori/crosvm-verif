@@ -1527,6 +1527,54 @@ def address_allocator.AddressAllocator.insert_at
             Unit (core.convert.FromSame Error) residual
         ok (r2, self)
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::release]:
+    Source: 'resources/src/address_allocator.rs', lines 265:4-272:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.release
+  (self : address_allocator.AddressAllocator) (alloc1 : Alloc) :
+  Result ((core.result.Result address_range.AddressRange Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let (o, hm) ←
+    std.collections.hash.map.HashMap.remove Alloc.Insts.CoreCmpEq
+      Alloc.Insts.CoreHashHash
+      std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      (core.borrow.Borrow.Blanket Alloc) Alloc.Insts.CoreHashHash
+      Alloc.Insts.CoreCmpEq self.allocs alloc1
+  match o with
+  | none =>
+    ok (core.result.Result.Err (Error.BadAlloc alloc1),
+      { self with allocs := hm })
+  | some p =>
+    let (range, _) := p
+    let (r, self1) ←
+      address_allocator.AddressAllocator.insert_at { self with allocs := hm }
+        range
+    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue _ =>
+      ok (core.result.Result.Ok range, self1)
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      let r1 ←
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+          address_range.AddressRange (core.convert.FromSame Error) residual
+      ok (r1, self1)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::release_containing]:
+    Source: 'resources/src/address_allocator.rs', lines 275:4-284:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.release_containing
+  (self : address_allocator.AddressAllocator) (value : Std.U64) :
+  Result ((core.result.Result address_range.AddressRange Error) ×
+    address_allocator.AddressAllocator)
+  := do
+  let o ←
+    address_allocator.AddressAllocator.find_overlapping self
+      { start := value, «end» := value }
+  match o with
+  | none => ok (core.result.Result.Err Error.OutOfSpace, self)
+  | some alloc1 => address_allocator.AddressAllocator.release self alloc1
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]

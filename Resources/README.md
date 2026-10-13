@@ -4,11 +4,11 @@
 - [AddressAllocator](AddressAllocator/Spec.lean): single-pool construction,
   slot allocation, free-region insertion with neighbor coalescing, fixed-address
   allocation, and forward/reverse allocation with explicit alignment or
-  preferred-alignment fallback,
+  preferred-alignment fallback, plus release by key or containing address,
   subject to the stated well-formedness and arithmetic assumptions.
 
-Multi-pool construction, release, and full accounting
-between pools, free regions, and allocations remain unverified.
+Multi-pool construction and full accounting between pools, free regions, and
+allocations remain unverified.
 
 # Assumptions and limitations
 

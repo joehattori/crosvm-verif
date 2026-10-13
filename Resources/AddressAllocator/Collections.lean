@@ -63,6 +63,46 @@ theorem contains_key_spec (self : AddressAllocator) (key : resources.Alloc) :
   step with containsKeyList_spec
   simp_all [Finmap.mem_keys]
 
+private theorem findKeyList_spec (keys : List resources.Alloc) (key : resources.Alloc) :
+    _root_.std.collections.hash.map.findKeyList
+      (resources.core.borrow.Borrow.Blanket resources.Alloc)
+      resources.Alloc.Insts.CoreCmpEq key keys ⦃ found =>
+        found = if key ∈ keys then some key else none ⦄ := by
+  induction keys with
+  | nil => simp [_root_.std.collections.hash.map.findKeyList]
+  | cons head tail ih =>
+    unfold _root_.std.collections.hash.map.findKeyList
+    simp only [resources.core.borrow.Borrow.Blanket, _root_.core.borrow.Borrow.Blanket.borrow,
+      resources.Alloc.Insts.CoreCmpEq, resources.Alloc.Insts.CoreCmpPartialEqAlloc]
+    step with resources.Alloc.eq_spec key head as ⟨same, heq⟩
+    split
+    · simp_all
+    · step with ih
+      simp_all
+
+/-- Removing an allocation returns its previous value and erases exactly its key;
+    a missing key leaves the map unchanged. -/
+@[step]
+theorem remove_alloc_spec (self : AddressAllocator) (key : resources.Alloc) :
+    _root_.std.collections.hash.map.HashMap.remove
+      resources.Alloc.Insts.CoreCmpEq resources.Alloc.Insts.CoreHashHash
+      resources.std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+      (resources.core.borrow.Borrow.Blanket resources.Alloc)
+      resources.Alloc.Insts.CoreHashHash resources.Alloc.Insts.CoreCmpEq self.allocs key
+      ⦃ found rest => match Finmap.lookup key self.allocs with
+        | none => found = none ∧ rest = self.allocs
+        | some entry => found = some entry ∧ rest = Finmap.erase key self.allocs ⦄ := by
+  unfold _root_.std.collections.hash.map.HashMap.remove
+  step with findKeyList_spec self.allocs.keys.toList key as ⟨found, hfound⟩
+  simp only [Finset.mem_toList, Finmap.mem_keys] at hfound
+  cases hlookup : Finmap.lookup key self.allocs with
+  | none =>
+    have hmissing := Finmap.lookup_eq_none.mp hlookup
+    simp_all
+  | some entry =>
+    have hpresent := Finmap.mem_of_lookup_eq_some hlookup
+    simp_all
+
 /-- Nonempty free ranges, in address order, with no overlaps. -/
 def ValidRegions (regions : List AddressRange) : Prop :=
   (∀ r ∈ regions, ¬r.isEmptyModel) ∧

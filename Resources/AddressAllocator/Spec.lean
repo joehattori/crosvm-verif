@@ -1596,4 +1596,102 @@ theorem insert_at_spec (self : AddressAllocator) (slot : AddressRange) (hwf : We
         simp only [DisjointRanges, AddressRange.containsModel] at *
         omega
 
+/-! ### Releasing allocations -/
+
+/-- Release returns the recorded range, erases its key, and coalesces it into the
+    free regions. A missing key leaves the allocator unchanged. If a recorded
+    range is empty or already overlaps free space, insertion fails after the key
+    has been erased; the free regions are then unchanged. -/
+def ReleaseOutcome (self : AddressAllocator) (allocation : resources.Alloc)
+    (result : core.result.Result AddressRange resources.Error) (a : AddressAllocator) : Prop :=
+  match Finmap.lookup allocation self.allocs with
+  | none => result = .Err (.BadAlloc allocation) ∧ a = self
+  | some (range, _) =>
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧
+    a.preferred_align = self.preferred_align ∧
+    a.allocs = Finmap.erase allocation self.allocs ∧
+    if range.isEmptyModel then result = .Err .AllocSizeZero ∧ a.regions = self.regions
+    else match result with
+      | .Err error => error = .RegionOverlap range ∧ a.regions = self.regions ∧
+          ∃ addr, Covers self.regions addr ∧ range.containsModel addr
+      | .Ok released => released = range ∧
+          (∀ addr, ¬(Covers self.regions addr ∧ range.containsModel addr)) ∧
+          (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ range.containsModel addr) ∧
+          CoalescedInsertion self.regions range a.regions
+
+/-- Total correctness of release, including the state left by an insertion error.
+    Structural well-formedness alone does not relate allocations to free space. -/
+@[step]
+theorem release_spec (self : AddressAllocator) (allocation : resources.Alloc)
+    (hwf : WellFormed self) :
+    release self allocation ⦃ result a => WellFormed a ∧ ReleaseOutcome self allocation result a ⦄ := by
+  unfold release
+  step with remove_alloc_spec self allocation as ⟨found, allocs, hremove⟩
+  cases hlookup : Finmap.lookup allocation self.allocs with
+  | none =>
+    simp only [hlookup] at hremove
+    rcases hremove with ⟨rfl, rfl⟩
+    simp [ReleaseOutcome, hlookup, hwf]
+  | some entry =>
+    rcases entry with ⟨range, tag⟩
+    simp only [hlookup] at hremove
+    rcases hremove with ⟨rfl, rfl⟩
+    have hwf' : WellFormed { self with allocs := Finmap.erase allocation self.allocs } :=
+      ⟨hwf.validRegions, hwf.minAlign, hwf.preferredAlign, hwf.alignOrder⟩
+    step with insert_at_spec { self with allocs := Finmap.erase allocation self.allocs } range hwf'
+      as ⟨inserted, a, hwfa, houtcome⟩
+    cases inserted with
+    | Err error =>
+      simp only [core.result.Result.Insts.CoreOpsTry.branch,
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+        core.convert.FromSame.from, bind_ok]
+      by_cases hn : range.isEmptyModel
+      · simp only [InsertAtOutcome, hn, ↓reduceIte] at houtcome
+        rcases houtcome with ⟨he, rfl⟩
+        simp_all [ReleaseOutcome]
+      · simp only [InsertAtOutcome, hn, ↓reduceIte] at houtcome
+        rcases houtcome with ⟨he, rfl, hoverlap⟩
+        simp_all [ReleaseOutcome]
+    | Ok u =>
+      cases u
+      have hn : ¬range.isEmptyModel := by
+        intro he
+        simp [InsertAtOutcome, he] at houtcome
+      simp only [InsertAtOutcome, hn, ↓reduceIte] at houtcome
+      rcases houtcome with ⟨hdisjoint, hpools, hallocs, hmin, hpref, hcover, hcoalesce⟩
+      simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, WP.spec_ok,
+        ReleaseOutcome, hlookup, hn, ↓reduceIte]
+      exact ⟨hwfa, hpools, hmin, hpref, hallocs, rfl, hdisjoint, hcover, hcoalesce⟩
+
+/-- A containing release either finds no allocation and leaves the allocator
+    unchanged, or releases one whole allocation containing the address. If
+    allocations overlap, any matching key may be chosen. -/
+def ReleaseContainingOutcome (self : AddressAllocator) (value : U64)
+    (result : core.result.Result AddressRange resources.Error) (a : AddressAllocator) : Prop :=
+  (result = .Err .OutOfSpace ∧ a = self ∧
+    ∀ allocation range tag, Finmap.lookup allocation self.allocs = some (range, tag) →
+      ¬range.containsModel value.val) ∨
+  ∃ allocation range tag, Finmap.lookup allocation self.allocs = some (range, tag) ∧
+    range.containsModel value.val ∧ ReleaseOutcome self allocation result a
+
+@[step]
+theorem release_containing_spec (self : AddressAllocator) (value : U64)
+    (hwf : WellFormed self) :
+    release_containing self value ⦃ result a =>
+      WellFormed a ∧ ReleaseContainingOutcome self value result a ⦄ := by
+  unfold release_containing
+  step with find_overlapping_spec self ⟨value, value⟩ as ⟨allocation, hoverlap⟩
+  cases allocation with
+  | none =>
+    simp only [WP.spec_ok]
+    refine ⟨hwf, Or.inl ⟨rfl, rfl, ?_⟩⟩
+    intro allocation range tag hlookup hcontains
+    exact hoverlap allocation ⟨range, tag, hlookup, value.val, hcontains, le_refl _, le_refl _⟩
+  | some allocation =>
+    obtain ⟨range, tag, hlookup, addr, hrange, hvalue⟩ := hoverlap
+    have he : addr = value.val := Nat.le_antisymm hvalue.2 hvalue.1
+    subst addr
+    step with release_spec self allocation hwf as ⟨result, a, hwfa, hrelease⟩
+    exact ⟨hwfa, Or.inr ⟨allocation, range, tag, hlookup, hrange, hrelease⟩⟩
+
 end resources.address_allocator.AddressAllocator

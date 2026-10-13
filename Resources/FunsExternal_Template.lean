@@ -268,6 +268,21 @@ axiom std.collections.hash.map.HashMap.insert
   std.collections.hash.map.HashMap K V S A → K → V → Result ((Option V)
     × (std.collections.hash.map.HashMap K V S A))
 
+/-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::remove]:
+    Source: '/rustc/library/std/src/collections/hash/map.rs', lines 1390:4-1393:21
+    Name pattern: [std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::remove]
+    Visibility: public -/
+@[rust_fun
+  "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::remove"]
+axiom std.collections.hash.map.HashMap.remove
+  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
+  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
+  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
+  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
+  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  std.collections.hash.map.HashMap K V S A → Q → Result ((Option V) ×
+    (std.collections.hash.map.HashMap K V S A))
+
 /-- [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}::next]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2105:4-2105:48
     Name pattern: [std::collections::hash::map::{core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next]
