@@ -61,6 +61,14 @@ axiom std.collections.hash.map.Iter (K : Type) (V : Type) : Type
 @[rust_type "std::hash::random::DefaultHasher"]
 axiom std.hash.random.DefaultHasher : Type
 
+/-- [alloc::collections::btree::map::BTreeMap]
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 189:0-193:1
+    Name pattern: [alloc::collections::btree::map::BTreeMap]
+    Visibility: public -/
+@[rust_type "alloc::collections::btree::map::BTreeMap"]
+axiom alloc.collections.btree.map.BTreeMap (K : Type) (V : Type) (A : Type) :
+  Type
+
 /-- [alloc::collections::btree::set::BTreeSet]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 78:0-81:1
     Name pattern: [alloc::collections::btree::set::BTreeSet]

@@ -19,6 +19,14 @@ structure WellFormed (a : AddressAllocator) : Prop where
 
 /-! ### Construction and slot allocation -/
 
+/-- Errors shared by `new` and `new_from_list`, after resolving the alignment
+    defaults. Empty pools are allowed; constructor errors depend only on alignment. -/
+def newError (min_align preferred_align : Option U64) : Option resources.Error :=
+  let minimum := min_align.getD 4#u64
+  let preferred := preferred_align.getD minimum
+  if minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧ minimum.val ≤ preferred.val
+  then none else some .BadAlignment
+
 /-- Initial pools omit an empty input range. -/
 abbrev initialPools (pool : AddressRange) : List AddressRange :=
   if pool.isEmptyModel then [] else [pool]
@@ -169,7 +177,7 @@ termination_by pools.val.length - i
 
 /-- Construct from a finite vector of pools in any order, allowing empty pools and
     duplicates. Distinct nonempty pools must be disjoint to establish well-formedness.
-    Invalid alignment configurations return `BadAlignment`. -/
+    `newError` characterizes the errors exactly. -/
 @[step]
 theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
     (min_align preferred_align : Option U64) (hd : DisjointPools pools.val) :
@@ -177,11 +185,10 @@ theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
       pools min_align preferred_align ⦃ result =>
       let minimum := min_align.getD 4#u64
       let preferred := preferred_align.getD minimum
-      match result with
-      | .Ok a => initialStateFromList pools.val a minimum preferred ∧ WellFormed a
-      | .Err error => error = .BadAlignment ∧
-          ¬(minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧
-            minimum.val ≤ preferred.val) ⦄ := by
+      match newError min_align preferred_align with
+      | some error => result = .Err error
+      | none => ∃ a, result = .Ok a ∧
+          initialStateFromList pools.val a minimum preferred ∧ WellFormed a ⦄ := by
   have hunwrap (x : Option U64) (d : U64) : core.option.Option.unwrap_or x d = x.getD d := by
     cases x <;> rfl
   have hcollect : alloc.vec.FromIteratorVec.iterToList poolIterator ⟨pools, ()⟩ [] =
@@ -193,7 +200,7 @@ theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
   have hd' : DisjointPools (nonemptyPools pools.val) := by
     intro r hr s hs
     exact hd r (List.mem_of_mem_filter hr) s (List.mem_of_mem_filter hs)
-  unfold AddressAllocator.new_from_list
+  unfold AddressAllocator.new_from_list newError
   simp only [alloc.vec.IntoIteratorVec.into_iter,
     Aeneas.Std.core.iter.traits.iterator.Iterator.filter,
     _root_.core.iter.traits.iterator.Iterator.filter.default,
@@ -215,13 +222,15 @@ theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
     · split
       · rename_i hpref
         split
-        · simp_all
+        · rename_i horder
+          simp_all [Nat.not_le.mpr horder]
         · rename_i horder
           step with initial_regions_loop_spec (Slice.from (nonemptyPools pools.val) hlen) 0 []
             (by simp) (by simp [nonemptyPools]) (by simpa using hd') (by simp) (by simp)
             as ⟨regions, hvalid, hmem⟩
           simp only [Slice.from_val] at hmem
-          refine ⟨?_, ⟨hvalid, hmin, hpref, Nat.le_of_not_gt horder⟩⟩
+          simp only [hmin, hpref, Nat.le_of_not_gt horder, and_self, ↓reduceIte]
+          refine ⟨_, rfl, ?_, ⟨hvalid, hmin, hpref, Nat.le_of_not_gt horder⟩⟩
           simp [initialStateFromList, hmem]
       · simp_all
   · simp_all
@@ -256,28 +265,29 @@ private theorem initialStateFromList_singleton {pool : AddressRange} {a : Addres
       simp [ht]
 
 /-- Construction establishes well-formedness and the exact initial state, including
-    custom alignments. Invalid alignment configurations return `BadAlignment`. -/
+    custom alignments. `newError` characterizes the errors exactly. -/
 @[step]
 theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) :
     AddressAllocator.new pool min_align preferred_align ⦃ result =>
       let minimum := min_align.getD 4#u64
       let preferred := preferred_align.getD minimum
-      match result with
-      | .Ok a => initialState pool a minimum preferred ∧ WellFormed a
-      | .Err error => error = .BadAlignment ∧
-          ¬(minimum.val.isPowerOfTwo ∧ preferred.val.isPowerOfTwo ∧
-            minimum.val ≤ preferred.val) ⦄ := by
+      match newError min_align preferred_align with
+      | some error => result = .Err error
+      | none => ∃ a, result = .Ok a ∧
+          initialState pool a minimum preferred ∧ WellFormed a ⦄ := by
   unfold AddressAllocator.new
   simp [Array.to_slice, Array.make, alloc.slice.Slice.into_vec, lift]
   have hnew := new_from_list_spec (alloc.vec.Vec.from [pool] (by scalar_tac))
     min_align preferred_align (by simp [DisjointPools])
   simp only [alloc.vec.Vec.from] at hnew
   step with hnew as ⟨result, hresult⟩
-  cases result with
-  | Ok a =>
-    exact ⟨initialStateFromList_singleton
-      (by simpa [alloc.vec.Vec.val] using hresult.1) hresult.2.validRegions, hresult.2⟩
-  | Err error => simpa using hresult
+  cases he : newError min_align preferred_align with
+  | some error => simpa [he] using hresult
+  | none =>
+    simp only [he] at hresult ⊢
+    obtain ⟨a, rfl, hs, hw⟩ := hresult
+    exact ⟨a, rfl, initialStateFromList_singleton
+      (by simpa [alloc.vec.Vec.val] using hs) hw.validRegions, hw⟩
 
 /-- Addresses represented by a list of ranges. -/
 def Covers (rs : List AddressRange) (addr : Nat) : Prop :=
