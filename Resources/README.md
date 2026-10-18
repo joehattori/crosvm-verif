@@ -13,7 +13,7 @@
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
   exhaustion, IRQ release, PCI bus allocator presence checks, lookup and creation
   with mutable borrow write-back, PCI slot allocation with preferred alignment
-  and function fallback, and PCI slot reservation, preserving
+  and function fallback, and PCI slot reservation and release, preserving
   component invariants.
 
 The internal free-region insertion helper is specified for intermediate states;

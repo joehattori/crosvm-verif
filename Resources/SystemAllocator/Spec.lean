@@ -627,18 +627,6 @@ def IrqReleaseOutcome (self : SystemAllocator) (irq : U32) (a : SystemAllocator)
   ∃ result, AddressAllocator.ReleaseContainingOutcome self.irq_allocator
     (UScalar.cast .U64 irq) result a.irq_allocator
 
-private theorem irq_release_invariant {self a : AddressAllocator} {allocation : resources.Alloc}
-    {result : core.result.Result AddressRange resources.Error} (hirq : IrqInvariant self)
-    (hout : AddressAllocator.ReleaseOutcome self allocation result a) : IrqInvariant a := by
-  cases hlookup : Finmap.lookup allocation self.allocs with
-  | none =>
-    simp only [AddressAllocator.ReleaseOutcome, hlookup] at hout
-    simpa [hout.2] using hirq
-  | some entry =>
-    rcases entry with ⟨range, tag⟩
-    simp only [AddressAllocator.ReleaseOutcome, hlookup] at hout
-    exact hirq.preserved hout.1 hout.2.1 hout.2.2.1
-
 /-- Release preserves system invariants and changes only the IRQ allocator.
     A missing allocation is a no-op; any release error is discarded. -/
 @[step]
@@ -648,10 +636,9 @@ theorem release_irq_spec (self : SystemAllocator) (irq : U32) (hwf : WellFormed 
   simp only [core.convert.IntoFrom.into, bind_ok, u32_into_u64]
   step with AddressAllocator.release_containing_spec self.irq_allocator (UScalar.cast .U64 irq)
     hwf.2.2.2.1 as ⟨result, irqSpace, hwfi, hout⟩
-  have hirqi : IrqInvariant irqSpace := by
-    rcases hout with hmissing | ⟨allocation, range, tag, hlookup, hrange, hrelease⟩
-    · simpa [hmissing.2.1] using hwf.2.2.2.2.2.2.1
-    · exact irq_release_invariant hwf.2.2.2.2.2.2.1 hrelease
+  have hf := hout.pools_alignments
+  have hirqi : IrqInvariant irqSpace :=
+    hwf.2.2.2.2.2.2.1.preserved hf.1 hf.2.1 hf.2.2
   exact ⟨⟨hwf.1, hwf.2.1, hwf.2.2.1, hwfi, hwf.2.2.2.2.1, hwf.2.2.2.2.2.1,
       hirqi, hwf.2.2.2.2.2.2.2⟩,
     rfl, result, hout⟩
@@ -1043,6 +1030,17 @@ theorem pciSlot_val_of_func_lt (pci : resources.pci_address.PciAddress) (hf : pc
   have h := Nat.shiftLeft_add_eq_or_of_lt (i := 3) hf pci.dev.val
   simpa [Nat.shiftLeft_eq] using h.symm
 
+private theorem pci_slot_spec (pci : resources.pci_address.PciAddress) :
+    (UScalar.cast .U64 pci.dev <<< 3#i32) ⦃ device =>
+      device ||| UScalar.cast .U64 pci.func = pciSlot pci ⦄ := by
+  step as ⟨device, hdevice, _⟩
+  have hdev : device.val = pci.dev.val * 8 := by
+    simp only [Nat.shiftLeft_eq] at hdevice
+    scalar_tac
+  have hfunc : (UScalar.cast .U64 pci.func).val = pci.func.val := by scalar_tac
+  apply UScalar.eq_of_val_eq
+  simp only [UScalar.val_or, hdev, hfunc, pciSlot_val]
+
 /-- Advance the anonymous ID, borrow the bus allocator, and reserve the packed slot.
     Fixed-address allocation determines success; the updated borrow is returned in both cases. -/
 def PciReservationOutcome (self : SystemAllocator) (pci : resources.pci_address.PciAddress)
@@ -1074,14 +1072,7 @@ theorem reserve_pci_spec (self : SystemAllocator) (pci : resources.pci_address.P
     as ⟨result, back, before, hresult, hwbefore, hborrow⟩
   subst result
   simp only [lift, bind_ok]
-  step as ⟨device, hdevice, _⟩
-  have hdev : device.val = pci.dev.val * 8 := by
-    simp only [Nat.shiftLeft_eq] at hdevice
-    scalar_tac
-  have hfunc : (UScalar.cast .U64 pci.func).val = pci.func.val := by scalar_tac
-  have hslot : device ||| UScalar.cast .U64 pci.func = pciSlot pci := by
-    apply UScalar.eq_of_val_eq
-    simp only [UScalar.val_or, hdev, hfunc, pciSlot_val]
+  step with pci_slot_spec pci as ⟨device, hslot⟩
   simp only [hslot]
   step with AddressAllocator.allocate_at_spec before ⟨pciSlot pci, pciSlot pci⟩ id tag hwbefore
     as ⟨result, after, hwafter, hout⟩
@@ -1106,6 +1097,47 @@ theorem reserve_pci_spec (self : SystemAllocator) (pci : resources.pci_address.P
     simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
     refine ⟨hwback, next.next_anon_id, hcounter, before, after, back, hborrow', rfl, error, ?_⟩
     simpa only [hid] using hout
+
+/-- Borrow the bus allocator and release the allocation containing the packed slot.
+    The Boolean reports success, and the updated borrow is returned in both cases. -/
+def PciReleaseOutcome (self : SystemAllocator) (pci : resources.pci_address.PciAddress)
+    (result : Bool) (a : SystemAllocator) : Prop :=
+  ∃ before after : AddressAllocator, ∃ back : Option AddressAllocator → SystemAllocator,
+    PciAllocatorBorrow self pci.bus before back ∧
+    a = back (some after) ∧
+    match result with
+    | true => ∃ released, AddressAllocator.ReleaseContainingOutcome before
+        (pciSlot pci) (.Ok released) after
+    | false => ∃ error, AddressAllocator.ReleaseContainingOutcome before
+        (pciSlot pci) (.Err error) after
+
+/-- Release a containing PCI allocation, preserving system invariants and the
+    anonymous counter. An absent bus is initialized even when release returns `false`. -/
+@[step]
+theorem release_pci_spec (self : SystemAllocator) (pci : resources.pci_address.PciAddress)
+    (hwf : WellFormed self) :
+    release_pci self pci ⦃ result a => WellFormed a ∧ PciReleaseOutcome self pci result a ⦄ := by
+  unfold release_pci
+  step with get_pci_allocator_mut_spec self pci.bus hwf
+    as ⟨result, back, before, hresult, hwbefore, hborrow⟩
+  subst result
+  simp only [lift, bind_ok]
+  step with pci_slot_spec pci as ⟨device, hslot⟩
+  simp only [hslot]
+  step with AddressAllocator.release_containing_spec before (pciSlot pci) hwbefore
+    as ⟨result, after, hwafter, hout⟩
+  have hf := hout.pools_alignments
+  have hpciafter : PciAllocatorInvariant pci.bus after := by
+    simpa only [PciAllocatorInvariant, hf.1, hf.2.1, hf.2.2] using hborrow.invariant hwf
+  have hwback := hborrow.wellFormed hwf hwbefore (some after)
+    (by simpa using And.intro hwafter hpciafter)
+  cases result with
+  | Ok released =>
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    exact ⟨hwback, before, after, back, hborrow, rfl, released, hout⟩
+  | Err error =>
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    exact ⟨hwback, before, after, back, hborrow, rfl, error, hout⟩
 
 /-- True exactly when no allocator is recorded for the bus. -/
 @[step]

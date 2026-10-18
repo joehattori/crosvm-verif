@@ -50,6 +50,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::system_allocator::SystemAllocator::pci_bus_empty' \
 		--start-from 'crate::system_allocator::SystemAllocator::allocate_pci' \
 		--start-from 'crate::system_allocator::SystemAllocator::reserve_pci' \
+		--start-from 'crate::system_allocator::SystemAllocator::release_pci' \
 		--include 'core::option::{impl core::ops::try_trait::FromResidual<_> for _}::from_residual' \
 		--opaque 'base::sys::unix::system_info::pagesize' \
 		--exclude 'core::ops::try_trait::Residual' \

@@ -1834,6 +1834,20 @@ def ReleaseOutcome (self : AddressAllocator) (allocation : resources.Alloc)
           (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ range.containsModel addr) ∧
           CoalescedInsertion self.regions range a.regions
 
+/-- Releasing an allocation preserves the configured pools and alignments. -/
+theorem ReleaseOutcome.pools_alignments {self a : AddressAllocator} {allocation : resources.Alloc}
+    {result : core.result.Result AddressRange resources.Error}
+    (h : ReleaseOutcome self allocation result a) :
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧ a.preferred_align = self.preferred_align := by
+  cases hlookup : Finmap.lookup allocation self.allocs with
+  | none =>
+    simp only [ReleaseOutcome, hlookup] at h
+    simp [h.2]
+  | some entry =>
+    rcases entry with ⟨range, tag⟩
+    simp only [ReleaseOutcome, hlookup] at h
+    exact ⟨h.1, h.2.1, h.2.2.1⟩
+
 /-- Release preserves the full partition. Recorded nonempty allocations cannot
     overlap free space, so their insertion succeeds. Empty records contain no addresses. -/
 @[step]
@@ -1895,6 +1909,15 @@ def ReleaseContainingOutcome (self : AddressAllocator) (value : U64)
       ¬range.containsModel value.val) ∨
   ∃ allocation range tag, Finmap.lookup allocation self.allocs = some (range, tag) ∧
     range.containsModel value.val ∧ ReleaseOutcome self allocation result a
+
+/-- Releasing by address preserves the configured pools and alignments. -/
+theorem ReleaseContainingOutcome.pools_alignments {self a : AddressAllocator} {value : U64}
+    {result : core.result.Result AddressRange resources.Error}
+    (h : ReleaseContainingOutcome self value result a) :
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧ a.preferred_align = self.preferred_align := by
+  rcases h with hmissing | ⟨allocation, range, tag, _, _, hrelease⟩
+  · simp [hmissing.2.1]
+  · exact hrelease.pools_alignments
 
 @[step]
 theorem release_containing_spec (self : AddressAllocator) (value : U64)

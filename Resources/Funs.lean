@@ -2892,4 +2892,27 @@ def system_allocator.SystemAllocator.reserve_pci
     let self2 := get_pci_allocator_mut_back (some v1)
     ok (b, self2)
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::release_pci]:
+    Source: 'resources/src/system_allocator.rs', lines 334:4-341:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.release_pci
+  (self : system_allocator.SystemAllocator) (pci_addr : pci_address.PciAddress)
+  :
+  Result (Bool × system_allocator.SystemAllocator)
+  := do
+  let (o, get_pci_allocator_mut_back) ←
+    system_allocator.SystemAllocator.get_pci_allocator_mut self pci_addr.bus
+  match o with
+  | none => let self1 := get_pci_allocator_mut_back none
+            ok (false, self1)
+  | some v =>
+    let i ← lift (UScalar.cast .U64 pci_addr.dev)
+    let i1 ← i <<< 3#i32
+    let i2 ← lift (UScalar.cast .U64 pci_addr.func)
+    let df ← lift (i1 ||| i2)
+    let (r, v1) ← address_allocator.AddressAllocator.release_containing v df
+    let b ← core.result.Result.is_ok r
+    let self1 := get_pci_allocator_mut_back (some v1)
+    ok (b, self1)
+
 end resources
