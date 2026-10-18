@@ -54,6 +54,14 @@ def Shared0A.Insts.CoreCmpOrd {A : Type} (OrdInst : core.cmp.Ord A) :
   cmp := Shared0A.Insts.CoreCmpOrd.cmp OrdInst
 }
 
+/-- Trait implementation: [core::fmt::{impl core::fmt::Display for str}]
+    Source: '/rustc/library/core/src/fmt/mod.rs', lines 2964:0-2964:20
+    Name pattern: [core::fmt::Display<str>] -/
+@[reducible, rust_trait_impl "core::fmt::Display<str>"]
+def Str.Insts.CoreFmtDisplay : core.fmt.Display Str := {
+  fmt := Str.Insts.CoreFmtDisplay.fmt
+}
+
 /-- Trait implementation: [core::fmt::num::{impl core::fmt::LowerHex for u64}]
     Source: '/rustc/library/core/src/fmt/num.rs', lines 12:8-12:38
     Name pattern: [core::fmt::LowerHex<u64>] -/
@@ -2510,5 +2518,46 @@ def system_allocator.SystemAllocator.get_anon_alloc
   := do
   let i ← self.next_anon_id + 1#usize
   ok (Alloc.Anon i, { self with next_anon_id := i })
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+def
+  system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
+  (c : system_allocator.SystemAllocator.allocate_irq.closure)
+  (tupled_args : Std.U64) :
+  Result Std.U32
+  := do
+  ok (UScalar.cast .U32 tupled_args)
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.allocate_irq.closure Std.U64 Std.U32 := {
+  call_once :=
+    system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq]:
+    Source: 'resources/src/system_allocator.rs', lines 237:4-243:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.allocate_irq
+  (self : system_allocator.SystemAllocator) :
+  Result ((Option Std.U32) × system_allocator.SystemAllocator)
+  := do
+  let (id, self1) ← system_allocator.SystemAllocator.get_anon_alloc self
+  let s ←
+    alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr
+      "irq-auto")
+  let (r, aa) ←
+    address_allocator.AddressAllocator.allocate self1.irq_allocator 1#u64 id s
+  let r1 ←
+    core.result.Result.map
+      system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
+      r ()
+  let o ← core.result.Result.ok r1
+  ok (o, { self1 with irq_allocator := aa })
 
 end resources

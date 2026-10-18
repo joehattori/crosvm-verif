@@ -17,6 +17,49 @@ open resources
 
 noncomputable instance : DecidableEq resources.Alloc := Classical.decEq _
 
+/-- Supply a kernel-checked length bound for generated string literals instead
+    of using the pinned `toStr` function's native-evaluation default. -/
+macro "toStr" value:str : term =>
+  `(Aeneas.Std.toStr $value (by simp only [Aeneas.Std.U32.max_eq]; decide +kernel))
+
+/-- Direct formatting is unsupported. String conversion below copies UTF-8
+    contents without using the opaque formatter model. -/
+@[rust_fun "core::fmt::{core::fmt::Display<str>}::fmt"]
+def Str.Insts.CoreFmtDisplay.fmt (_ : Str) (_ : core.fmt.Formatter) :
+    Result (core.result.Result Unit core.fmt.Error × core.fmt.Formatter) :=
+  fail .panic
+
+/-- Only Rust's standard `str` conversion is supported. Other types and invalid
+    UTF-8 fail explicitly; allocation failure is abstracted away. -/
+@[rust_fun "alloc::string::{alloc::string::ToString<@T>}::to_string"]
+noncomputable def alloc.string.ToString.Blanket.to_string {T : Type}
+    (display : core.fmt.Display T) (value : T) : Result String := by
+  classical
+  exact if h : T = Str then
+    let str : Str := h ▸ value
+    let display : core.fmt.Display Str := h ▸ display
+    if display.fmt = Str.Insts.CoreFmtDisplay.fmt then
+      Result.ofOption (String.fromUTF8? ⟨str.val.toArray.map (fun b => UInt8.ofBitVec b.bv)⟩) .panic
+    else fail .panic
+  else fail .panic
+
+/-- Apply the closure on success; preserve errors without calling it. -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
+def core.result.Result.map {T E U F : Type} (f : core.ops.function.FnOnce F T U)
+    (self : core.result.Result T E) (closure : F) : Result (core.result.Result U E) := do
+  match self with
+  | .Ok value =>
+    let mapped ← f.call_once closure value
+    ok (.Ok mapped)
+  | .Err error => ok (.Err error)
+
+/-- Discard the error while preserving a successful value. -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::ok"]
+def core.result.Result.ok {T E : Type} (self : core.result.Result T E) : Result (Option T) :=
+  match self with
+  | .Ok value => Std.Result.ok (some value)
+  | .Err _ => Std.Result.ok none
+
 /-- Cloning preserves string contents; storage allocation is abstracted away. -/
 @[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
 def alloc.string.String.Insts.CoreCloneClone.clone (self : String) : Result String :=

@@ -9,7 +9,7 @@
   offset lookup, subject to the stated preconditions.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
-  allocation ID generation until counter exhaustion.
+  allocation ID generation and IRQ allocation until counter exhaustion.
 
 Full accounting between pools, free regions, and allocations remains unverified.
 
@@ -29,6 +29,7 @@ Hash-map iteration uses an arbitrary enumeration of the finite-map entries;
 the overlap specification accepts any conflicting key.
 The page-size result is opaque and supplied as a theorem hypothesis; the host OS
 query is not verified. The B-tree map model currently supports only construction.
+String conversion models UTF-8 `str` contents; general formatting is unsupported.
 
 # Extraction and checks
 

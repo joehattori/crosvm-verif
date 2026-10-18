@@ -2,6 +2,8 @@ module
 public import Resources.AddressAllocator.Spec
 import all Aeneas.Std.VecIter
 import all Aeneas.Std.Scalar.Ops.Add
+import all Aeneas.Std.String
+import all Init.Data.ByteArray.Basic
 @[expose] public section
 open Aeneas Aeneas.Std Result
 set_option maxHeartbeats 1000000
@@ -117,13 +119,19 @@ def OptionalInitial (pool : Option AddressRange) (alignment : U64)
   | some r, some a => AddressAllocator.initialState r a alignment ∧ AddressAllocator.WellFormed a
   | _, _ => False
 
-/-- All component allocators satisfy their structural invariant. -/
+/-- IRQs use unit alignment and lie within the constructor's IRQ limit. -/
+def IrqInvariant (a : AddressAllocator) : Prop :=
+  a.min_align = 1#u64 ∧ a.preferred_align = 1#u64 ∧
+  ∀ addr, AddressAllocator.Covers a.regions addr → addr ≤ 1023
+
+/-- Component invariants together with the IRQ alignment and address bounds. -/
 def WellFormed (a : SystemAllocator) : Prop :=
   (∀ io ∈ a.io_address_space, AddressAllocator.WellFormed io) ∧
   (∀ mmio ∈ a.mmio_address_spaces.val, AddressAllocator.WellFormed mmio) ∧
   (∀ platform ∈ a.mmio_platform_address_spaces, AddressAllocator.WellFormed platform) ∧
   AddressAllocator.WellFormed a.irq_allocator ∧ AddressAllocator.WellFormed a.gpe_allocator ∧
-  ∀ bus space, Finmap.lookup bus a.pci_allocator = some space → AddressAllocator.WellFormed space
+  (∀ bus space, Finmap.lookup bus a.pci_allocator = some space → AddressAllocator.WellFormed space) ∧
+  IrqInvariant a.irq_allocator
 
 /-- Exact initial pools and alignments, with no allocations or PCI buses. -/
 def InitialState (config : SystemAllocatorConfig) (ranges : List AddressRange)
@@ -225,11 +233,20 @@ private theorem completeAllocator_spec (config : SystemAllocatorConfig) (ranges 
   refine ⟨_, rfl, hio, ⟨lowSpace, highSpace, ?_, hlow, hhigh⟩, hplatform,
     rfl, rfl, hi, hg, rfl, ?_⟩
   · simp [Array.make]
-  · refine ⟨?_, ?_, ?_, hwi, hwg, ?_⟩
+  · refine ⟨?_, ?_, ?_, hwi, hwg, ?_, ?_⟩
     · cases h : config.io <;> cases io <;> simp_all [OptionalInitial]
     · simpa [Array.make] using And.intro hwl hwh
     · cases h : config.platform_mmio <;> cases platform <;> simp_all [OptionalInitial]
     · simp
+    · refine ⟨hi.2.2.2.1, hi.2.2.2.2, ?_⟩
+      intro addr ⟨r, hr, ha⟩
+      rw [hi.2.2.1] at hr
+      simp only [AddressAllocator.initialPools] at hr
+      split at hr
+      · simp at hr
+      · have hr := List.mem_singleton.mp hr
+        subst r
+        exact ha.2
 
 private theorem afterIo_spec (config : SystemAllocatorConfig) (ranges : Slice AddressRange)
     (pageSize : U64) (high : AddressRange) (reserved : Option AddressRange)
@@ -439,5 +456,110 @@ theorem get_anon_alloc_overflow (self : SystemAllocator)
     ok (resources.Alloc.Anon next, { self with next_anon_id := next })) = _
   simp [UScalar.tryMk, UScalar.tryMkOpt,
     hmax, Usize.max, Usize.numBits, Result.ofOption]
+
+/-! ### IRQ allocation -/
+
+/-- Allocate one IRQ under the new anonymous ID, using the address allocator's
+    outcome specification. Errors become `none`.
+    The counter advances in both cases, and other system components are unchanged. -/
+def IrqAllocationOutcome (self : SystemAllocator) (result : Option U32)
+    (a : SystemAllocator) : Prop :=
+  a.next_anon_id.val = self.next_anon_id.val + 1 ∧
+  a = { self with next_anon_id := a.next_anon_id, irq_allocator := a.irq_allocator } ∧
+  match result with
+  | none => ∃ error,
+      AddressAllocator.AlignedAllocationOutcome self.irq_allocator 1#u64
+        (.Anon a.next_anon_id) "irq-auto" 1 false (.Err error) a.irq_allocator
+  | some irq =>
+      AddressAllocator.AlignedAllocationOutcome self.irq_allocator 1#u64
+        (.Anon a.next_anon_id) "irq-auto" 1 false (.Ok (UScalar.cast .U64 irq)) a.irq_allocator
+
+private theorem irq_tag :
+    _root_.alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr "irq-auto") =
+      ok "irq-auto" := by
+  simp only [_root_.alloc.string.ToString.Blanket.to_string, ↓reduceDIte, ↓reduceIte]
+  have hbytes : (⟨(toStr "irq-auto").val.toArray.map (fun b => UInt8.ofBitVec b.bv)⟩ : ByteArray) =
+      "irq-auto".toByteArray := by
+    simp only [Aeneas.Std.toStr, Slice.from_val, List.map_toArray]
+    with_unfolding_all rfl
+  rw [hbytes]
+  simp [String.fromUTF8?, "irq-auto".isValidUTF8, String.fromUTF8, Result.ofOption]
+
+private theorem irq_placement_iff (rs : List AddressRange) (addr : Nat) :
+    AddressAllocator.Placement rs 1 1 addr ↔ AddressAllocator.Covers rs addr := by
+  simp [AddressAllocator.Placement, AddressAllocator.Covers, AddressRange.containsModel, Nat.mod_one]
+
+private theorem irq_allocate_spec (self : AddressAllocator) (allocation : resources.Alloc)
+    (hwf : AddressAllocator.WellFormed self) (hirq : IrqInvariant self) :
+    AddressAllocator.allocate self 1#u64 allocation "irq-auto" ⦃ result a =>
+      AddressAllocator.WellFormed a ∧ IrqInvariant a ∧
+      AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation "irq-auto" 1 false result a ⦄ := by
+  apply WP.spec_mono (AddressAllocator.allocate_spec self 1#u64 allocation "irq-auto" hwf)
+  rintro ⟨result, a⟩ h
+  have hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation "irq-auto" 1 false result a := by
+    simpa [hirq.1, hirq.2.1] using h.2
+  refine ⟨h.1, ?_, hout⟩
+  by_cases hk : allocation ∈ self.allocs
+  · have hs : a = self := by
+      simp [AddressAllocator.AlignedAllocationOutcome, hk] at hout
+      exact hout.2
+    simpa [hs] using hirq
+  · simp only [AddressAllocator.AlignedAllocationOutcome, if_neg hk] at hout
+    simp [show Nat.isPowerOfTwo 1 from by decide] at hout
+    cases result with
+    | Err error => simpa [hout.2.1] using hirq
+    | Ok start =>
+      obtain ⟨range, _, _, _, hmin, hpref, _, _, hcover⟩ := hout.2
+      refine ⟨hmin.trans hirq.1, hpref.trans hirq.2.1, ?_⟩
+      intro addr ha
+      exact hirq.2.2 addr ((hcover addr).mp ha).1
+
+/-- Allocate the lowest free IRQ, preserving system invariants and advancing the
+    anonymous counter even when no IRQ is returned. -/
+@[step]
+theorem allocate_irq_spec (self : SystemAllocator) (hwf : WellFormed self)
+    (hnext : self.next_anon_id.val < Usize.max) :
+    allocate_irq self ⦃ result a =>
+      WellFormed a ∧ IrqAllocationOutcome self result a ⦄ := by
+  unfold allocate_irq
+  step with get_anon_alloc_spec self hnext as ⟨id, next, hid, hnextstate⟩
+  subst next
+  simp only at hid
+  subst id
+  rw [irq_tag]
+  simp only [bind_ok]
+  step with irq_allocate_spec self.irq_allocator _ hwf.2.2.2.1 hwf.2.2.2.2.2.2
+    as ⟨result, irqSpace, hwfi, hirqi, hout⟩
+  have hwfa : WellFormed { self with
+      next_anon_id := Usize.ofNatCore (self.next_anon_id.val + 1) (by scalar_tac)
+      irq_allocator := irqSpace } :=
+    ⟨hwf.1, hwf.2.1, hwf.2.2.1, hwfi, hwf.2.2.2.2.1, hwf.2.2.2.2.2.1, hirqi⟩
+  cases result with
+  | Err error =>
+    simp only [_root_.core.result.Result.map, _root_.core.result.Result.ok, bind_ok, WP.spec_ok]
+    exact ⟨hwfa, rfl, rfl, error, hout⟩
+  | Ok start =>
+    have hk : resources.Alloc.Anon (Usize.ofNatCore (self.next_anon_id.val + 1) (by scalar_tac)) ∉
+        self.irq_allocator.allocs := by
+      intro hk
+      simp [AddressAllocator.AlignedAllocationOutcome, hk] at hout
+    have hs : AddressAllocator.AlignedAllocation self.irq_allocator 1#u64
+        (.Anon (Usize.ofNatCore (self.next_anon_id.val + 1) (by scalar_tac))) "irq-auto" 1 false start irqSpace := by
+      simpa [AddressAllocator.AlignedAllocationOutcome, hk,
+        show Nat.isPowerOfTwo 1 from by decide] using hout
+    have hbound : start.val ≤ 1023 :=
+      hwf.2.2.2.2.2.2.2.2 start.val ((irq_placement_iff _ _).mp hs.1.1)
+    have hcast : (UScalar.cast .U32 start).val = start.val := by
+      rw [UScalar.cast_val_eq]
+      apply Nat.mod_eq_of_lt
+      scalar_tac
+    have hroundtrip : UScalar.cast .U64 (UScalar.cast .U32 start) = start := by
+      apply UScalar.eq_of_val_eq
+      simpa using hcast
+    simp only [_root_.core.result.Result.map,
+      allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once,
+      _root_.core.result.Result.ok, bind_ok, WP.spec_ok]
+    refine ⟨hwfa, rfl, rfl, ?_⟩
+    simpa only [hroundtrip] using hout
 
 end resources.system_allocator.SystemAllocator

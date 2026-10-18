@@ -211,4 +211,9 @@ def system_allocator.SystemAllocator.new.closure.closure :=
 def system_allocator.SystemAllocator.new.closure :=
   Slice address_range.AddressRange
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+@[reducible]
+def system_allocator.SystemAllocator.allocate_irq.closure := Unit
+
 end resources

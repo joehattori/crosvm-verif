@@ -54,6 +54,16 @@ axiom core.cmp.Ordering.then_with
 axiom Shared0A.Insts.CoreCmpOrd.cmp
   {A : Type} (OrdInst : core.cmp.Ord A) : A → A → Result Ordering
 
+/-- [core::fmt::{impl core::fmt::Display for str}::fmt]:
+    Source: '/rustc/library/core/src/fmt/mod.rs', lines 2965:4-2965:50
+    Name pattern: [core::fmt::{core::fmt::Display<str>}::fmt]
+    Visibility: public -/
+@[rust_fun "core::fmt::{core::fmt::Display<str>}::fmt"]
+axiom Str.Insts.CoreFmtDisplay.fmt
+  :
+  Str → core.fmt.Formatter → Result ((core.result.Result Unit
+    core.fmt.Error) × core.fmt.Formatter)
+
 /-- [core::fmt::num::{impl core::fmt::LowerHex for u64}::fmt]:
     Source: '/rustc/library/core/src/fmt/num.rs', lines 14:12-14:68
     Name pattern: [core::fmt::num::{core::fmt::LowerHex<u64>}::fmt]
@@ -254,6 +264,24 @@ axiom core.option.Option.and_then
 axiom core.option.OptionShared0T.cloned
   {T : Type} (cloneCloneInst : core.clone.Clone T) :
   Option T → Result (Option T)
+
+/-- [core::result::{core::result::Result<T, E>}::ok]:
+    Source: '/rustc/library/core/src/result.rs', lines 709:4-712:28
+    Name pattern: [core::result::{core::result::Result<@T, @E>}::ok]
+    Visibility: public -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::ok"]
+axiom core.result.Result.ok
+  {T : Type} {E : Type} : core.result.Result T E → Result (Option T)
+
+/-- [core::result::{core::result::Result<T, E>}::map]:
+    Source: '/rustc/library/core/src/result.rs', lines 832:4-834:53
+    Name pattern: [core::result::{core::result::Result<@T, @E>}::map]
+    Visibility: public -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
+axiom core.result.Result.map
+  {T : Type} {E : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTUInst :
+  core.ops.function.FnOnce F T U) :
+  core.result.Result T E → F → Result (core.result.Result U E)
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, std::hash::random::RandomState, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 269:4-269:46
@@ -520,6 +548,14 @@ axiom
     Visibility: public -/
 @[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
 axiom alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
+
+/-- [alloc::string::{impl alloc::string::ToString for T}::to_string]:
+    Source: '/rustc/library/alloc/src/string.rs', lines 2965:4-2965:33
+    Name pattern: [alloc::string::{alloc::string::ToString<@T>}::to_string]
+    Visibility: public -/
+@[rust_fun "alloc::string::{alloc::string::ToString<@T>}::to_string"]
+axiom alloc.string.ToString.Blanket.to_string
+  {T : Type} (corefmtDisplayInst : core.fmt.Display T) : T → Result String
 
 /-- [base::sys::unix::system_info::pagesize]:
     Source: 'base/src/sys/unix/system_info.rs', lines 32:0-32:26
