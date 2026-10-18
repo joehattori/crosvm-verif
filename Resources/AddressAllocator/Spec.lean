@@ -1320,6 +1320,22 @@ def AllocationAtOutcome (self : AddressAllocator) (range : AddressRange)
         | .OutOfSpace => ∀ existing, ¬AllocationOverlap self range existing
         | _ => False
 
+/-- Fixed-address allocation leaves the pools and alignment policy unchanged. -/
+theorem AllocationAtOutcome.pools_alignments {self a : AddressAllocator} {range : AddressRange}
+    {allocation : resources.Alloc} {tag : String} {result : core.result.Result Unit resources.Error}
+    (h : AllocationAtOutcome self range allocation tag result a) :
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧ a.preferred_align = self.preferred_align := by
+  unfold AllocationAtOutcome at h
+  split at h
+  · simp [h.2]
+  · split at h
+    · simp [h.2]
+    · cases result with
+      | Err error => simp [h.1]
+      | Ok u =>
+        cases u
+        exact ⟨h.2.1, h.2.2.1, h.2.2.2.1⟩
+
 /-- Fixed-address allocation is correct for every range, including empty ranges
     and ranges ending at `u64::MAX`; it requires no alignment or overflow bounds. -/
 @[step]

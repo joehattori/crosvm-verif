@@ -12,8 +12,9 @@
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
   exhaustion, IRQ release, PCI bus allocator presence checks, lookup and creation
-  with mutable borrow write-back, and PCI slot allocation with preferred-device
-  alignment and function fallback, preserving component invariants.
+  with mutable borrow write-back, PCI slot allocation with preferred alignment
+  and function fallback, and PCI slot reservation, preserving
+  component invariants.
 
 The internal free-region insertion helper is specified for intermediate states;
 the full accounting invariant is restored by the enclosing release operation.

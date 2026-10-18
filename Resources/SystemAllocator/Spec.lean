@@ -683,16 +683,8 @@ private theorem irq_allocate_at_invariant {self a : AddressAllocator} {range : A
     (hirq : IrqInvariant self)
     (hout : AddressAllocator.AllocationAtOutcome self range allocation tag result a) :
     IrqInvariant a := by
-  unfold AddressAllocator.AllocationAtOutcome at hout
-  split at hout
-  · simpa [hout.2] using hirq
-  · split at hout
-    · simpa [hout.2] using hirq
-    · cases result with
-      | Err error => simpa [hout.1] using hirq
-      | Ok u =>
-        cases u
-        exact hirq.preserved hout.2.1 hout.2.2.1 hout.2.2.2.1
+  have h := hout.pools_alignments
+  exact hirq.preserved h.1 h.2.1 h.2.2
 
 /-- Reserve exactly the requested IRQ, preserving system invariants. Rejected
     reservations return `false` and preserve the IRQ allocator, but advance the counter. -/
@@ -861,8 +853,10 @@ private theorem pci_entry_spec {V : Type} (allocator : core.alloc.AllocatorClone
   rw [findEntryKey_u8]
   split <;> simp <;> congr 2
 
-/-- PCI allocator lookup always returns a mutable borrow. New buses start with
-    minimum alignment 1 and preferred alignment 8; existing allocators are unchanged. -/
+/-- Under the well-formedness assumption, PCI allocator lookup cannot return `none`:
+    existing allocators are returned unchanged, and new buses use valid alignments
+    (minimum 1, preferred 8), so construction succeeds. Callers' `None` branches
+    are therefore unreachable under this assumption. -/
 @[step]
 theorem get_pci_allocator_mut_spec (self : SystemAllocator) (bus : U8) (hwf : WellFormed self) :
     get_pci_allocator_mut self bus ⦃ result back =>
@@ -1031,6 +1025,86 @@ theorem allocate_pci_spec (self : SystemAllocator) (bus : U8) (tag : String)
     simp only [_root_.core.result.Result.ok, bind_ok, WP.spec_ok]
     refine ⟨hwback, next.next_anon_id, hcounter, before, after, back, hborrow', rfl,
       slot, hbus, hdev, hfunc, ?_⟩
+    simpa only [hid] using hout
+
+/-- Pack the device and function fields into the bus allocator's slot number. -/
+def pciSlot (pci : resources.pci_address.PciAddress) : U64 :=
+  U64.ofNatCore ((pci.dev.val * 8) ||| pci.func.val)
+    (Nat.or_lt_two_pow (by scalar_tac) (by scalar_tac))
+
+@[simp]
+theorem pciSlot_val (pci : resources.pci_address.PciAddress) :
+    (pciSlot pci).val = (pci.dev.val * 8) ||| pci.func.val := by
+  simp [pciSlot]
+
+/-- With a three-bit function number, packing gives the usual device/function index. -/
+theorem pciSlot_val_of_func_lt (pci : resources.pci_address.PciAddress) (hf : pci.func.val < 8) :
+    (pciSlot pci).val = pci.dev.val * 8 + pci.func.val := by
+  have h := Nat.shiftLeft_add_eq_or_of_lt (i := 3) hf pci.dev.val
+  simpa [Nat.shiftLeft_eq] using h.symm
+
+/-- Advance the anonymous ID, borrow the bus allocator, and reserve the packed slot.
+    Fixed-address allocation determines success; the updated borrow is returned in both cases. -/
+def PciReservationOutcome (self : SystemAllocator) (pci : resources.pci_address.PciAddress)
+    (tag : String) (result : Bool) (a : SystemAllocator) : Prop :=
+  ∃ nextId : Usize,
+    nextId.val = self.next_anon_id.val + 1 ∧
+    let next := { self with next_anon_id := nextId }
+    ∃ before after : AddressAllocator, ∃ back : Option AddressAllocator → SystemAllocator,
+      PciAllocatorBorrow next pci.bus before back ∧
+      a = back (some after) ∧
+      let range : AddressRange := ⟨pciSlot pci, pciSlot pci⟩
+      match result with
+      | true => AddressAllocator.AllocationAtOutcome before range
+          (.Anon nextId) tag (.Ok ()) after
+      | false => ∃ error, AddressAllocator.AllocationAtOutcome before range
+          (.Anon nextId) tag (.Err error) after
+
+/-- Reserve the requested packed slot and preserve system invariants, provided the
+    anonymous counter is not exhausted. Rejections return `false` and advance the counter. -/
+@[step]
+theorem reserve_pci_spec (self : SystemAllocator) (pci : resources.pci_address.PciAddress)
+    (tag : String) (hwf : WellFormed self) (hnext : self.next_anon_id.val < Usize.max) :
+    reserve_pci self pci tag ⦃ result a =>
+      WellFormed a ∧ PciReservationOutcome self pci tag result a ⦄ := by
+  unfold reserve_pci
+  step with get_anon_alloc_spec self hnext as ⟨id, next, hid, hnextstate⟩
+  have hwnext : WellFormed next := by simpa only [hnextstate, WellFormed] using hwf
+  step with get_pci_allocator_mut_spec next pci.bus hwnext
+    as ⟨result, back, before, hresult, hwbefore, hborrow⟩
+  subst result
+  simp only [lift, bind_ok]
+  step as ⟨device, hdevice, _⟩
+  have hdev : device.val = pci.dev.val * 8 := by
+    simp only [Nat.shiftLeft_eq] at hdevice
+    scalar_tac
+  have hfunc : (UScalar.cast .U64 pci.func).val = pci.func.val := by scalar_tac
+  have hslot : device ||| UScalar.cast .U64 pci.func = pciSlot pci := by
+    apply UScalar.eq_of_val_eq
+    simp only [UScalar.val_or, hdev, hfunc, pciSlot_val]
+  simp only [hslot]
+  step with AddressAllocator.allocate_at_spec before ⟨pciSlot pci, pciSlot pci⟩ id tag hwbefore
+    as ⟨result, after, hwafter, hout⟩
+  have hf := hout.pools_alignments
+  have hpciafter : PciAllocatorInvariant pci.bus after := by
+    simpa only [PciAllocatorInvariant, hf.1, hf.2.1, hf.2.2] using hborrow.invariant hwnext
+  have hwback := hborrow.wellFormed hwnext hwbefore (some after)
+    (by simpa using And.intro hwafter hpciafter)
+  have hcounter : next.next_anon_id.val = self.next_anon_id.val + 1 := by
+    rw [hnextstate]
+    rfl
+  have hborrow' : PciAllocatorBorrow { self with next_anon_id := next.next_anon_id }
+      pci.bus before back := by
+    simpa only [hnextstate] using hborrow
+  cases result with
+  | Ok u =>
+    cases u
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    refine ⟨hwback, next.next_anon_id, hcounter, before, after, back, hborrow', rfl, ?_⟩
+    simpa only [hid] using hout
+  | Err error =>
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    refine ⟨hwback, next.next_anon_id, hcounter, before, after, back, hborrow', rfl, error, ?_⟩
     simpa only [hid] using hout
 
 /-- True exactly when no allocator is recorded for the bus. -/
