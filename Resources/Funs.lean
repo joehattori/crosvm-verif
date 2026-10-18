@@ -2572,4 +2572,22 @@ def system_allocator.SystemAllocator.release_irq
     address_allocator.AddressAllocator.release_containing self.irq_allocator i
   ok { self with irq_allocator := aa }
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_irq]:
+    Source: 'resources/src/system_allocator.rs', lines 251:4-263:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.reserve_irq
+  (self : system_allocator.SystemAllocator) (irq : Std.U32) :
+  Result (Bool × system_allocator.SystemAllocator)
+  := do
+  let (id, self1) ← system_allocator.SystemAllocator.get_anon_alloc self
+  let i ← core.convert.IntoFrom.into core.convert.FromU64U32 irq
+  let s ←
+    alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr
+      "irq-fixed")
+  let (r, aa) ←
+    address_allocator.AddressAllocator.allocate_at self1.irq_allocator
+      { start := i, «end» := i } id s
+  let b ← core.result.Result.is_ok r
+  ok (b, { self1 with irq_allocator := aa })
+
 end resources

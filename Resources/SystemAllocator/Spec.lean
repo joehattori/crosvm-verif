@@ -492,6 +492,11 @@ private theorem irq_placement_iff (rs : List AddressRange) (addr : Nat) :
     AddressAllocator.Placement rs 1 1 addr ↔ AddressAllocator.Covers rs addr := by
   simp [AddressAllocator.Placement, AddressAllocator.Covers, AddressRange.containsModel, Nat.mod_one]
 
+private theorem u32_into_u64 (value : U32) :
+    core.convert.num.FromU64U32.from value = UScalar.cast .U64 value := by
+  apply UScalar.eq_of_val_eq
+  simp
+
 private theorem irq_allocate_spec (self : AddressAllocator) (allocation : resources.Alloc)
     (hwf : AddressAllocator.WellFormed self) (hirq : IrqInvariant self) :
     AddressAllocator.allocate self 1#u64 allocation "irq-auto" ⦃ result a =>
@@ -622,10 +627,7 @@ private theorem irq_release_invariant {self a : AddressAllocator} {allocation : 
 theorem release_irq_spec (self : SystemAllocator) (irq : U32) (hwf : WellFormed self) :
     release_irq self irq ⦃ a => WellFormed a ∧ IrqReleaseOutcome self irq a ⦄ := by
   unfold release_irq
-  have hcast : core.convert.num.FromU64U32.from irq = UScalar.cast .U64 irq := by
-    apply UScalar.eq_of_val_eq
-    simp
-  simp only [core.convert.IntoFrom.into, bind_ok, hcast]
+  simp only [core.convert.IntoFrom.into, bind_ok, u32_into_u64]
   step with AddressAllocator.release_containing_spec self.irq_allocator (UScalar.cast .U64 irq)
     hwf.2.2.2.1 as ⟨result, irqSpace, hwfi, hout⟩
   have hirqi : IrqInvariant irqSpace := by
@@ -634,5 +636,91 @@ theorem release_irq_spec (self : SystemAllocator) (irq : U32) (hwf : WellFormed 
     · exact irq_release_invariant hwf.2.2.2.2.2.2 hrelease
   exact ⟨⟨hwf.1, hwf.2.1, hwf.2.2.1, hwfi, hwf.2.2.2.2.1, hwf.2.2.2.2.2.1, hirqi⟩,
     rfl, result, hout⟩
+
+/-! ### IRQ reservation -/
+
+/-- Reserve the requested IRQ under the new anonymous ID. The counter advances
+    on success and failure; other system components are unchanged. -/
+def IrqReservationOutcome (self : SystemAllocator) (irq : U32) (result : Bool)
+    (a : SystemAllocator) : Prop :=
+  a.next_anon_id.val = self.next_anon_id.val + 1 ∧
+  a = { self with next_anon_id := a.next_anon_id, irq_allocator := a.irq_allocator } ∧
+  let range : AddressRange := ⟨UScalar.cast .U64 irq, UScalar.cast .U64 irq⟩
+  match result with
+  | true => AddressAllocator.AllocationAtOutcome self.irq_allocator range
+      (.Anon a.next_anon_id) "irq-fixed" (.Ok ()) a.irq_allocator
+  | false => ∃ error, AddressAllocator.AllocationAtOutcome self.irq_allocator range
+      (.Anon a.next_anon_id) "irq-fixed" (.Err error) a.irq_allocator
+
+private theorem irq_fixed_tag :
+    _root_.alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr "irq-fixed") =
+      ok "irq-fixed" := by
+  simp only [_root_.alloc.string.ToString.Blanket.to_string, ↓reduceDIte, ↓reduceIte]
+  have hbytes : (⟨(toStr "irq-fixed").val.toArray.map (fun b => UInt8.ofBitVec b.bv)⟩ : ByteArray) =
+      "irq-fixed".toByteArray := by
+    simp only [Aeneas.Std.toStr, Slice.from_val, List.map_toArray]
+    with_unfolding_all rfl
+  rw [hbytes]
+  simp [String.fromUTF8?, "irq-fixed".isValidUTF8, String.fromUTF8, Result.ofOption]
+
+private theorem irq_allocate_at_invariant {self a : AddressAllocator} {range : AddressRange}
+    {allocation : resources.Alloc} {tag : String} {result : core.result.Result Unit resources.Error}
+    (hirq : IrqInvariant self)
+    (hout : AddressAllocator.AllocationAtOutcome self range allocation tag result a) :
+    IrqInvariant a := by
+  unfold AddressAllocator.AllocationAtOutcome at hout
+  split at hout
+  · simpa [hout.2] using hirq
+  · split at hout
+    · simpa [hout.2] using hirq
+    · cases result with
+      | Err error => simpa [hout.1] using hirq
+      | Ok u =>
+        cases u
+        obtain ⟨⟨slot, hslot, hsub⟩, _, hmin, hpref, hallocs, hcover⟩ := hout
+        refine ⟨hmin.trans hirq.1, hpref.trans hirq.2.1, ?_, ?_⟩
+        · intro addr ha
+          exact hirq.2.2.1 addr ((hcover addr).mp ha).1
+        · intro key r label hlookup addr ha
+          rw [hallocs] at hlookup
+          by_cases he : key = allocation
+          · subst key
+            simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup
+            rcases hlookup with ⟨rfl, rfl⟩
+            exact hirq.2.2.1 addr ⟨slot, hslot, hsub addr ha⟩
+          · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+            exact hirq.2.2.2 key r label hlookup addr ha
+
+/-- Reserve exactly the requested IRQ, preserving system invariants. Rejected
+    reservations return `false` and preserve the IRQ allocator, but advance the counter. -/
+@[step]
+theorem reserve_irq_spec (self : SystemAllocator) (irq : U32) (hwf : WellFormed self)
+    (hnext : self.next_anon_id.val < Usize.max) :
+    reserve_irq self irq ⦃ result a =>
+      WellFormed a ∧ IrqReservationOutcome self irq result a ⦄ := by
+  unfold reserve_irq
+  step with get_anon_alloc_spec self hnext as ⟨id, next, hid, hnextstate⟩
+  subst next
+  simp only at hid
+  subst id
+  simp only [u32_into_u64]
+  rw [irq_fixed_tag]
+  simp only [bind_ok]
+  step with AddressAllocator.allocate_at_spec self.irq_allocator
+    ⟨UScalar.cast .U64 irq, UScalar.cast .U64 irq⟩ _ "irq-fixed" hwf.2.2.2.1
+    as ⟨result, irqSpace, hwfi, hout⟩
+  have hirqi := irq_allocate_at_invariant hwf.2.2.2.2.2.2 hout
+  have hwfa : WellFormed { self with
+      next_anon_id := Usize.ofNatCore (self.next_anon_id.val + 1) (by scalar_tac)
+      irq_allocator := irqSpace } :=
+    ⟨hwf.1, hwf.2.1, hwf.2.2.1, hwfi, hwf.2.2.2.2.1, hwf.2.2.2.2.2.1, hirqi⟩
+  cases result with
+  | Ok u =>
+    cases u
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    exact ⟨hwfa, rfl, rfl, hout⟩
+  | Err error =>
+    simp only [core.result.Result.is_ok, bind_ok, WP.spec_ok]
+    exact ⟨hwfa, rfl, rfl, error, hout⟩
 
 end resources.system_allocator.SystemAllocator
