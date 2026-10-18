@@ -768,4 +768,116 @@ theorem allocate_gpe_spec (self : SystemAllocator) (hwf : WellFormed self)
     refine ⟨hwfa, rfl, rfl, ?_⟩
     simpa only [hroundtrip] using hout
 
+/-! ### PCI bus allocators -/
+
+/-- Bus zero reserves device zero; other buses expose all 32 devices and 8 functions. -/
+def pciPool (bus : U8) : AddressRange := ⟨if bus = 0#u8 then 8#u64 else 0#u64, 255#u64⟩
+
+/-- Reuse the existing bus allocator, or construct its initial state. Returning the
+    mutable borrow updates only this bus; `none` retains the borrowed value. -/
+def PciAllocatorBorrow (self : SystemAllocator) (bus : U8) (pci_allocator : AddressAllocator)
+    (back : Option AddressAllocator → SystemAllocator) : Prop :=
+  (match Finmap.lookup bus self.pci_allocator with
+    | some existing => pci_allocator = existing
+    | none => AddressAllocator.initialState (pciPool bus) pci_allocator 1#u64 8#u64) ∧
+  ∀ updated, back updated =
+    { self with pci_allocator := Finmap.insert bus (updated.getD pci_allocator) self.pci_allocator }
+
+/-- A well-formed replacement preserves the enclosing system invariant. -/
+theorem PciAllocatorBorrow.wellFormed {self : SystemAllocator} {bus : U8}
+    {pci_allocator : AddressAllocator} {back : Option AddressAllocator → SystemAllocator}
+    (h : PciAllocatorBorrow self bus pci_allocator back) (hwf : WellFormed self)
+    (hpci : AddressAllocator.WellFormed pci_allocator) (updated : Option AddressAllocator)
+    (hupdated : ∀ a ∈ updated, AddressAllocator.WellFormed a) : WellFormed (back updated) := by
+  rw [h.2]
+  refine ⟨hwf.1, hwf.2.1, hwf.2.2.1, hwf.2.2.2.1, hwf.2.2.2.2.1, ?_, hwf.2.2.2.2.2.2⟩
+  intro key a hlookup
+  by_cases he : key = bus
+  · subst key
+    simp only [Finmap.lookup_insert, Option.some.injEq] at hlookup
+    subst a
+    cases updated with
+    | none => exact hpci
+    | some a => exact hupdated a (by simp)
+  · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+    exact hwf.2.2.2.2.2.1 key a hlookup
+
+private theorem findEntryKey_u8 (bus : U8) (keys : List U8) :
+    _root_.alloc.collections.btree.map.findEntryKey core.cmp.OrdU8 bus keys =
+      ok (if bus ∈ keys then some bus else none) := by
+  induction keys with
+  | nil => simp [_root_.alloc.collections.btree.map.findEntryKey]
+  | cons key keys ih =>
+    have heq : compare bus.val key.val = .eq ↔ bus = key := by
+      simp [compare, compareOfLessAndEq]
+      split_ifs <;> simp_all
+      scalar_tac
+    simp only [_root_.alloc.collections.btree.map.findEntryKey, core.cmp.OrdU8,
+      liftFun2, core.cmp.impls.OrdU8.cmp, bind_ok]
+    by_cases he : bus = key
+    · subst key
+      simp
+    · simp [heq, he, ih]
+
+private theorem pci_entry_spec {V : Type} (allocator : core.alloc.AllocatorClone Global)
+    (m : _root_.alloc.collections.btree.map.BTreeMap U8 V Global) (bus : U8) :
+    _root_.alloc.collections.btree.map.BTreeMap.entry
+      allocator core.cmp.OrdU8 m bus
+      ⦃ entry back =>
+        entry = (match Finmap.lookup bus m with
+          | none => .Vacant ⟨bus, none⟩
+          | some value => .Occupied ⟨bus, value⟩) ∧
+        back = _root_.alloc.collections.btree.map.entryBack m bus ⦄ := by
+  unfold _root_.alloc.collections.btree.map.BTreeMap.entry
+  rw [findEntryKey_u8]
+  split <;> simp <;> congr 2
+
+/-- PCI allocator lookup always returns a mutable borrow. New buses start with
+    minimum alignment 1 and preferred alignment 8; existing allocators are unchanged. -/
+@[step]
+theorem get_pci_allocator_mut_spec (self : SystemAllocator) (bus : U8) (hwf : WellFormed self) :
+    get_pci_allocator_mut self bus ⦃ result back =>
+      ∃ pci_allocator, result = some pci_allocator ∧ AddressAllocator.WellFormed pci_allocator ∧
+        PciAllocatorBorrow self bus pci_allocator back ⦄ := by
+  unfold get_pci_allocator_mut
+  step with pci_entry_spec alloc.alloc.Global.Insts.CoreAllocAllocatorClone self.pci_allocator bus
+    as ⟨entry, entryBack, he, hback⟩
+  subst entry entryBack
+  cases hlookup : Finmap.lookup bus self.pci_allocator with
+  | some pci_allocator =>
+    simp only [_root_.alloc.collections.btree.map.entry.OccupiedEntry.into_mut, bind_ok]
+    apply (WP.spec_ok _).mpr
+    refine ⟨pci_allocator, rfl, hwf.2.2.2.2.2.1 bus pci_allocator hlookup, ?_⟩
+    constructor
+    · simp [hlookup]
+    · intro updated
+      cases updated <;> simp [_root_.alloc.collections.btree.map.entryBack] <;>
+        congr 1 <;> exact Subsingleton.elim _ _
+  | none =>
+    have hbase : (if bus = 0#u8 then ok 8#u64 else ok 0#u64) = ok (pciPool bus).start := by
+      unfold pciPool
+      split <;> rfl
+    rw [hbase]
+    simp only [bind_ok]
+    step as ⟨n, hn⟩
+    step as ⟨last, hlast⟩
+    have hend : last = 255#u64 := by scalar_tac
+    subst last
+    have hpool : ({ start := (pciPool bus).start, «end» := 255#u64 } : AddressRange) = pciPool bus := rfl
+    rw [hpool]
+    step with AddressAllocator.new_spec (pciPool bus) (some 1#u64) (some 8#u64)
+      as ⟨result, hnew⟩
+    simp [AddressAllocator.newError,
+      show Nat.isPowerOfTwo 1 from by decide, show Nat.isPowerOfTwo 8 from by decide] at hnew
+    obtain ⟨pci_allocator, rfl, hinitial, hpci⟩ := hnew
+    simp only [_root_.core.result.Result.ok, _root_.core.option.Option.Insts.CoreOpsTry_traitTry.branch,
+      _root_.alloc.collections.btree.map.entry.VacantEntry.insert, bind_ok]
+    apply (WP.spec_ok _).mpr
+    refine ⟨pci_allocator, rfl, hpci, ?_⟩
+    constructor
+    · simpa only [hlookup] using hinitial
+    · intro updated
+      cases updated <;> simp [_root_.alloc.collections.btree.map.entryBack] <;>
+        congr 1 <;> exact Subsingleton.elim _ _
+
 end resources.system_allocator.SystemAllocator

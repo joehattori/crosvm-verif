@@ -65,6 +65,21 @@ structure core.ops.range.RangeBounds (Self : Type) (T : Type) where
   start_bound : Self → Result (core.ops.range.Bound T)
   end_bound : Self → Result (core.ops.range.Bound T)
 
+/-- [alloc::collections::btree::map::entry::Entry]
+    Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 19:0-24:1
+    Name pattern: [alloc::collections::btree::map::entry::Entry]
+    Visibility: public -/
+@[discriminant isize, rust_type "alloc::collections::btree::map::entry::Entry"
+  (mutRegions := #[0])]
+inductive alloc.collections.btree.map.entry.Entry (K : Type) (V : Type) (A :
+  Type) where
+| Vacant :
+  alloc.collections.btree.map.entry.VacantEntry K V A →
+  alloc.collections.btree.map.entry.Entry K V A
+| Occupied :
+  alloc.collections.btree.map.entry.OccupiedEntry K V A →
+  alloc.collections.btree.map.entry.Entry K V A
+
 /-- [resources::Alloc]
     Source: 'resources/src/lib.rs', lines 27:0-46:1
     Visibility: public -/

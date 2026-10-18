@@ -14,11 +14,23 @@ structure core.iter.adapters.filter.Filter (I P : Type) where
   iter : I
   predicate : P
 
-/-- Finite map contents. Only empty construction is modeled so far; ordered
-    traversal and comparator-based operations require separate models. -/
+/-- Finite map contents. Entry lookup uses Rust's comparator; ordered traversal
+    is not modeled. Reachable maps have at most one key per comparator equivalence class. -/
 @[rust_type "alloc::collections::btree::map::BTreeMap"]
 abbrev alloc.collections.btree.map.BTreeMap (K V _A : Type) :=
   Finmap (fun _ : K => V)
+
+/-- An occupied entry retains its stored key while its value is borrowed. -/
+@[rust_type "alloc::collections::btree::map::entry::OccupiedEntry" (mutRegions := #[0])]
+structure alloc.collections.btree.map.entry.OccupiedEntry (K V _A : Type) where
+  key : K
+  value : V
+
+/-- The optional value records insertion when the mutable borrow is returned. -/
+@[rust_type "alloc::collections::btree::map::entry::VacantEntry" (mutRegions := #[0])]
+structure alloc.collections.btree.map.entry.VacantEntry (K V _A : Type) where
+  key : K
+  value : Option V
 
 /-- Finite map contents with unique keys and no observable entry order. -/
 @[rust_type "std::collections::hash::map::HashMap"]

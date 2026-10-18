@@ -113,6 +113,22 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   end_bound := PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
 }
 
+/-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual::<&_ mut _>]:
+    Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
+    Name pattern: [core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
+def
+  core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
+  (T0 : Type) (o : Option Never) :
+  Result ((Option T0) × (Option T0 → Unit))
+  := do
+  let i := read_discriminant o
+  core.intrinsics.assume (i = 0#isize)
+  let back := fun o1 => ()
+  ok (none, back)
+
 /-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2101:0-2101:42
     Name pattern: [core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>] -/
@@ -2630,5 +2646,66 @@ def system_allocator.SystemAllocator.allocate_gpe
       r ()
   let o ← core.result.Result.ok r1
   ok (o, { self1 with gpe_allocator := aa })
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::get_pci_allocator_mut]:
+    Source: 'resources/src/system_allocator.rs', lines 274:4-298:5 -/
+def system_allocator.SystemAllocator.get_pci_allocator_mut
+  (self : system_allocator.SystemAllocator) (bus : Std.U8) :
+  Result ((Option address_allocator.AddressAllocator) × (Option
+    address_allocator.AddressAllocator → system_allocator.SystemAllocator))
+  := do
+  let (e, entry_back) ←
+    alloc.collections.btree.map.BTreeMap.entry
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone core.cmp.OrdU8
+      self.pci_allocator bus
+  match e with
+  | alloc.collections.btree.map.entry.Entry.Vacant entry =>
+    let base1 ← if bus = 0#u8
+                  then ok 8#u64
+                  else ok 0#u64
+    let i ← 32#u64 * 8#u64
+    let i1 ← i - 1#u64
+    let r ←
+      address_allocator.AddressAllocator.new { start := base1, «end» := i1 }
+        (some 1#u64) (some 8#u64)
+    let o ← core.result.Result.ok r
+    let cf ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let (aa, insert_back) ←
+        alloc.collections.btree.map.entry.VacantEntry.insert core.cmp.OrdU8
+          alloc.alloc.Global.Insts.CoreAllocAllocatorClone entry val
+      let back :=
+        fun o1 =>
+          let aa1 := match o1 with
+                     | some aa2 => aa2
+                     | _ => aa
+          let entry1 := insert_back aa1
+          let bm :=
+            entry_back (alloc.collections.btree.map.entry.Entry.Vacant entry1)
+          { self with pci_allocator := bm }
+      ok (some aa, back)
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      let (o1, _) ←
+        core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
+          address_allocator.AddressAllocator residual
+      let back :=
+        fun o2 => let bm := entry_back e
+                  { self with pci_allocator := bm }
+      ok (o1, back)
+  | alloc.collections.btree.map.entry.Entry.Occupied entry =>
+    let (aa, into_mut_back) ←
+      alloc.collections.btree.map.entry.OccupiedEntry.into_mut core.cmp.OrdU8
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone entry
+    let back :=
+      fun o =>
+        let aa1 := match o with
+                   | some aa2 => aa2
+                   | _ => aa
+        let entry1 := into_mut_back aa1
+        let bm :=
+          entry_back (alloc.collections.btree.map.entry.Entry.Occupied entry1)
+        { self with pci_allocator := bm }
+    ok (some aa, back)
 
 end resources

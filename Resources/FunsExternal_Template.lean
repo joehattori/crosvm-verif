@@ -106,6 +106,13 @@ axiom U8.Insts.CoreHashHash.hash
 axiom U64.Insts.CoreHashHash.hash
   {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
 
+/-- [core::intrinsics::assume]:
+    Source: '/rustc/library/core/src/intrinsics/mod.rs', lines 452:0-452:35
+    Name pattern: [core::intrinsics::assume]
+    Visibility: public -/
+@[rust_fun "core::intrinsics::assume"]
+axiom core.intrinsics.assume : Bool → Result Unit
+
 /-- [core::iter::traits::iterator::Iterator::min]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
     Name pattern: [core::iter::traits::iterator::Iterator::min]
@@ -265,6 +272,16 @@ axiom core.option.OptionShared0T.cloned
   {T : Type} (cloneCloneInst : core.clone.Clone T) :
   Option T → Result (Option T)
 
+/-- [core::option::{impl core::ops::try_trait::Try for core::option::Option<T>}::branch]:
+    Source: '/rustc/library/core/src/option.rs', lines 2875:4-2875:64
+    Name pattern: [core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch"]
+axiom core.option.Option.Insts.CoreOpsTry_traitTry.branch
+  {T : Type} :
+  Option T → Result (core.ops.control_flow.ControlFlow (Option Never) T)
+
 /-- [core::result::{core::result::Result<T, E>}::ok]:
     Source: '/rustc/library/core/src/result.rs', lines 709:4-712:28
     Name pattern: [core::result::{core::result::Result<@T, @E>}::ok]
@@ -403,6 +420,30 @@ axiom
   std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher.build_hasher
   : std.hash.random.RandomState → Result std.hash.random.DefaultHasher
 
+/-- [alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::VacantEntry<'a, K, V, A>}::insert]:
+    Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 425:4-425:46
+    Name pattern: [alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::VacantEntry<'a, @K, @V, @A>}::insert]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::VacantEntry<'a, @K, @V, @A>}::insert"]
+axiom alloc.collections.btree.map.entry.VacantEntry.insert
+  {K : Type} {V : Type} {A : Type} (corecmpOrdInst : core.cmp.Ord K)
+  (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A) :
+  alloc.collections.btree.map.entry.VacantEntry K V A → V → Result (V × (V
+    → alloc.collections.btree.map.entry.VacantEntry K V A))
+
+/-- [alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::OccupiedEntry<'a, K, V, A>}::into_mut]:
+    Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 604:4-604:38
+    Name pattern: [alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::OccupiedEntry<'a, @K, @V, @A>}::into_mut]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::OccupiedEntry<'a, @K, @V, @A>}::into_mut"]
+axiom alloc.collections.btree.map.entry.OccupiedEntry.into_mut
+  {K : Type} {V : Type} {A : Type} (corecmpOrdInst : core.cmp.Ord K)
+  (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A) :
+  alloc.collections.btree.map.entry.OccupiedEntry K V A → Result (V × (V →
+    alloc.collections.btree.map.entry.OccupiedEntry K V A))
+
 /-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 653:4-653:40
     Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new]
@@ -412,6 +453,20 @@ axiom
 axiom alloc.collections.btree.map.BTreeMapKVGlobal.new
   (K : Type) (V : Type) :
   Result (alloc.collections.btree.map.BTreeMap K V Global)
+
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::entry]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 1503:4-1505:15
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::entry]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::entry"]
+axiom alloc.collections.btree.map.BTreeMap.entry
+  {K : Type} {V : Type} {A : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord K) :
+  alloc.collections.btree.map.BTreeMap K V A → K → Result
+    ((alloc.collections.btree.map.entry.Entry K V A) ×
+    (alloc.collections.btree.map.entry.Entry K V A →
+    alloc.collections.btree.map.BTreeMap K V A))
 
 /-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 344:4-344:37

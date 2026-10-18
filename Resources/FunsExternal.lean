@@ -22,6 +22,17 @@ noncomputable instance : DecidableEq resources.Alloc := Classical.decEq _
 macro "toStr" value:str : term =>
   `(Aeneas.Std.toStr $value (by simp only [Aeneas.Std.U32.max_eq]; decide +kernel))
 
+/-- A false optimizer assumption is undefined behavior, represented as failure. -/
+@[rust_fun "core::intrinsics::assume"]
+def core.intrinsics.assume (condition : Bool) : Result Unit :=
+  if condition then ok () else fail .undef
+
+/-- Rust's logical variant discriminants, independent of storage layout. -/
+instance {T : Type} : Discriminant (Option T) Isize where
+  read_discriminant
+    | none => 0#isize
+    | some _ => 1#isize
+
 /-- Direct formatting is unsupported. String conversion below copies UTF-8
     contents without using the opaque formatter model. -/
 @[rust_fun "core::fmt::{core::fmt::Display<str>}::fmt"]
@@ -59,6 +70,13 @@ def core.result.Result.ok {T E : Type} (self : core.result.Result T E) : Result 
   match self with
   | .Ok value => Std.Result.ok (some value)
   | .Err _ => Std.Result.ok none
+
+@[rust_fun "core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch"]
+def core.option.Option.Insts.CoreOpsTry_traitTry.branch {T : Type} (self : Option T) :
+    Result (core.ops.control_flow.ControlFlow (Option Never) T) :=
+  match self with
+  | some value => ok (.Continue value)
+  | none => ok (.Break none)
 
 /-- Cloning preserves string contents; storage allocation is abstracted away. -/
 @[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]
@@ -483,6 +501,62 @@ opaque base.sys.unix.system_info.pagesize : Result Usize := ok 4096#usize
   "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new"]
 def alloc.collections.btree.map.BTreeMapKVGlobal.new (K V : Type) :
     Result (alloc.collections.btree.map.BTreeMap K V Global) := ok ∅
+
+/-- Locate the stored representative using Rust's comparator. Tree shape and comparison
+    order are abstracted away; supported comparators are total and obey Rust's Ord contract. -/
+def alloc.collections.btree.map.findEntryKey {K : Type} (ord : core.cmp.Ord K)
+    (key : K) : List K → Result (Option K)
+  | [] => ok none
+  | head :: tail => do
+    let ordering ← ord.cmp key head
+    if ordering = .eq then ok (some head) else findEntryKey ord key tail
+
+/-- Write back only the value at the key captured by `entry`. Entry keys and variants
+    cannot change through the modeled value borrows. A vacant entry dropped before
+    insertion leaves the map unchanged. -/
+noncomputable def alloc.collections.btree.map.entryBack {K V A : Type}
+    (self : alloc.collections.btree.map.BTreeMap K V A) (key : K)
+    (entry : resources.alloc.collections.btree.map.entry.Entry K V A) :
+    alloc.collections.btree.map.BTreeMap K V A := by
+  classical
+  exact match entry with
+  | .Occupied e => Finmap.insert key e.value self
+  | .Vacant e => match e.value with
+    | none => self
+    | some value => Finmap.insert key value self
+
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::entry"]
+noncomputable def alloc.collections.btree.map.BTreeMap.entry {K V A : Type}
+    (_alloc : core.alloc.AllocatorClone A) (ord : core.cmp.Ord K)
+    (self : alloc.collections.btree.map.BTreeMap K V A) (key : K) :
+    Result (resources.alloc.collections.btree.map.entry.Entry K V A ×
+      (resources.alloc.collections.btree.map.entry.Entry K V A →
+        alloc.collections.btree.map.BTreeMap K V A)) := by
+  classical
+  exact do
+    let found ← alloc.collections.btree.map.findEntryKey ord key self.keys.toList
+    let storedKey := found.getD key
+    let entry := match Finmap.lookup storedKey self with
+      | none => .Vacant ⟨storedKey, none⟩
+      | some value => .Occupied ⟨storedKey, value⟩
+    ok (entry, alloc.collections.btree.map.entryBack self storedKey)
+
+@[rust_fun
+  "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::OccupiedEntry<'a, @K, @V, @A>}::into_mut"]
+def alloc.collections.btree.map.entry.OccupiedEntry.into_mut {K V A : Type}
+    (_ord : core.cmp.Ord K) (_alloc : core.alloc.AllocatorClone A)
+    (self : alloc.collections.btree.map.entry.OccupiedEntry K V A) :
+    Result (V × (V → alloc.collections.btree.map.entry.OccupiedEntry K V A)) :=
+  ok (self.value, fun value => { self with value := value })
+
+@[rust_fun
+  "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::VacantEntry<'a, @K, @V, @A>}::insert"]
+def alloc.collections.btree.map.entry.VacantEntry.insert {K V A : Type}
+    (_ord : core.cmp.Ord K) (_alloc : core.alloc.AllocatorClone A)
+    (self : alloc.collections.btree.map.entry.VacantEntry K V A) (value : V) :
+    Result (V × (V → alloc.collections.btree.map.entry.VacantEntry K V A)) :=
+  ok (value, fun value => { self with value := some value })
 
 /-- Rust's default lazy map adapter. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]

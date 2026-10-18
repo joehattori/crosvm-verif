@@ -11,7 +11,8 @@
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
-  exhaustion, and IRQ release, preserving IRQ/GPE bounds and pool containment.
+  exhaustion, IRQ release, and PCI bus allocator lookup and creation with mutable
+  borrow write-back, preserving component invariants.
 
 The internal free-region insertion helper is specified for intermediate states;
 the full accounting invariant is restored by the enclosing release operation.
@@ -31,7 +32,8 @@ abstracted away. Generated `_Template.lean` files are not imported.
 Hash-map iteration uses an arbitrary enumeration of the finite-map entries;
 the overlap specification accepts any conflicting key.
 The page-size result is opaque and supplied as a theorem hypothesis; the host OS
-query is not verified. The B-tree map model currently supports only construction.
+query is not verified. The B-tree map model supports construction and entry value
+borrows with lawful, total comparators; ordered traversal is not modeled.
 String conversion models UTF-8 `str` contents; general formatting is unsupported.
 
 # Extraction and checks

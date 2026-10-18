@@ -61,6 +61,24 @@ axiom std.collections.hash.map.Iter (K : Type) (V : Type) : Type
 @[rust_type "std::hash::random::DefaultHasher"]
 axiom std.hash.random.DefaultHasher : Type
 
+/-- [alloc::collections::btree::map::entry::OccupiedEntry]
+    Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 75:0-80:1
+    Name pattern: [alloc::collections::btree::map::entry::OccupiedEntry]
+    Visibility: public -/
+@[rust_type "alloc::collections::btree::map::entry::OccupiedEntry"
+  (mutRegions := #[0])]
+axiom alloc.collections.btree.map.entry.OccupiedEntry (K : Type) (V : Type) (A
+  : Type) : Type
+
+/-- [alloc::collections::btree::map::entry::VacantEntry]
+    Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 47:0-52:1
+    Name pattern: [alloc::collections::btree::map::entry::VacantEntry]
+    Visibility: public -/
+@[rust_type "alloc::collections::btree::map::entry::VacantEntry"
+  (mutRegions := #[0])]
+axiom alloc.collections.btree.map.entry.VacantEntry (K : Type) (V : Type) (A :
+  Type) : Type
+
 /-- [alloc::collections::btree::map::BTreeMap]
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 189:0-193:1
     Name pattern: [alloc::collections::btree::map::BTreeMap]
