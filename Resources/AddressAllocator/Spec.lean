@@ -9,13 +9,147 @@ open resources.address_range resources.address_allocator
 
 namespace resources.address_allocator.AddressAllocator
 
-/-- Structural invariant for AddressAllocator: valid free regions and constructor-valid
-    alignments. Accounting between pools, free regions, and allocations is separate. -/
-structure WellFormed (a : AddressAllocator) : Prop where
+/-- Addresses represented by a list of ranges. -/
+def Covers (rs : List AddressRange) (addr : Nat) : Prop :=
+  ∃ r ∈ rs, r.containsModel addr
+
+/-- Addresses recorded in the allocation map. -/
+def Allocated (a : AddressAllocator) (addr : Nat) : Prop :=
+  ∃ allocation range tag, Finmap.lookup allocation a.allocs = some (range, tag) ∧
+    range.containsModel addr
+
+/-- Free-region and alignment properties, also valid during internal updates. -/
+structure StructuralInvariant (a : AddressAllocator) : Prop where
   validRegions : ValidRegions a.regions
   minAlign : a.min_align.val.isPowerOfTwo
   preferredAlign : a.preferred_align.val.isPowerOfTwo
   alignOrder : a.min_align.val ≤ a.preferred_align.val
+
+/-- The recorded pools are partitioned into free addresses and disjoint allocations. -/
+structure WellFormed (a : AddressAllocator) : Prop extends StructuralInvariant a where
+  accounting : ∀ addr, Covers a.pools.val addr ↔ Covers a.regions addr ∨ Allocated a addr
+  freeDisjoint : ∀ allocation range tag, Finmap.lookup allocation a.allocs = some (range, tag) →
+    ∀ addr, Covers a.regions addr → ¬range.containsModel addr
+  allocsDisjoint : ∀ key range tag, Finmap.lookup key a.allocs = some (range, tag) →
+    ∀ key' range' tag', Finmap.lookup key' a.allocs = some (range', tag') → key ≠ key' →
+      ∀ addr, range.containsModel addr → ¬range'.containsModel addr
+
+theorem WellFormed.free_mem_pools {a : AddressAllocator} (h : WellFormed a)
+    {addr : Nat} (ha : Covers a.regions addr) : Covers a.pools.val addr :=
+  (h.accounting addr).mpr (Or.inl ha)
+
+theorem WellFormed.allocated_mem_pools {a : AddressAllocator} (h : WellFormed a)
+    {addr : Nat} (ha : Allocated a addr) : Covers a.pools.val addr :=
+  (h.accounting addr).mpr (Or.inr ha)
+
+private theorem wellFormed_empty_allocs {a : AddressAllocator}
+    (hs : StructuralInvariant a) (he : a.allocs = ∅)
+    (hc : ∀ addr, Covers a.pools.val addr ↔ Covers a.regions addr) : WellFormed a := by
+  refine ⟨hs, ?_, ?_, ?_⟩
+  · simpa [Allocated, he] using hc
+  · simp [he]
+  · simp [he]
+
+private theorem allocated_insert_iff {self a : AddressAllocator} {allocation : resources.Alloc}
+    {range : AddressRange} {tag : String}
+    (hfresh : allocation ∉ self.allocs)
+    (hm : a.allocs = Finmap.insert allocation (range, tag) self.allocs) (addr : Nat) :
+    Allocated a addr ↔ range.containsModel addr ∨ Allocated self addr := by
+  have hnone := Finmap.lookup_eq_none.mpr hfresh
+  constructor
+  · rintro ⟨key, r, label, hlookup, ha⟩
+    rw [hm] at hlookup
+    by_cases he : key = allocation
+    · subst key
+      simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup
+      rcases hlookup with ⟨rfl, rfl⟩
+      exact Or.inl ha
+    · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+      exact Or.inr ⟨key, r, label, hlookup, ha⟩
+  · rintro (ha | ⟨key, r, label, hlookup, ha⟩)
+    · exact ⟨allocation, range, tag, by simp [hm], ha⟩
+    · have he : key ≠ allocation := by rintro rfl; simp_all
+      exact ⟨key, r, label, by simpa [hm, Finmap.lookup_insert_of_ne _ he] using hlookup, ha⟩
+
+/-- Moving a free range into a fresh allocation preserves the full partition. -/
+private theorem WellFormed.allocate {self a : AddressAllocator} {allocation : resources.Alloc}
+    {range : AddressRange} {tag : String} (h : WellFormed self) (hs : StructuralInvariant a)
+    (hfresh : allocation ∉ self.allocs) (hp : a.pools = self.pools)
+    (hm : a.allocs = Finmap.insert allocation (range, tag) self.allocs)
+    (havailable : ∀ addr, range.containsModel addr → Covers self.regions addr)
+    (hc : ∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∧ ¬range.containsModel addr) :
+    WellFormed a := by
+  refine ⟨hs, ?_, ?_, ?_⟩
+  · intro addr
+    rw [hp, h.accounting, hc, allocated_insert_iff hfresh hm]
+    have := havailable addr
+    tauto
+  · intro key r label hlookup addr hfree ha
+    rw [hm] at hlookup
+    by_cases he : key = allocation
+    · subst key
+      simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup
+      rcases hlookup with ⟨rfl, rfl⟩
+      exact ((hc addr).mp hfree).2 ha
+    · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+      exact h.freeDisjoint key r label hlookup addr ((hc addr).mp hfree).1 ha
+  · intro key r label hlookup key' r' label' hlookup' hne addr ha ha'
+    rw [hm] at hlookup hlookup'
+    by_cases he : key = allocation
+    · subst key
+      simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup
+      rcases hlookup with ⟨rfl, rfl⟩
+      rw [Finmap.lookup_insert_of_ne _ hne.symm] at hlookup'
+      exact h.freeDisjoint key' r' label' hlookup' addr (havailable addr ha) ha'
+    · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+      by_cases he' : key' = allocation
+      · subst key'
+        simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup'
+        rcases hlookup' with ⟨rfl, rfl⟩
+        exact h.freeDisjoint key r label hlookup addr (havailable addr ha') ha
+      · rw [Finmap.lookup_insert_of_ne _ he'] at hlookup'
+        exact h.allocsDisjoint key r label hlookup key' r' label' hlookup' hne addr ha ha'
+
+private theorem lookup_of_erase {self a : AddressAllocator} {allocation key : resources.Alloc}
+    {range : AddressRange} {tag : String} (hm : a.allocs = Finmap.erase allocation self.allocs)
+    (hl : Finmap.lookup key a.allocs = some (range, tag)) :
+    key ≠ allocation ∧ Finmap.lookup key self.allocs = some (range, tag) := by
+  rw [hm] at hl
+  by_cases he : key = allocation
+  · subst key; simp at hl
+  · exact ⟨he, by simpa only [Finmap.lookup_erase_ne he] using hl⟩
+
+/-- Returning a recorded range to free space preserves the full partition. -/
+private theorem WellFormed.release {self a : AddressAllocator} {allocation : resources.Alloc}
+    {range : AddressRange} {tag : String} (h : WellFormed self) (hs : StructuralInvariant a)
+    (hl : Finmap.lookup allocation self.allocs = some (range, tag))
+    (hp : a.pools = self.pools) (hm : a.allocs = Finmap.erase allocation self.allocs)
+    (hc : ∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ range.containsModel addr) :
+    WellFormed a := by
+  refine ⟨hs, ?_, ?_, ?_⟩
+  · intro addr
+    rw [hp, h.accounting, hc]
+    constructor
+    · rintro (hf | ⟨key, r, label, hlookup, ha⟩)
+      · exact Or.inl (Or.inl hf)
+      · by_cases he : key = allocation
+        · subst key
+          rw [hl] at hlookup
+          cases hlookup
+          exact Or.inl (Or.inr ha)
+        · exact Or.inr ⟨key, r, label, by simpa [hm, Finmap.lookup_erase_ne he] using hlookup, ha⟩
+    · rintro ((hf | ha) | ⟨key, r, label, hlookup, ha⟩)
+      · exact Or.inl hf
+      · exact Or.inr ⟨allocation, range, tag, hl, ha⟩
+      · exact Or.inr ⟨key, r, label, (lookup_of_erase hm hlookup).2, ha⟩
+  · intro key r label hlookup addr hfree ha
+    obtain ⟨hne, hlookup⟩ := lookup_of_erase hm hlookup
+    rcases (hc addr).mp hfree with hf | hr
+    · exact h.freeDisjoint key r label hlookup addr hf ha
+    · exact h.allocsDisjoint allocation range tag hl key r label hlookup hne.symm addr hr ha
+  · intro key r label hlookup key' r' label' hlookup' hne addr ha ha'
+    exact h.allocsDisjoint key r label (lookup_of_erase hm hlookup).2
+      key' r' label' (lookup_of_erase hm hlookup').2 hne addr ha ha'
 
 /-! ### Construction and slot allocation -/
 
@@ -45,15 +179,17 @@ theorem initialState.validRegions {pool : AddressRange} {a : AddressAllocator}
   rw [h.2.2.1]
   by_cases hn : pool.isEmptyModel <;> simp [initialPools, hn]
 
-/-- A valid initial alignment configuration establishes structural well-formedness. -/
+/-- A valid initial alignment configuration establishes the full invariant. -/
 theorem initialState.wellFormed {pool : AddressRange} {a : AddressAllocator}
     {min_align preferred_align : U64} (h : initialState pool a min_align preferred_align)
     (hmin : min_align.val.isPowerOfTwo) (hpref : preferred_align.val.isPowerOfTwo)
     (horder : min_align.val ≤ preferred_align.val) : WellFormed a := by
   have hv := h.validRegions
-  rcases h with ⟨_, _, _, hminimum, hpreferred⟩
-  exact ⟨hv, by simpa [hminimum] using hmin, by simpa [hpreferred] using hpref,
-    by simpa [hminimum, hpreferred] using horder⟩
+  rcases h with ⟨hpools, hallocs, hmem, hminimum, hpreferred⟩
+  apply wellFormed_empty_allocs
+    ⟨hv, by simpa [hminimum] using hmin, by simpa [hpreferred] using hpref,
+      by simpa [hminimum, hpreferred] using horder⟩ hallocs
+  simp only [hpools, hmem, implies_true]
 
 /-- Distinct nonempty input pools do not overlap; order and duplicates are unrestricted. -/
 def DisjointPools (pools : List AddressRange) : Prop :=
@@ -230,8 +366,12 @@ theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
             as ⟨regions, hvalid, hmem⟩
           simp only [Slice.from_val] at hmem
           simp only [hmin, hpref, Nat.le_of_not_gt horder, and_self, ↓reduceIte]
-          refine ⟨_, rfl, ?_, ⟨hvalid, hmin, hpref, Nat.le_of_not_gt horder⟩⟩
-          simp [initialStateFromList, hmem]
+          refine ⟨_, rfl, ?_, ?_⟩
+          · simp [initialStateFromList, hmem]
+          · apply wellFormed_empty_allocs ⟨hvalid, hmin, hpref, Nat.le_of_not_gt horder⟩ rfl
+            intro addr
+            simp only [Covers, alloc.vec.Vec.from_val]
+            simp_rw [hmem]
       · simp_all
   · simp_all
 
@@ -288,10 +428,6 @@ theorem new_spec (pool : AddressRange) (min_align preferred_align : Option U64) 
     obtain ⟨a, rfl, hs, hw⟩ := hresult
     exact ⟨a, rfl, initialStateFromList_singleton
       (by simpa [alloc.vec.Vec.val] using hs) hw.validRegions, hw⟩
-
-/-- Addresses represented by a list of ranges. -/
-def Covers (rs : List AddressRange) (addr : Nat) : Prop :=
-  ∃ r ∈ rs, r.containsModel addr
 
 private theorem covers_split (rs rest : List AddressRange) (slot range before after : AddressRange)
     (hv : ValidRegions rs) (hslot : slot ∈ rs)
@@ -864,15 +1000,20 @@ def AlignedAllocationOutcome (self : AddressAllocator) (size : U64)
     | .Err error => error = .OutOfSpace ∧ a = self ∧
         ¬∃ start, Placement self.regions size.val alignment start
 
-/-- Successful allocation preserves the structural invariant. -/
+/-- A successful allocation under a fresh key preserves the full invariant. -/
 theorem AlignedAllocation.wellFormed {self a : AddressAllocator} {size start : U64}
     {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
     (h : AlignedAllocation self size allocation tag alignment reverse start a)
-    (hwf : WellFormed self) : WellFormed a := by
-  obtain ⟨range, _, _, _, hmin, hpref, _, hregions, _⟩ := h.2
-  exact ⟨hregions, by simpa [hmin] using hwf.minAlign,
+    (hwf : WellFormed self) (hfresh : allocation ∉ self.allocs) : WellFormed a := by
+  obtain ⟨slot, hslot, hfit⟩ := h.1.1
+  obtain ⟨range, hstart, hsize, hpools, hmin, hpref, hallocs, hregions, hcover⟩ := h.2
+  apply hwf.allocate ⟨hregions, by simpa [hmin] using hwf.minAlign,
     by simpa [hpref] using hwf.preferredAlign,
-    by simpa [hmin, hpref] using hwf.alignOrder⟩
+    by simpa [hmin, hpref] using hwf.alignOrder⟩ hfresh hpools hallocs ?_ hcover
+  intro addr ha
+  refine ⟨slot, hslot, ?_⟩
+  simp only [AddressRange.containsModel, hstart] at ha ⊢
+  omega
 
 /-- Allocation preserves well-formedness on both success and expected errors. -/
 theorem AlignedAllocationOutcome.wellFormed {self a : AddressAllocator} {size : U64}
@@ -883,12 +1024,13 @@ theorem AlignedAllocationOutcome.wellFormed {self a : AddressAllocator} {size : 
   unfold AlignedAllocationOutcome at h
   split at h
   · simpa [h.2] using hwf
-  · split at h
+  · rename_i hfresh
+    split at h
     · simpa [h.2] using hwf
     · split at h
       · simpa [h.2] using hwf
       · cases result with
-        | Ok start => exact h.wellFormed hwf
+        | Ok start => exact h.wellFormed hwf hfresh
         | Err error => simpa [h.2.1] using hwf
 
 /-- The generated continuation after the iterator search. -/
@@ -993,7 +1135,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
           then self.preferred_align.val else self.min_align.val
         AlignedAllocationOutcome self size allocation tag alignment reverse result a ⦄ := by
   classical
-  rcases hwf with ⟨hv, hmin, hpref, horder⟩
+  rcases hwf.toStructuralInvariant with ⟨hv, hmin, hpref, horder⟩
   have hmax := max_eq_right horder
   step with internal_allocate_with_align_spec self size allocation tag self.preferred_align reverse hv
     as ⟨result, a, hfirst⟩
@@ -1218,10 +1360,11 @@ theorem allocate_at_spec (self : AddressAllocator) (range : AddressRange)
         subst result
         simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok]
         simp only [WP.spec_ok, AllocationAtOutcome, hfresh, hn, ↓reduceIte]
-        refine ⟨⟨hvalid, ?_, ?_, ?_⟩, ⟨slot, hmem⟩, hpools, hmin, hpref, hallocs, hcover⟩
-        · simpa [hmin] using hwf.minAlign
-        · simpa [hpref] using hwf.preferredAlign
-        · simpa [hmin, hpref] using hwf.alignOrder
+        refine ⟨?_, ⟨slot, hmem⟩, hpools, hmin, hpref, hallocs, hcover⟩
+        exact hwf.allocate ⟨hvalid, by simpa [hmin] using hwf.minAlign,
+          by simpa [hpref] using hwf.preferredAlign,
+          by simpa [hmin, hpref] using hwf.alignOrder⟩ hfresh hpools hallocs
+          (fun addr ha => ⟨slot, hmem.1, hmem.2 addr ha⟩) hcover
 
 /-! ### Returning a range to the free regions -/
 
@@ -1326,10 +1469,10 @@ private def MergeSide (rs : List AddressRange) (slot : AddressRange) (lower : Bo
     (if lower then r.end.val + 1 = slot.start.val else slot.end.val + 1 = r.start.val)
 
 private theorem mergeSlot_spec (self : AddressAllocator) (slot : AddressRange)
-    (left right : Option AddressRange) (hwf : WellFormed self) (hn : ¬slot.isEmptyModel)
+    (left right : Option AddressRange) (hwf : StructuralInvariant self) (hn : ¬slot.isEmptyModel)
     (hl : MergeSide self.regions slot true left) (hr : MergeSide self.regions slot false right)
     (hd : ∀ r ∈ self.regions, DisjointRanges slot r) :
-    mergeSlot self slot left right ⦃ result a => result = .Ok () ∧ WellFormed a ∧
+    mergeSlot self slot left right ⦃ result a => result = .Ok () ∧ StructuralInvariant a ∧
       a.pools = self.pools ∧ a.allocs = self.allocs ∧ a.min_align = self.min_align ∧
       a.preferred_align = self.preferred_align ∧
       (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ slot.containsModel addr) ∧
@@ -1597,8 +1740,8 @@ def InsertAtOutcome (self : AddressAllocator) (slot : AddressRange)
 /-- Total correctness of free-region insertion, including both endpoint extremes.
     The free-region and alignment invariant is preserved on success and error. -/
 @[step]
-theorem insert_at_spec (self : AddressAllocator) (slot : AddressRange) (hwf : WellFormed self) :
-    insert_at self slot ⦃ result a => WellFormed a ∧ InsertAtOutcome self slot result a ⦄ := by
+theorem insert_at_spec (self : AddressAllocator) (slot : AddressRange) (hwf : StructuralInvariant self) :
+    insert_at self slot ⦃ result a => StructuralInvariant a ∧ InsertAtOutcome self slot result a ⦄ := by
   rw [insert_at_eq]
   step with AddressRange.is_empty_spec slot as ⟨empty, hempty⟩
   split
@@ -1655,8 +1798,8 @@ def ReleaseOutcome (self : AddressAllocator) (allocation : resources.Alloc)
           (∀ addr, Covers a.regions addr ↔ Covers self.regions addr ∨ range.containsModel addr) ∧
           CoalescedInsertion self.regions range a.regions
 
-/-- Total correctness of release, including the state left by an insertion error.
-    Structural well-formedness alone does not relate allocations to free space. -/
+/-- Release preserves the full partition. Recorded nonempty allocations cannot
+    overlap free space, so their insertion succeeds. Empty records contain no addresses. -/
 @[step]
 theorem release_spec (self : AddressAllocator) (allocation : resources.Alloc)
     (hwf : WellFormed self) :
@@ -1672,7 +1815,7 @@ theorem release_spec (self : AddressAllocator) (allocation : resources.Alloc)
     rcases entry with ⟨range, tag⟩
     simp only [hlookup] at hremove
     rcases hremove with ⟨rfl, rfl⟩
-    have hwf' : WellFormed { self with allocs := Finmap.erase allocation self.allocs } :=
+    have hwf' : StructuralInvariant { self with allocs := Finmap.erase allocation self.allocs } :=
       ⟨hwf.validRegions, hwf.minAlign, hwf.preferredAlign, hwf.alignOrder⟩
     step with insert_at_spec { self with allocs := Finmap.erase allocation self.allocs } range hwf'
       as ⟨inserted, a, hwfa, houtcome⟩
@@ -1684,10 +1827,16 @@ theorem release_spec (self : AddressAllocator) (allocation : resources.Alloc)
       by_cases hn : range.isEmptyModel
       · simp only [InsertAtOutcome, hn, ↓reduceIte] at houtcome
         rcases houtcome with ⟨he, rfl⟩
+        have hwell := hwf.release hwfa hlookup rfl rfl (by
+          intro addr
+          have hempty : ¬range.containsModel addr := by
+            simp only [AddressRange.isEmptyModel, AddressRange.containsModel] at *
+            omega
+          simp [hempty])
         simp_all [ReleaseOutcome]
       · simp only [InsertAtOutcome, hn, ↓reduceIte] at houtcome
-        rcases houtcome with ⟨he, rfl, hoverlap⟩
-        simp_all [ReleaseOutcome]
+        rcases houtcome with ⟨he, rfl, addr, hfree, hrange⟩
+        exact False.elim (hwf.freeDisjoint allocation range tag hlookup addr hfree hrange)
     | Ok u =>
       cases u
       have hn : ¬range.isEmptyModel := by
@@ -1697,7 +1846,8 @@ theorem release_spec (self : AddressAllocator) (allocation : resources.Alloc)
       rcases houtcome with ⟨hdisjoint, hpools, hallocs, hmin, hpref, hcover, hcoalesce⟩
       simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, WP.spec_ok,
         ReleaseOutcome, hlookup, hn, ↓reduceIte]
-      exact ⟨hwfa, hpools, hmin, hpref, hallocs, rfl, hdisjoint, hcover, hcoalesce⟩
+      exact ⟨hwf.release hwfa hlookup hpools hallocs hcover,
+        hpools, hmin, hpref, hallocs, rfl, hdisjoint, hcover, hcoalesce⟩
 
 /-- A containing release either finds no allocation and leaves the allocator
     unchanged, or releases one whole allocation containing the address. If

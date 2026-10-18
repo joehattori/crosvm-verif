@@ -6,13 +6,15 @@
   slot allocation, free-region insertion with neighbor coalescing, fixed-address
   allocation, and forward/reverse allocation with explicit alignment or
   preferred-alignment fallback, release by key or containing address, and PCI
-  offset lookup, subject to the stated preconditions.
+  offset lookup, subject to the stated preconditions. Construction and public
+  allocation/release operations preserve pool accounting and disjointness.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
-  allocation ID generation, IRQ allocation and reservation until counter exhaustion,
-  and IRQ release.
+  allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
+  exhaustion, and IRQ release, preserving IRQ/GPE bounds and pool containment.
 
-Full accounting between pools, free regions, and allocations remains unverified.
+The internal free-region insertion helper is specified for intermediate states;
+the full accounting invariant is restored by the enclosing release operation.
 
 # Assumptions and limitations
 

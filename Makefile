@@ -36,6 +36,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::system_allocator::SystemAllocator::allocate_irq' \
 		--start-from 'crate::system_allocator::SystemAllocator::release_irq' \
 		--start-from 'crate::system_allocator::SystemAllocator::reserve_irq' \
+		--start-from 'crate::system_allocator::SystemAllocator::allocate_gpe' \
 		--opaque 'base::sys::unix::system_info::pagesize' \
 		--exclude 'core::slice::iter::{impl core::iter::traits::iterator::Iterator for _}::find' \
 		--exclude 'serde_core' \

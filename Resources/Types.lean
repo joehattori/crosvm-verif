@@ -216,4 +216,9 @@ def system_allocator.SystemAllocator.new.closure :=
 @[reducible]
 def system_allocator.SystemAllocator.allocate_irq.closure := Unit
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+@[reducible]
+def system_allocator.SystemAllocator.allocate_gpe.closure := Unit
+
 end resources

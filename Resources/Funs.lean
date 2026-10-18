@@ -2590,4 +2590,45 @@ def system_allocator.SystemAllocator.reserve_irq
   let b ← core.result.Result.is_ok r
   ok (b, { self1 with irq_allocator := aa })
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+def
+  system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
+  (c : system_allocator.SystemAllocator.allocate_gpe.closure)
+  (tupled_args : Std.U64) :
+  Result Std.U32
+  := do
+  ok (UScalar.cast .U32 tupled_args)
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.allocate_gpe.closure Std.U64 Std.U32 := {
+  call_once :=
+    system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe]:
+    Source: 'resources/src/system_allocator.rs', lines 266:4-272:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.allocate_gpe
+  (self : system_allocator.SystemAllocator) :
+  Result ((Option Std.U32) × system_allocator.SystemAllocator)
+  := do
+  let (id, self1) ← system_allocator.SystemAllocator.get_anon_alloc self
+  let s ←
+    alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr
+      "gpe-auto")
+  let (r, aa) ←
+    address_allocator.AddressAllocator.allocate self1.gpe_allocator 1#u64 id s
+  let r1 ←
+    core.result.Result.map
+      system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
+      r ()
+  let o ← core.result.Result.ok r1
+  ok (o, { self1 with gpe_allocator := aa })
+
 end resources
