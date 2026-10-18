@@ -8,7 +8,8 @@
   preferred-alignment fallback, release by key or containing address, and PCI
   offset lookup, subject to the stated preconditions.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
-  resource pools, component well-formedness, and configuration errors.
+  resource pools, component well-formedness, and configuration errors; anonymous
+  allocation ID generation until counter exhaustion.
 
 Full accounting between pools, free regions, and allocations remains unverified.
 

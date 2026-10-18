@@ -17,7 +17,7 @@ duplicating them here.
 | [Resources/AddressRange/Spec.lean](Resources/AddressRange/Spec.lean) | Mathematical predicates and proofs for address ranges. |
 | [Resources/AddressAllocator/Collections.lean](Resources/AddressAllocator/Collections.lean) | Free-region invariant, key equality, and collection operation proofs. |
 | [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including alignment arithmetic and ordered search. |
-| [Resources/SystemAllocator/Spec.lean](Resources/SystemAllocator/Spec.lean) | System allocator construction proofs. |
+| [Resources/SystemAllocator/Spec.lean](Resources/SystemAllocator/Spec.lean) | System allocator method proofs. |
 | [Resources/README.md](Resources/README.md) | Verification outline, model assumptions, and extraction prerequisites. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
 | [Resources.lean](Resources.lean) | Library entry point checked by the default build. |

@@ -1,6 +1,7 @@
 module
 public import Resources.AddressAllocator.Spec
 import all Aeneas.Std.VecIter
+import all Aeneas.Std.Scalar.Ops.Add
 @[expose] public section
 open Aeneas Aeneas.Std Result
 set_option maxHeartbeats 1000000
@@ -113,7 +114,7 @@ def OptionalInitial (pool : Option AddressRange) (alignment : U64)
     (space : Option AddressAllocator) : Prop :=
   match pool, space with
   | none, none => True
-  | some r, some a => AddressAllocator.initialState r a alignment alignment ∧ AddressAllocator.WellFormed a
+  | some r, some a => AddressAllocator.initialState r a alignment ∧ AddressAllocator.WellFormed a
   | _, _ => False
 
 /-- All component allocators satisfy their structural invariant. -/
@@ -130,8 +131,8 @@ def InitialState (config : SystemAllocatorConfig) (ranges : List AddressRange)
     (a : SystemAllocator) : Prop :=
   OptionalInitial config.io 0x400#u64 a.io_address_space ∧
   (∃ lowSpace highSpace, a.mmio_address_spaces.val = [lowSpace, highSpace] ∧
-    AddressAllocator.initialStateFromList (mmioPools ranges config.low_mmio) lowSpace pageSize pageSize ∧
-    AddressAllocator.initialStateFromList (mmioPools ranges high) highSpace pageSize pageSize) ∧
+    AddressAllocator.initialStateFromList (mmioPools ranges config.low_mmio) lowSpace pageSize ∧
+    AddressAllocator.initialStateFromList (mmioPools ranges high) highSpace pageSize) ∧
   OptionalInitial config.platform_mmio pageSize a.mmio_platform_address_spaces ∧
   a.reserved_region = reserved ∧ a.pci_allocator = ∅ ∧
   AddressAllocator.initialState ⟨UScalar.cast .U64 config.first_irq, 1023#u64⟩ a.irq_allocator 1#u64 ∧
@@ -410,5 +411,33 @@ theorem new_spec (config : SystemAllocatorConfig) (reserve : Option U64)
       simp [core.result.Result.Insts.CoreOpsTry.branch,
         core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
         core.convert.FromSame.from, NewOutcome, newError, Nat.lt_of_not_ge hlen]
+
+/-! ### Anonymous allocation identifiers -/
+
+/-- Return the next anonymous ID and change only the counter, provided it has not
+    reached its maximum value. -/
+@[step]
+theorem get_anon_alloc_spec (self : SystemAllocator)
+    (hnext : self.next_anon_id.val < Usize.max) :
+    get_anon_alloc self ⦃ allocation a =>
+      allocation = .Anon a.next_anon_id ∧
+      a = { self with next_anon_id :=
+        Usize.ofNatCore (self.next_anon_id.val + 1) (by scalar_tac) } ⦄ := by
+  unfold get_anon_alloc
+  step as ⟨next, hid⟩
+  congr 1
+  apply UScalar.eq_of_val_eq
+  simpa using hid
+
+/-- An exhausted counter causes arithmetic failure in the translated function. -/
+theorem get_anon_alloc_overflow (self : SystemAllocator)
+    (hmax : self.next_anon_id.val = Usize.max) :
+    get_anon_alloc self = fail .integerOverflow := by
+  unfold get_anon_alloc
+  change (do
+    let next ← UScalar.tryMk .Usize (self.next_anon_id.val + 1)
+    ok (resources.Alloc.Anon next, { self with next_anon_id := next })) = _
+  simp [UScalar.tryMk, UScalar.tryMkOpt,
+    hmax, Usize.max, Usize.numBits, Result.ofOption]
 
 end resources.system_allocator.SystemAllocator

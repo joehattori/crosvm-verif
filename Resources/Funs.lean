@@ -2501,4 +2501,14 @@ def system_allocator.SystemAllocator.new
       core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
         system_allocator.SystemAllocator (core.convert.FromSame Error) residual
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::get_anon_alloc]:
+    Source: 'resources/src/system_allocator.rs', lines 455:4-458:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.get_anon_alloc
+  (self : system_allocator.SystemAllocator) :
+  Result (Alloc × system_allocator.SystemAllocator)
+  := do
+  let i ← self.next_anon_id + 1#usize
+  ok (Alloc.Anon i, { self with next_anon_id := i })
+
 end resources

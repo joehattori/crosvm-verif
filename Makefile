@@ -32,6 +32,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_allocator::AddressAllocator::release_containing' \
 		--start-from 'crate::address_allocator::AddressAllocator::address_from_pci_offset' \
 		--start-from 'crate::system_allocator::SystemAllocator::new' \
+		--start-from 'crate::system_allocator::SystemAllocator::get_anon_alloc' \
 		--opaque 'base::sys::unix::system_info::pagesize' \
 		--exclude 'core::slice::iter::{impl core::iter::traits::iterator::Iterator for _}::find' \
 		--exclude 'serde_core' \
