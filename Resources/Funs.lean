@@ -2560,4 +2560,16 @@ def system_allocator.SystemAllocator.allocate_irq
   let o ← core.result.Result.ok r1
   ok (o, { self1 with irq_allocator := aa })
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::release_irq]:
+    Source: 'resources/src/system_allocator.rs', lines 246:4-248:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.release_irq
+  (self : system_allocator.SystemAllocator) (irq : Std.U32) :
+  Result system_allocator.SystemAllocator
+  := do
+  let i ← core.convert.IntoFrom.into core.convert.FromU64U32 irq
+  let (_, aa) ←
+    address_allocator.AddressAllocator.release_containing self.irq_allocator i
+  ok { self with irq_allocator := aa }
+
 end resources

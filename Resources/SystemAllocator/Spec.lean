@@ -119,10 +119,12 @@ def OptionalInitial (pool : Option AddressRange) (alignment : U64)
   | some r, some a => AddressAllocator.initialState r a alignment ∧ AddressAllocator.WellFormed a
   | _, _ => False
 
-/-- IRQs use unit alignment and lie within the constructor's IRQ limit. -/
+/-- IRQs use unit alignment; free and allocated IRQs lie within the constructor's limit. -/
 def IrqInvariant (a : AddressAllocator) : Prop :=
   a.min_align = 1#u64 ∧ a.preferred_align = 1#u64 ∧
-  ∀ addr, AddressAllocator.Covers a.regions addr → addr ≤ 1023
+  (∀ addr, AddressAllocator.Covers a.regions addr → addr ≤ 1023) ∧
+  ∀ allocation range tag, Finmap.lookup allocation a.allocs = some (range, tag) →
+    ∀ addr, range.containsModel addr → addr ≤ 1023
 
 /-- Component invariants together with the IRQ alignment and address bounds. -/
 def WellFormed (a : SystemAllocator) : Prop :=
@@ -238,15 +240,16 @@ private theorem completeAllocator_spec (config : SystemAllocatorConfig) (ranges 
     · simpa [Array.make] using And.intro hwl hwh
     · cases h : config.platform_mmio <;> cases platform <;> simp_all [OptionalInitial]
     · simp
-    · refine ⟨hi.2.2.2.1, hi.2.2.2.2, ?_⟩
-      intro addr ⟨r, hr, ha⟩
-      rw [hi.2.2.1] at hr
-      simp only [AddressAllocator.initialPools] at hr
-      split at hr
-      · simp at hr
-      · have hr := List.mem_singleton.mp hr
-        subst r
-        exact ha.2
+    · refine ⟨hi.2.2.2.1, hi.2.2.2.2, ?_, ?_⟩
+      · intro addr ⟨r, hr, ha⟩
+        rw [hi.2.2.1] at hr
+        simp only [AddressAllocator.initialPools] at hr
+        split at hr
+        · simp at hr
+        · have hr := List.mem_singleton.mp hr
+          subst r
+          exact ha.2
+      · simp [hi.2.1]
 
 private theorem afterIo_spec (config : SystemAllocatorConfig) (ranges : Slice AddressRange)
     (pageSize : U64) (high : AddressRange) (reserved : Option AddressRange)
@@ -509,10 +512,21 @@ private theorem irq_allocate_spec (self : AddressAllocator) (allocation : resour
     cases result with
     | Err error => simpa [hout.2.1] using hirq
     | Ok start =>
-      obtain ⟨range, _, _, _, hmin, hpref, _, _, hcover⟩ := hout.2
-      refine ⟨hmin.trans hirq.1, hpref.trans hirq.2.1, ?_⟩
-      intro addr ha
-      exact hirq.2.2 addr ((hcover addr).mp ha).1
+      have hbound := hirq.2.2.1 start.val ((irq_placement_iff _ _).mp hout.1.1)
+      obtain ⟨range, _, hsize, _, hmin, hpref, hallocs, _, hcover⟩ := hout.2
+      refine ⟨hmin.trans hirq.1, hpref.trans hirq.2.1, ?_, ?_⟩
+      · intro addr ha
+        exact hirq.2.2.1 addr ((hcover addr).mp ha).1
+      · intro key r tag hlookup addr ha
+        rw [hallocs] at hlookup
+        by_cases he : key = allocation
+        · subst key
+          simp only [Finmap.lookup_insert, Option.some.injEq, Prod.mk.injEq] at hlookup
+          rcases hlookup with ⟨rfl, rfl⟩
+          change range.end.val + 1 = start.val + 1 at hsize
+          exact le_trans ha.2 (by omega)
+        · rw [Finmap.lookup_insert_of_ne _ he] at hlookup
+          exact hirq.2.2.2 key r tag hlookup addr ha
 
 /-- Allocate the lowest free IRQ, preserving system invariants and advancing the
     anonymous counter even when no IRQ is returned. -/
@@ -548,7 +562,7 @@ theorem allocate_irq_spec (self : SystemAllocator) (hwf : WellFormed self)
       simpa [AddressAllocator.AlignedAllocationOutcome, hk,
         show Nat.isPowerOfTwo 1 from by decide] using hout
     have hbound : start.val ≤ 1023 :=
-      hwf.2.2.2.2.2.2.2.2 start.val ((irq_placement_iff _ _).mp hs.1.1)
+      hwf.2.2.2.2.2.2.2.2.1 start.val ((irq_placement_iff _ _).mp hs.1.1)
     have hcast : (UScalar.cast .U32 start).val = start.val := by
       rw [UScalar.cast_val_eq]
       apply Nat.mod_eq_of_lt
@@ -561,5 +575,64 @@ theorem allocate_irq_spec (self : SystemAllocator) (hwf : WellFormed self)
       _root_.core.result.Result.ok, bind_ok, WP.spec_ok]
     refine ⟨hwfa, rfl, rfl, ?_⟩
     simpa only [hroundtrip] using hout
+
+/-! ### IRQ release -/
+
+/-- Release a containing allocation and discard its result. Only the IRQ allocator
+    may change; the address allocator's outcome describes coalescing and error effects. -/
+def IrqReleaseOutcome (self : SystemAllocator) (irq : U32) (a : SystemAllocator) : Prop :=
+  a = { self with irq_allocator := a.irq_allocator } ∧
+  ∃ result, AddressAllocator.ReleaseContainingOutcome self.irq_allocator
+    (UScalar.cast .U64 irq) result a.irq_allocator
+
+private theorem irq_release_invariant {self a : AddressAllocator} {allocation : resources.Alloc}
+    {result : core.result.Result AddressRange resources.Error} (hirq : IrqInvariant self)
+    (hout : AddressAllocator.ReleaseOutcome self allocation result a) : IrqInvariant a := by
+  cases hlookup : Finmap.lookup allocation self.allocs with
+  | none =>
+    simp only [AddressAllocator.ReleaseOutcome, hlookup] at hout
+    simpa [hout.2] using hirq
+  | some entry =>
+    rcases entry with ⟨range, tag⟩
+    simp only [AddressAllocator.ReleaseOutcome, hlookup] at hout
+    rcases hout with ⟨_, hmin, hpref, hallocs, hrelease⟩
+    refine ⟨hmin.trans hirq.1, hpref.trans hirq.2.1, ?_, ?_⟩
+    · by_cases he : range.isEmptyModel
+      · simp only [he, ↓reduceIte] at hrelease
+        simpa [hrelease.2] using hirq.2.2.1
+      · simp only [he, ↓reduceIte] at hrelease
+        cases result with
+        | Err error => simpa [hrelease.2.1] using hirq.2.2.1
+        | Ok released =>
+          intro addr ha
+          rcases (hrelease.2.2.1 addr).mp ha with hfree | hrange
+          · exact hirq.2.2.1 addr hfree
+          · exact hirq.2.2.2 allocation range tag hlookup addr hrange
+    · intro key r label hfound addr ha
+      rw [hallocs] at hfound
+      by_cases he : key = allocation
+      · subst key
+        simp at hfound
+      · rw [Finmap.lookup_erase_ne he] at hfound
+        exact hirq.2.2.2 key r label hfound addr ha
+
+/-- Release preserves system invariants and changes only the IRQ allocator.
+    A missing allocation is a no-op; any release error is discarded. -/
+@[step]
+theorem release_irq_spec (self : SystemAllocator) (irq : U32) (hwf : WellFormed self) :
+    release_irq self irq ⦃ a => WellFormed a ∧ IrqReleaseOutcome self irq a ⦄ := by
+  unfold release_irq
+  have hcast : core.convert.num.FromU64U32.from irq = UScalar.cast .U64 irq := by
+    apply UScalar.eq_of_val_eq
+    simp
+  simp only [core.convert.IntoFrom.into, bind_ok, hcast]
+  step with AddressAllocator.release_containing_spec self.irq_allocator (UScalar.cast .U64 irq)
+    hwf.2.2.2.1 as ⟨result, irqSpace, hwfi, hout⟩
+  have hirqi : IrqInvariant irqSpace := by
+    rcases hout with hmissing | ⟨allocation, range, tag, hlookup, hrange, hrelease⟩
+    · simpa [hmissing.2.1] using hwf.2.2.2.2.2.2
+    · exact irq_release_invariant hwf.2.2.2.2.2.2 hrelease
+  exact ⟨⟨hwf.1, hwf.2.1, hwf.2.2.1, hwfi, hwf.2.2.2.2.1, hwf.2.2.2.2.2.1, hirqi⟩,
+    rfl, result, hout⟩
 
 end resources.system_allocator.SystemAllocator

@@ -9,7 +9,7 @@
   offset lookup, subject to the stated preconditions.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
-  allocation ID generation and IRQ allocation until counter exhaustion.
+  allocation ID generation, IRQ allocation until counter exhaustion, and IRQ release.
 
 Full accounting between pools, free regions, and allocations remains unverified.
 
