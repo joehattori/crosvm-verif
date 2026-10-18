@@ -502,14 +502,27 @@ opaque base.sys.unix.system_info.pagesize : Result Usize := ok 4096#usize
 def alloc.collections.btree.map.BTreeMapKVGlobal.new (K V : Type) :
     Result (alloc.collections.btree.map.BTreeMap K V Global) := ok ∅
 
-/-- Locate the stored representative using Rust's comparator. Tree shape and comparison
-    order are abstracted away; supported comparators are total and obey Rust's Ord contract. -/
-def alloc.collections.btree.map.findEntryKey {K : Type} (ord : core.cmp.Ord K)
-    (key : K) : List K → Result (Option K)
+/-- Locate the stored representative using borrowed keys and Rust's comparator.
+    Tree shape and comparison order are abstracted away; borrowing and comparison
+    are total, and borrowed and owned orderings agree under Rust's Ord contract. -/
+def alloc.collections.btree.map.findEntryKey {K Q : Type}
+    (borrow : core.borrow.Borrow K Q) (ord : core.cmp.Ord Q)
+    (key : Q) : List K → Result (Option K)
   | [] => ok none
   | head :: tail => do
-    let ordering ← ord.cmp key head
-    if ordering = .eq then ok (some head) else findEntryKey ord key tail
+    let borrowed ← borrow.borrow head
+    let ordering ← ord.cmp key borrowed
+    if ordering = .eq then ok (some head) else findEntryKey borrow ord key tail
+
+/-- Key presence uses the same borrowed-key search as Rust's BTreeMap lookup. -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::contains_key"]
+noncomputable def alloc.collections.btree.map.BTreeMap.contains_key {K V A Q : Type}
+    (_alloc : core.alloc.AllocatorClone A) (borrow : core.borrow.Borrow K Q)
+    (_ord : core.cmp.Ord K) (ordQ : core.cmp.Ord Q)
+    (self : alloc.collections.btree.map.BTreeMap K V A) (key : Q) : Result Bool := do
+  let found ← alloc.collections.btree.map.findEntryKey borrow ordQ key self.keys.toList
+  ok found.isSome
 
 /-- Write back only the value at the key captured by `entry`. Entry keys and variants
     cannot change through the modeled value borrows. A vacant entry dropped before
@@ -535,7 +548,8 @@ noncomputable def alloc.collections.btree.map.BTreeMap.entry {K V A : Type}
         alloc.collections.btree.map.BTreeMap K V A)) := by
   classical
   exact do
-    let found ← alloc.collections.btree.map.findEntryKey ord key self.keys.toList
+    let found ← alloc.collections.btree.map.findEntryKey
+      ⟨core.borrow.Borrow.Blanket.borrow⟩ ord key self.keys.toList
     let storedKey := found.getD key
     let entry := match Finmap.lookup storedKey self with
       | none => .Vacant ⟨storedKey, none⟩

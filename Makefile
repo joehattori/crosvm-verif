@@ -45,6 +45,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::system_allocator::SystemAllocator::reserve_irq' \
 		--start-from 'crate::system_allocator::SystemAllocator::allocate_gpe' \
 		--start-from 'crate::system_allocator::SystemAllocator::get_pci_allocator_mut' \
+		--start-from 'crate::system_allocator::SystemAllocator::pci_bus_empty' \
 		--include 'core::option::{impl core::ops::try_trait::FromResidual<_> for _}::from_residual' \
 		--opaque 'base::sys::unix::system_info::pagesize' \
 		--exclude 'core::slice::iter::{impl core::iter::traits::iterator::Iterator for _}::find' \

@@ -2708,4 +2708,16 @@ def system_allocator.SystemAllocator.get_pci_allocator_mut
         { self with pci_allocator := bm }
     ok (some aa, back)
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::pci_bus_empty]:
+    Source: 'resources/src/system_allocator.rs', lines 301:4-303:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.pci_bus_empty
+  (self : system_allocator.SystemAllocator) (bus : Std.U8) : Result Bool := do
+  let b ←
+    alloc.collections.btree.map.BTreeMap.contains_key
+      alloc.alloc.Global.Insts.CoreAllocAllocatorClone
+      (core.borrow.Borrow.Blanket Std.U8) core.cmp.OrdU8 core.cmp.OrdU8
+      self.pci_allocator bus
+  ok (¬ b)
+
 end resources

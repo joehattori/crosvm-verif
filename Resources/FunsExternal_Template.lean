@@ -454,6 +454,18 @@ axiom alloc.collections.btree.map.BTreeMapKVGlobal.new
   (K : Type) (V : Type) :
   Result (alloc.collections.btree.map.BTreeMap K V Global)
 
+/-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::contains_key]:
+    Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 981:4-984:15
+    Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::contains_key]
+    Visibility: public -/
+@[rust_fun
+  "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::contains_key"]
+axiom alloc.collections.btree.map.BTreeMap.contains_key
+  {K : Type} {V : Type} {A : Type} {Q : Type} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) (coreborrowBorrowInst : core.borrow.Borrow K Q)
+  (corecmpOrdInst : core.cmp.Ord K) (corecmpOrdInst1 : core.cmp.Ord Q) :
+  alloc.collections.btree.map.BTreeMap K V A → Q → Result Bool
+
 /-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::entry]:
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 1503:4-1505:15
     Name pattern: [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::entry]

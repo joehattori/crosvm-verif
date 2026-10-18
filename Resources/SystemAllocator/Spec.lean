@@ -803,7 +803,8 @@ theorem PciAllocatorBorrow.wellFormed {self : SystemAllocator} {bus : U8}
     exact hwf.2.2.2.2.2.1 key a hlookup
 
 private theorem findEntryKey_u8 (bus : U8) (keys : List U8) :
-    _root_.alloc.collections.btree.map.findEntryKey core.cmp.OrdU8 bus keys =
+    _root_.alloc.collections.btree.map.findEntryKey
+      (resources.core.borrow.Borrow.Blanket U8) core.cmp.OrdU8 bus keys =
       ok (if bus ∈ keys then some bus else none) := by
   induction keys with
   | nil => simp [_root_.alloc.collections.btree.map.findEntryKey]
@@ -812,7 +813,8 @@ private theorem findEntryKey_u8 (bus : U8) (keys : List U8) :
       simp [compare, compareOfLessAndEq]
       split_ifs <;> simp_all
       scalar_tac
-    simp only [_root_.alloc.collections.btree.map.findEntryKey, core.cmp.OrdU8,
+    simp only [_root_.alloc.collections.btree.map.findEntryKey, resources.core.borrow.Borrow.Blanket,
+      _root_.core.borrow.Borrow.Blanket.borrow, core.cmp.OrdU8,
       liftFun2, core.cmp.impls.OrdU8.cmp, bind_ok]
     by_cases he : bus = key
     · subst key
@@ -879,5 +881,13 @@ theorem get_pci_allocator_mut_spec (self : SystemAllocator) (bus : U8) (hwf : We
     · intro updated
       cases updated <;> simp [_root_.alloc.collections.btree.map.entryBack] <;>
         congr 1 <;> exact Subsingleton.elim _ _
+
+/-- True exactly when no allocator is recorded for the bus. -/
+@[step]
+theorem pci_bus_empty_spec (self : SystemAllocator) (bus : U8) :
+    pci_bus_empty self bus ⦃ empty => empty = true ↔ bus ∉ self.pci_allocator ⦄ := by
+  unfold pci_bus_empty _root_.alloc.collections.btree.map.BTreeMap.contains_key
+  rw [findEntryKey_u8]
+  by_cases h : bus ∈ self.pci_allocator <;> simp [Finmap.mem_keys, h]
 
 end resources.system_allocator.SystemAllocator
