@@ -19,6 +19,8 @@ aeneas-bin:
 # residual conversion, including the return path of a mutable Option borrow.
 # The pinned Charon validates options before expanding the preset, so its
 # remove-adt-clauses and lift-associated-types settings must also be explicit.
+# Exclude the unused Residual trait and its impls to avoid a specialization bug
+# in the pinned Charon. Try::branch and FromResidual functions remain available.
 $(LLBC_DIR)/resources.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -46,8 +48,11 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::system_allocator::SystemAllocator::allocate_gpe' \
 		--start-from 'crate::system_allocator::SystemAllocator::get_pci_allocator_mut' \
 		--start-from 'crate::system_allocator::SystemAllocator::pci_bus_empty' \
+		--start-from 'crate::system_allocator::SystemAllocator::allocate_pci' \
 		--include 'core::option::{impl core::ops::try_trait::FromResidual<_> for _}::from_residual' \
 		--opaque 'base::sys::unix::system_info::pagesize' \
+		--exclude 'core::ops::try_trait::Residual' \
+		--exclude '{impl core::ops::try_trait::Residual}' \
 		--exclude 'core::slice::iter::{impl core::iter::traits::iterator::Iterator for _}::find' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \

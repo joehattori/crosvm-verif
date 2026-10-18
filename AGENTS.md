@@ -57,6 +57,21 @@ duplicating them here.
   composing proved specifications with `step`, then use `simp`, `simp_all`,
   `scalar_tac`, or `omega` for the remaining obligations. Search the local Aeneas
   library and existing proofs before adding duplicate helper lemmas.
+- Make specification definitions modular as well as their proofs. For wrapper
+  functions, compose existing outcome and borrow predicates in the order of the
+  Rust helper calls, using named intermediate values and states. For example,
+  reuse `PciAllocatorBorrow` and `AlignedAllocationOutcome` for PCI allocation,
+  and express the final state through the borrow's `back` function.
+- State each helper's mathematical contract once. Reuse its success and error
+  cases, invariants, and guarantees about unchanged state instead of repeating
+  their definitions in callers. Add only the caller's policy, result conversion,
+  and connections between intermediate states. Keep bounds needed solely to
+  justify casts or arithmetic inside the proof when they follow from the contract.
+- Introduce predicates for reusable concepts or to clarify composition; avoid
+  overlapping predicates that restate the same behavior. Put reusable
+  consequences in lemmas on the existing predicate, and keep implementation
+  details in private proof helpers. Elementary specifications should describe
+  mathematical behavior rather than mirror each implementation branch.
 - Respect bounded Rust arithmetic. Use `U64.val` and `U64.max` to express
   mathematical bounds, and discharge overflow and underflow obligations.
   Distinguish an expected `Option.none` return from failure in Aeneas's `Result`.

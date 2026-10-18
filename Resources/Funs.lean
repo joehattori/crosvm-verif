@@ -113,6 +113,19 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   end_bound := PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
 }
 
+/-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual]:
+    Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
+    Name pattern: [core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
+def
+  core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+  (T : Type) (o : Option Never) : Result (Option T) := do
+  let i := read_discriminant o
+  core.intrinsics.assume (i = 0#isize)
+  ok none
+
 /-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual::<&_ mut _>]:
     Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
     Name pattern: [core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual]
@@ -1355,7 +1368,8 @@ def address_allocator.AddressAllocator.allocate_at
         let (r, self1) ←
           address_allocator.AddressAllocator.internal_allocate_from_slot self
             slot range alloc1 tag
-        let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+        let cf ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
         match cf with
         | core.ops.control_flow.ControlFlow.Continue _ =>
           ok (core.result.Result.Ok (), self1)
@@ -1414,7 +1428,8 @@ def address_allocator.AddressAllocator.insert_at
       | some larger =>
         let o2 ← lift (U64.checked_sub larger.start 1#u64)
         let r2 ← core.option.Option.ok_or o2 (Error.RegionOverlap slot)
-        let cf ← core.result.Result.Insts.CoreOpsTry.branch r2
+        let cf ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r2
         match cf with
         | core.ops.control_flow.ControlFlow.Continue val =>
           let o3 ← lift (core.cmp.impls.OrdU64.cmp slot.end val)
@@ -1448,7 +1463,8 @@ def address_allocator.AddressAllocator.insert_at
     | some smaller =>
       let o1 ← lift (U64.checked_add smaller.end 1#u64)
       let r1 ← core.option.Option.ok_or o1 (Error.RegionOverlap slot)
-      let cf ← core.result.Result.Insts.CoreOpsTry.branch r1
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
       match cf with
       | core.ops.control_flow.ControlFlow.Continue val =>
         let o2 ← lift (core.cmp.impls.OrdU64.cmp val slot.start)
@@ -1478,7 +1494,9 @@ def address_allocator.AddressAllocator.insert_at
           | some larger =>
             let o4 ← lift (U64.checked_sub larger.start 1#u64)
             let r3 ← core.option.Option.ok_or o4 (Error.RegionOverlap slot)
-            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            let cf1 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r3
             match cf1 with
             | core.ops.control_flow.ControlFlow.Continue val1 =>
               let o5 ← lift (core.cmp.impls.OrdU64.cmp slot.end val1)
@@ -1544,7 +1562,9 @@ def address_allocator.AddressAllocator.insert_at
           | some larger =>
             let o4 ← lift (U64.checked_sub larger.start 1#u64)
             let r3 ← core.option.Option.ok_or o4 (Error.RegionOverlap slot)
-            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            let cf1 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r3
             match cf1 with
             | core.ops.control_flow.ControlFlow.Continue val1 =>
               let o5 ← lift (core.cmp.impls.OrdU64.cmp slot.end val1)
@@ -1621,7 +1641,8 @@ def address_allocator.AddressAllocator.release
     let (r, self1) ←
       address_allocator.AddressAllocator.insert_at { self with allocs := hm }
         range
-    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
     match cf with
     | core.ops.control_flow.ControlFlow.Continue _ =>
       ok (core.result.Result.Ok range, self1)
@@ -1686,12 +1707,14 @@ def address_allocator.AddressAllocator.address_from_pci_offset
       let (pci_bar_range, _) := p
       let o1 ← lift (U64.checked_add pci_bar_range.start offset)
       let r ← core.option.Option.ok_or o1 Error.OutOfBounds
-      let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
       match cf with
       | core.ops.control_flow.ControlFlow.Continue val =>
         let o2 ← address_range.AddressRange.from_start_and_size val size
         let r1 ← core.option.Option.ok_or o2 Error.OutOfBounds
-        let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+        let cf1 ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
         match cf1 with
         | core.ops.control_flow.ControlFlow.Continue val1 =>
           let b ←
@@ -1945,27 +1968,32 @@ def system_allocator.SystemAllocator.new
       let r ←
         system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
           mmio_address_ranges config.low_mmio
-      let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
       match cf with
       | core.ops.control_flow.ControlFlow.Continue val =>
         let r1 ←
           address_allocator.AddressAllocator.new_from_list
             (core.iter.traits.collect.IntoIteratorVec
             address_range.AddressRange) val (some page_size) none
-        let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+        let cf1 ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
         match cf1 with
         | core.ops.control_flow.ControlFlow.Continue val1 =>
           let r2 ←
             system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
               mmio_address_ranges config.high_mmio
-          let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+          let cf2 ←
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r2
           match cf2 with
           | core.ops.control_flow.ControlFlow.Continue val2 =>
             let r3 ←
               address_allocator.AddressAllocator.new_from_list
                 (core.iter.traits.collect.IntoIteratorVec
                 address_range.AddressRange) val2 (some page_size) none
-            let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+            let cf3 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r3
             match cf3 with
             | core.ops.control_flow.ControlFlow.Continue val3 =>
               let bm ←
@@ -1977,13 +2005,17 @@ def system_allocator.SystemAllocator.new
                 let r4 ←
                   address_allocator.AddressAllocator.new
                     { start := i1, «end» := 1023#u64 } (some 1#u64) none
-                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                let cf4 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r4
                 match cf4 with
                 | core.ops.control_flow.ControlFlow.Continue val4 =>
                   let r5 ←
                     address_allocator.AddressAllocator.new
                       { start := 0#u64, «end» := 255#u64 } (some 1#u64) none
-                  let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                  let cf5 ←
+                    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                      r5
                   match cf5 with
                   | core.ops.control_flow.ControlFlow.Continue val5 =>
                     ok (core.result.Result.Ok
@@ -2010,21 +2042,27 @@ def system_allocator.SystemAllocator.new
                 let r4 ←
                   address_allocator.AddressAllocator.new platform (some
                     page_size) none
-                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                let cf4 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r4
                 match cf4 with
                 | core.ops.control_flow.ControlFlow.Continue val4 =>
                   let i1 ← lift (UScalar.cast .U64 config.first_irq)
                   let r5 ←
                     address_allocator.AddressAllocator.new
                       { start := i1, «end» := 1023#u64 } (some 1#u64) none
-                  let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                  let cf5 ←
+                    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                      r5
                   match cf5 with
                   | core.ops.control_flow.ControlFlow.Continue val5 =>
                     let r6 ←
                       address_allocator.AddressAllocator.new
                         { start := 0#u64, «end» := 255#u64 } (some 1#u64)
                         none
-                    let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                    let cf6 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r6
                     match cf6 with
                     | core.ops.control_flow.ControlFlow.Continue val6 =>
                       ok (core.result.Result.Ok
@@ -2073,33 +2111,41 @@ def system_allocator.SystemAllocator.new
       else
         let r ←
           address_allocator.AddressAllocator.new io (some 1024#u64) none
-        let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+        let cf ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
         match cf with
         | core.ops.control_flow.ControlFlow.Continue val =>
           let r1 ←
             system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
               mmio_address_ranges config.low_mmio
-          let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+          let cf1 ←
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
           match cf1 with
           | core.ops.control_flow.ControlFlow.Continue val1 =>
             let r2 ←
               address_allocator.AddressAllocator.new_from_list
                 (core.iter.traits.collect.IntoIteratorVec
                 address_range.AddressRange) val1 (some page_size) none
-            let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+            let cf2 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r2
             match cf2 with
             | core.ops.control_flow.ControlFlow.Continue val2 =>
               let r3 ←
                 system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
                   mmio_address_ranges config.high_mmio
-              let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+              let cf3 ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r3
               match cf3 with
               | core.ops.control_flow.ControlFlow.Continue val3 =>
                 let r4 ←
                   address_allocator.AddressAllocator.new_from_list
                     (core.iter.traits.collect.IntoIteratorVec
                     address_range.AddressRange) val3 (some page_size) none
-                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                let cf4 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r4
                 match cf4 with
                 | core.ops.control_flow.ControlFlow.Continue val4 =>
                   let bm ←
@@ -2111,14 +2157,18 @@ def system_allocator.SystemAllocator.new
                     let r5 ←
                       address_allocator.AddressAllocator.new
                         { start := i1, «end» := 1023#u64 } (some 1#u64) none
-                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    let cf5 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
                       let r6 ←
                         address_allocator.AddressAllocator.new
                           { start := 0#u64, «end» := 255#u64 } (some 1#u64)
                           none
-                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
                       match cf6 with
                       | core.ops.control_flow.ControlFlow.Continue val6 =>
                         ok (core.result.Result.Ok
@@ -2145,7 +2195,9 @@ def system_allocator.SystemAllocator.new
                     let r5 ←
                       address_allocator.AddressAllocator.new platform (some
                         page_size) none
-                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    let cf5 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
                       let i1 ← lift (UScalar.cast .U64 config.first_irq)
@@ -2153,7 +2205,9 @@ def system_allocator.SystemAllocator.new
                         address_allocator.AddressAllocator.new
                           { start := i1, «end» := 1023#u64 } (some 1#u64)
                           none
-                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
                       match cf6 with
                       | core.ops.control_flow.ControlFlow.Continue val6 =>
                         let r7 ←
@@ -2161,7 +2215,8 @@ def system_allocator.SystemAllocator.new
                             { start := 0#u64, «end» := 255#u64 } (some 1#u64)
                             none
                         let cf7 ←
-                          core.result.Result.Insts.CoreOpsTry.branch r7
+                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                            r7
                         match cf7 with
                         | core.ops.control_flow.ControlFlow.Continue val7 =>
                           ok (core.result.Result.Ok
@@ -2211,7 +2266,8 @@ def system_allocator.SystemAllocator.new
   | some reserved_len =>
     let o ← address_range.AddressRange.len config.high_mmio
     let r ← core.option.Option.ok_or o Error.OutOfBounds
-    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
     match cf with
     | core.ops.control_flow.ControlFlow.Continue val =>
       if reserved_len > val
@@ -2225,28 +2281,35 @@ def system_allocator.SystemAllocator.new
           let r1 ←
             system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
               mmio_address_ranges config.low_mmio
-          let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+          let cf1 ←
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
           match cf1 with
           | core.ops.control_flow.ControlFlow.Continue val1 =>
             let r2 ←
               address_allocator.AddressAllocator.new_from_list
                 (core.iter.traits.collect.IntoIteratorVec
                 address_range.AddressRange) val1 (some page_size) none
-            let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+            let cf2 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r2
             match cf2 with
             | core.ops.control_flow.ControlFlow.Continue val2 =>
               let r3 ←
                 system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
                   mmio_address_ranges
                   { config.high_mmio with start := high_mmio_start }
-              let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+              let cf3 ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r3
               match cf3 with
               | core.ops.control_flow.ControlFlow.Continue val3 =>
                 let r4 ←
                   address_allocator.AddressAllocator.new_from_list
                     (core.iter.traits.collect.IntoIteratorVec
                     address_range.AddressRange) val3 (some page_size) none
-                let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                let cf4 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r4
                 match cf4 with
                 | core.ops.control_flow.ControlFlow.Continue val4 =>
                   let bm ←
@@ -2258,14 +2321,18 @@ def system_allocator.SystemAllocator.new
                     let r5 ←
                       address_allocator.AddressAllocator.new
                         { start := i2, «end» := 1023#u64 } (some 1#u64) none
-                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    let cf5 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
                       let r6 ←
                         address_allocator.AddressAllocator.new
                           { start := 0#u64, «end» := 255#u64 } (some 1#u64)
                           none
-                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
                       match cf6 with
                       | core.ops.control_flow.ControlFlow.Continue val6 =>
                         ok (core.result.Result.Ok
@@ -2295,7 +2362,9 @@ def system_allocator.SystemAllocator.new
                     let r5 ←
                       address_allocator.AddressAllocator.new platform (some
                         page_size) none
-                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    let cf5 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
                       let i2 ← lift (UScalar.cast .U64 config.first_irq)
@@ -2303,7 +2372,9 @@ def system_allocator.SystemAllocator.new
                         address_allocator.AddressAllocator.new
                           { start := i2, «end» := 1023#u64 } (some 1#u64)
                           none
-                      let cf6 ← core.result.Result.Insts.CoreOpsTry.branch r6
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
                       match cf6 with
                       | core.ops.control_flow.ControlFlow.Continue val6 =>
                         let r7 ←
@@ -2311,7 +2382,8 @@ def system_allocator.SystemAllocator.new
                             { start := 0#u64, «end» := 255#u64 } (some 1#u64)
                             none
                         let cf7 ←
-                          core.result.Result.Insts.CoreOpsTry.branch r7
+                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                            r7
                         match cf7 with
                         | core.ops.control_flow.ControlFlow.Continue val7 =>
                           ok (core.result.Result.Ok
@@ -2366,34 +2438,44 @@ def system_allocator.SystemAllocator.new
           else
             let r1 ←
               address_allocator.AddressAllocator.new io (some 1024#u64) none
-            let cf1 ← core.result.Result.Insts.CoreOpsTry.branch r1
+            let cf1 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r1
             match cf1 with
             | core.ops.control_flow.ControlFlow.Continue val1 =>
               let r2 ←
                 system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
                   mmio_address_ranges config.low_mmio
-              let cf2 ← core.result.Result.Insts.CoreOpsTry.branch r2
+              let cf2 ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r2
               match cf2 with
               | core.ops.control_flow.ControlFlow.Continue val2 =>
                 let r3 ←
                   address_allocator.AddressAllocator.new_from_list
                     (core.iter.traits.collect.IntoIteratorVec
                     address_range.AddressRange) val2 (some page_size) none
-                let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
+                let cf3 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r3
                 match cf3 with
                 | core.ops.control_flow.ControlFlow.Continue val3 =>
                   let r4 ←
                     system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
                       mmio_address_ranges
                       { config.high_mmio with start := high_mmio_start }
-                  let cf4 ← core.result.Result.Insts.CoreOpsTry.branch r4
+                  let cf4 ←
+                    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                      r4
                   match cf4 with
                   | core.ops.control_flow.ControlFlow.Continue val4 =>
                     let r5 ←
                       address_allocator.AddressAllocator.new_from_list
                         (core.iter.traits.collect.IntoIteratorVec
                         address_range.AddressRange) val4 (some page_size) none
-                    let cf5 ← core.result.Result.Insts.CoreOpsTry.branch r5
+                    let cf5 ←
+                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                        r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
                       let bm ←
@@ -2407,7 +2489,8 @@ def system_allocator.SystemAllocator.new
                             { start := i2, «end» := 1023#u64 } (some 1#u64)
                             none
                         let cf6 ←
-                          core.result.Result.Insts.CoreOpsTry.branch r6
+                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                            r6
                         match cf6 with
                         | core.ops.control_flow.ControlFlow.Continue val6 =>
                           let r7 ←
@@ -2415,7 +2498,8 @@ def system_allocator.SystemAllocator.new
                               { start := 0#u64, «end» := 255#u64 } (some
                               1#u64) none
                           let cf7 ←
-                            core.result.Result.Insts.CoreOpsTry.branch r7
+                            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                              r7
                           match cf7 with
                           | core.ops.control_flow.ControlFlow.Continue val7 =>
                             ok (core.result.Result.Ok
@@ -2449,7 +2533,8 @@ def system_allocator.SystemAllocator.new
                           address_allocator.AddressAllocator.new platform (some
                             page_size) none
                         let cf6 ←
-                          core.result.Result.Insts.CoreOpsTry.branch r6
+                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                            r6
                         match cf6 with
                         | core.ops.control_flow.ControlFlow.Continue val6 =>
                           let i2 ← lift (UScalar.cast .U64 config.first_irq)
@@ -2458,7 +2543,8 @@ def system_allocator.SystemAllocator.new
                               { start := i2, «end» := 1023#u64 } (some 1#u64)
                               none
                           let cf7 ←
-                            core.result.Result.Insts.CoreOpsTry.branch r7
+                            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                              r7
                           match cf7 with
                           | core.ops.control_flow.ControlFlow.Continue val7 =>
                             let r8 ←
@@ -2466,7 +2552,8 @@ def system_allocator.SystemAllocator.new
                                 { start := 0#u64, «end» := 255#u64 } (some
                                 1#u64) none
                             let cf8 ←
-                              core.result.Result.Insts.CoreOpsTry.branch r8
+                              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                                r8
                             match cf8 with
                             | core.ops.control_flow.ControlFlow.Continue val8
                               =>
@@ -2669,7 +2756,8 @@ def system_allocator.SystemAllocator.get_pci_allocator_mut
       address_allocator.AddressAllocator.new { start := base1, «end» := i1 }
         (some 1#u64) (some 8#u64)
     let o ← core.result.Result.ok r
-    let cf ← core.option.Option.Insts.CoreOpsTry_traitTry.branch o
+    let cf ←
+      core.option.Option.Insts.CoreOpsTry_traitTryTOptionNever.branch o
     match cf with
     | core.ops.control_flow.ControlFlow.Continue val =>
       let (aa, insert_back) ←
@@ -2719,5 +2807,63 @@ def system_allocator.SystemAllocator.pci_bus_empty
       (core.borrow.Borrow.Blanket Std.U8) core.cmp.OrdU8 core.cmp.OrdU8
       self.pci_allocator bus
   ok (¬ b)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{impl core::ops::function::FnOnce<(u64,), resources::pci_address::PciAddress> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}<'_0>}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+def
+  system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress.call_once
+  (c : system_allocator.SystemAllocator.allocate_pci.closure)
+  (tupled_args : Std.U64) :
+  Result pci_address.PciAddress
+  := do
+  let i ← tupled_args >>> 3#i32
+  let i1 ← lift (UScalar.cast .U8 i)
+  let i2 ← lift (tupled_args &&& 7#u64)
+  let i3 ← lift (UScalar.cast .U8 i2)
+  ok { bus := c, dev := i1, func := i3 }
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{impl core::ops::function::FnOnce<(u64,), resources::pci_address::PciAddress> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}<'_0>}]
+    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.allocate_pci.closure Std.U64
+  pci_address.PciAddress := {
+  call_once :=
+    system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress.call_once
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci]:
+    Source: 'resources/src/system_allocator.rs', lines 306:4-317:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.allocate_pci
+  (self : system_allocator.SystemAllocator) (bus : Std.U8) (tag : String) :
+  Result ((Option pci_address.PciAddress) × system_allocator.SystemAllocator)
+  := do
+  let (id, self1) ← system_allocator.SystemAllocator.get_anon_alloc self
+  let (o, get_pci_allocator_mut_back) ←
+    system_allocator.SystemAllocator.get_pci_allocator_mut self1 bus
+  let (cf, branch_back) ←
+    core.ops.try_trait.TryOptionMut0T0Mut0T0OptionNever.Blanket.branch o
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let (r, val1) ←
+      address_allocator.AddressAllocator.allocate val 1#u64 id tag
+    let r1 ←
+      core.result.Result.map
+        system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress
+        r bus
+    let o1 ← core.result.Result.ok r1
+    let o2 := branch_back (core.ops.control_flow.ControlFlow.Continue val1)
+    let self2 := get_pci_allocator_mut_back o2
+    ok (o1, self2)
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    let o1 ←
+      core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
+        pci_address.PciAddress residual
+    let o2 := branch_back cf
+    let self2 := get_pci_allocator_mut_back o2
+    ok (o1, self2)
 
 end resources

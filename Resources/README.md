@@ -11,8 +11,9 @@
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
-  exhaustion, IRQ release, and PCI bus allocator presence checks, lookup and creation
-  with mutable borrow write-back, preserving component invariants.
+  exhaustion, IRQ release, PCI bus allocator presence checks, lookup and creation
+  with mutable borrow write-back, and PCI slot allocation with preferred-device
+  alignment and function fallback, preserving component invariants.
 
 The internal free-region insertion helper is specified for intermediate states;
 the full accounting invariant is restored by the enclosing release operation.
@@ -35,6 +36,8 @@ The page-size result is opaque and supplied as a theorem hypothesis; the host OS
 query is not verified. The B-tree map model supports construction, key presence
 checks, and entry value borrows with lawful, total comparators and consistent
 borrowed-key ordering; ordered traversal is not modeled.
+Optional mutable-reference branching models both the selected value and its
+borrow write-back.
 String conversion models UTF-8 `str` contents; general formatting is unsupported.
 
 # Extraction and checks

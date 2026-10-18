@@ -190,6 +190,14 @@ def address_allocator.AddressAllocator.find_overlapping.closure :=
 def address_allocator.AddressAllocator.allocate_at.closure :=
   address_range.AddressRange
 
+/-- [resources::pci_address::PciAddress]
+    Source: 'resources/src/pci_address.rs', lines 51:0-58:1
+    Visibility: public -/
+structure pci_address.PciAddress where
+  bus : Std.U8
+  dev : Std.U8
+  func : Std.U8
+
 /-- [resources::system_allocator::SystemAllocatorConfig]
     Source: 'resources/src/system_allocator.rs', lines 87:0-106:1
     Visibility: public -/
@@ -235,5 +243,10 @@ def system_allocator.SystemAllocator.allocate_irq.closure := Unit
     Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
 @[reducible]
 def system_allocator.SystemAllocator.allocate_gpe.closure := Unit
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+@[reducible]
+def system_allocator.SystemAllocator.allocate_pci.closure := Std.U8
 
 end resources

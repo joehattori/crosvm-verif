@@ -1000,6 +1000,25 @@ def AlignedAllocationOutcome (self : AddressAllocator) (size : U64)
     | .Err error => error = .OutOfSpace ∧ a = self ∧
         ¬∃ start, Placement self.regions size.val alignment start
 
+/-- Allocation leaves the recorded pools and alignment policy unchanged. -/
+theorem AlignedAllocationOutcome.pools_alignments {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
+    {result : core.result.Result U64 resources.Error}
+    (h : AlignedAllocationOutcome self size allocation tag alignment reverse result a) :
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧ a.preferred_align = self.preferred_align := by
+  unfold AlignedAllocationOutcome at h
+  split at h
+  · simp [h.2]
+  · split at h
+    · simp [h.2]
+    · split at h
+      · simp [h.2]
+      · cases result with
+        | Err error => simp [h.2.1]
+        | Ok start =>
+          obtain ⟨range, _, _, hpools, hmin, hpref, _⟩ := h.2
+          exact ⟨hpools, hmin, hpref⟩
+
 /-- A successful allocation under a fresh key preserves the full invariant. -/
 theorem AlignedAllocation.wellFormed {self a : AddressAllocator} {size start : U64}
     {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
@@ -1440,6 +1459,7 @@ private theorem insert_at_eq (self : AddressAllocator) (slot : AddressRange) :
       let empty ← AddressRange.is_empty slot
       if empty then ok (.Err .AllocSizeZero, self) else insertBody self slot) := by
   simp only [insert_at, insertBody, neighbor, checkNeighbor, mergeSlot, removeMerge,
+    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch,
     Aeneas.Std.bind_assoc, Bool.false_eq_true, ↓reduceIte, bind_ok, lift,
     core.option.Option.ok_or, core.result.Result.Insts.CoreOpsTry.branch,
     core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,

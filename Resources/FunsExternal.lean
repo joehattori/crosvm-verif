@@ -71,12 +71,30 @@ def core.result.Result.ok {T E : Type} (self : core.result.Result T E) : Result 
   | .Ok value => Std.Result.ok (some value)
   | .Err _ => Std.Result.ok none
 
-@[rust_fun "core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch"]
-def core.option.Option.Insts.CoreOpsTry_traitTry.branch {T : Type} (self : Option T) :
+/-- Reuse Aeneas's Result branching model under the extracted trait name. -/
+@[simp, rust_fun "core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch"]
+abbrev core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch {T E : Type}
+    (self : core.result.Result T E) := core.result.Result.Insts.CoreOpsTry.branch self
+
+@[rust_fun "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
+def core.option.Option.Insts.CoreOpsTry_traitTryTOptionNever.branch {T : Type} (self : Option T) :
     Result (core.ops.control_flow.ControlFlow (Option Never) T) :=
   match self with
   | some value => ok (.Continue value)
   | none => ok (.Break none)
+
+/-- Branch on an optional mutable reference. The backward map carries the returned
+    referent back through `Some`; the `None` branch has no borrowed value. -/
+@[rust_fun "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
+def core.ops.try_trait.TryOptionMut0T0Mut0T0OptionNever.Blanket.branch {T0 : Type} (self : Option T0) :
+    Result ((core.ops.control_flow.ControlFlow (Option Never) T0) ×
+      (core.ops.control_flow.ControlFlow (Option Never) T0 → Option T0)) :=
+  let back := fun updated => match updated with
+    | .Continue value => some value
+    | .Break _ => none
+  match self with
+  | some value => ok (.Continue value, back)
+  | none => ok (.Break none, back)
 
 /-- Cloning preserves string contents; storage allocation is abstracted away. -/
 @[rust_fun "alloc::string::{core::clone::Clone<alloc::string::String>}::clone"]

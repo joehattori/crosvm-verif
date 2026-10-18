@@ -272,15 +272,26 @@ axiom core.option.OptionShared0T.cloned
   {T : Type} (cloneCloneInst : core.clone.Clone T) :
   Option T → Result (Option T)
 
-/-- [core::option::{impl core::ops::try_trait::Try for core::option::Option<T>}::branch]:
+/-- [core::option::{impl core::ops::try_trait::Try<T, core::option::Option<!>> for core::option::Option<T>}::branch]:
     Source: '/rustc/library/core/src/option.rs', lines 2875:4-2875:64
-    Name pattern: [core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch]
+    Name pattern: [core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch]
     Visibility: public -/
 @[rust_fun
-  "core::option::{core::ops::try_trait::Try<core::option::Option<@T>>}::branch"]
-axiom core.option.Option.Insts.CoreOpsTry_traitTry.branch
+  "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
+axiom core.option.Option.Insts.CoreOpsTry_traitTryTOptionNever.branch
   {T : Type} :
   Option T → Result (core.ops.control_flow.ControlFlow (Option Never) T)
+
+/-- [core::option::{impl core::ops::try_trait::Try<T, core::option::Option<!>> for core::option::Option<T>}::branch::<&_ mut _>]:
+    Source: '/rustc/library/core/src/option.rs', lines 2875:4-2875:64
+    Name pattern: [core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
+axiom core.ops.try_trait.TryOptionMut0T0Mut0T0OptionNever.Blanket.branch
+  {T0 : Type} :
+  Option T0 → Result ((core.ops.control_flow.ControlFlow (Option Never) T0)
+    × (core.ops.control_flow.ControlFlow (Option Never) T0 → Option T0))
 
 /-- [core::result::{core::result::Result<T, E>}::ok]:
     Source: '/rustc/library/core/src/result.rs', lines 709:4-712:28
@@ -299,6 +310,17 @@ axiom core.result.Result.map
   {T : Type} {E : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTUInst :
   core.ops.function.FnOnce F T U) :
   core.result.Result T E → F → Result (core.result.Result U E)
+
+/-- [core::result::{impl core::ops::try_trait::Try<T, core::result::Result<!, E>> for core::result::Result<T, E>}::branch]:
+    Source: '/rustc/library/core/src/result.rs', lines 2175:4-2175:64
+    Name pattern: [core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch]
+    Visibility: public -/
+@[rust_fun
+  "core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch"]
+axiom core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+  {T : Type} {E : Type} :
+  core.result.Result T E → Result (core.ops.control_flow.ControlFlow
+    (core.result.Result Never E) T)
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, std::hash::random::RandomState, alloc::alloc::Global>}::new]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 269:4-269:46
