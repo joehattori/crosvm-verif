@@ -223,29 +223,29 @@ structure system_allocator.SystemAllocator where
   next_anon_id : Std.Usize
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}]
-    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+    Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 @[reducible]
 def system_allocator.SystemAllocator.new.closure.closure :=
   address_range.AddressRange
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}]
-    Source: 'resources/src/system_allocator.rs', lines 166:35-175:9 -/
+    Source: 'resources/src/system_allocator.rs', lines 165:35-174:9 -/
 @[reducible]
 def system_allocator.SystemAllocator.new.closure :=
   Slice address_range.AddressRange
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}]
-    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 240:17-240:29 -/
 @[reducible]
 def system_allocator.SystemAllocator.allocate_irq.closure := Unit
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}]
-    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 269:17-269:29 -/
 @[reducible]
 def system_allocator.SystemAllocator.allocate_gpe.closure := Unit
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}]
-    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+    Source: 'resources/src/system_allocator.rs', lines 310:17-314:13 -/
 @[reducible]
 def system_allocator.SystemAllocator.allocate_pci.closure := Std.U8
 

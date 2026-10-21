@@ -23,9 +23,8 @@ the full accounting invariant is restored by the enclosing release operation.
 
 The Lean specifications state the precise guarantees and preconditions.
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
-System allocator construction assumes disjoint MMIO restrictions, a successful
-host page-size query, and explicit bounds excluding unchecked reservation
-arithmetic failures (`TODO(BUG-003)`).
+System allocator construction assumes disjoint MMIO restrictions and a
+successful host page-size query.
 
 The handwritten [external types](TypesExternal.lean) and
 [functions](FunsExternal.lean) are part of the trust boundary: their correspondence

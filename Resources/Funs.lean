@@ -121,10 +121,10 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
-  (T : Type) (o : Option Never) : Result (Option T) := do
-  let i := read_discriminant o
-  core.intrinsics.assume (i = 0#isize)
-  ok none
+  (T : Type) (residual : Option Never) : Result (Option T) := do
+  match residual with
+  | none => ok none
+  | some _ => fail panic
 
 /-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual::<&_ mut _>]:
     Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
@@ -134,13 +134,13 @@ def
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
-  (T0 : Type) (o : Option Never) :
+  (T0 : Type) (residual : Option Never) :
   Result ((Option T0) × (Option T0 → Unit))
   := do
-  let i := read_discriminant o
-  core.intrinsics.assume (i = 0#isize)
-  let back := fun o1 => ()
-  ok (none, back)
+  match residual with
+  | none => let back := fun o => ()
+            ok (none, back)
+  | some _ => fail panic
 
 /-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2101:0-2101:42
@@ -1867,7 +1867,7 @@ def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange :
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_mut]:
-    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+    Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 def
   system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
   (c : system_allocator.SystemAllocator.new.closure.closure)
@@ -1879,7 +1879,7 @@ def
   ok (ar, c)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_once]:
-    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+    Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 def
   system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange.call_once
   (c : system_allocator.SystemAllocator.new.closure.closure)
@@ -1892,7 +1892,7 @@ def
   ok ar1
 
 /-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
-    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+    Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 @[reducible]
 def
   system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange
@@ -1904,7 +1904,7 @@ def
 }
 
 /-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
-    Source: 'resources/src/system_allocator.rs', lines 172:25-172:51 -/
+    Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 @[reducible]
 def
   system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
@@ -1918,7 +1918,7 @@ def
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{impl core::ops::function::Fn<(resources::address_range::AddressRange,), core::result::Result<alloc::vec::Vec<resources::address_range::AddressRange>, resources::Error>> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}<'_0>}::call]:
-    Source: 'resources/src/system_allocator.rs', lines 166:35-175:9 -/
+    Source: 'resources/src/system_allocator.rs', lines 165:35-174:9 -/
 def
   system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
   (c : system_allocator.SystemAllocator.new.closure)
@@ -1951,7 +1951,7 @@ def
     ok (core.result.Result.Ok ret)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new]:
-    Source: 'resources/src/system_allocator.rs', lines 135:4-234:5
+    Source: 'resources/src/system_allocator.rs', lines 135:4-233:5
     Visibility: public -/
 def system_allocator.SystemAllocator.new
   (config : system_allocator.SystemAllocatorConfig)
@@ -2273,104 +2273,66 @@ def system_allocator.SystemAllocator.new
       if reserved_len > val
       then ok (core.result.Result.Err Error.OutOfSpace)
       else
-        let i1 ← config.high_mmio.start + reserved_len
-        let reserved_end ← i1 - 1#u64
-        let high_mmio_start ← reserved_end + 1#u64
-        match config.io with
-        | none =>
-          let r1 ←
-            system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
-              mmio_address_ranges config.low_mmio
-          let cf1 ←
-            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
-          match cf1 with
-          | core.ops.control_flow.ControlFlow.Continue val1 =>
+        let o1 ←
+          address_range.AddressRange.from_start_and_size config.high_mmio.start
+            reserved_len
+        let r1 ← core.option.Option.ok_or o1 Error.OutOfBounds
+        let cf1 ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+        match cf1 with
+        | core.ops.control_flow.ControlFlow.Continue val1 =>
+          let high_mmio ←
+            if reserved_len = val
+            then address_range.AddressRange.empty
+            else
+              do
+              let i1 ← config.high_mmio.start + reserved_len
+              ok { config.high_mmio with start := i1 }
+          match config.io with
+          | none =>
             let r2 ←
-              address_allocator.AddressAllocator.new_from_list
-                (core.iter.traits.collect.IntoIteratorVec
-                address_range.AddressRange) val1 (some page_size) none
+              system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                mmio_address_ranges config.low_mmio
             let cf2 ←
               core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                 r2
             match cf2 with
             | core.ops.control_flow.ControlFlow.Continue val2 =>
               let r3 ←
-                system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
-                  mmio_address_ranges
-                  { config.high_mmio with start := high_mmio_start }
+                address_allocator.AddressAllocator.new_from_list
+                  (core.iter.traits.collect.IntoIteratorVec
+                  address_range.AddressRange) val2 (some page_size) none
               let cf3 ←
                 core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                   r3
               match cf3 with
               | core.ops.control_flow.ControlFlow.Continue val3 =>
                 let r4 ←
-                  address_allocator.AddressAllocator.new_from_list
-                    (core.iter.traits.collect.IntoIteratorVec
-                    address_range.AddressRange) val3 (some page_size) none
+                  system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                    mmio_address_ranges high_mmio
                 let cf4 ←
                   core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                     r4
                 match cf4 with
                 | core.ops.control_flow.ControlFlow.Continue val4 =>
-                  let bm ←
-                    alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
-                      address_allocator.AddressAllocator
-                  match config.platform_mmio with
-                  | none =>
-                    let i2 ← lift (UScalar.cast .U64 config.first_irq)
-                    let r5 ←
-                      address_allocator.AddressAllocator.new
-                        { start := i2, «end» := 1023#u64 } (some 1#u64) none
-                    let cf5 ←
-                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                        r5
-                    match cf5 with
-                    | core.ops.control_flow.ControlFlow.Continue val5 =>
+                  let r5 ←
+                    address_allocator.AddressAllocator.new_from_list
+                      (core.iter.traits.collect.IntoIteratorVec
+                      address_range.AddressRange) val4 (some page_size) none
+                  let cf5 ←
+                    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                      r5
+                  match cf5 with
+                  | core.ops.control_flow.ControlFlow.Continue val5 =>
+                    let bm ←
+                      alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
+                        address_allocator.AddressAllocator
+                    match config.platform_mmio with
+                    | none =>
+                      let i1 ← lift (UScalar.cast .U64 config.first_irq)
                       let r6 ←
                         address_allocator.AddressAllocator.new
-                          { start := 0#u64, «end» := 255#u64 } (some 1#u64)
-                          none
-                      let cf6 ←
-                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                          r6
-                      match cf6 with
-                      | core.ops.control_flow.ControlFlow.Continue val6 =>
-                        ok (core.result.Result.Ok
-                          {
-                            io_address_space := none,
-                            mmio_address_spaces :=
-                              (Array.make 2#usize [ val2, val4 ]),
-                            mmio_platform_address_spaces := none,
-                            reserved_region :=
-                              (some
-                                { config.high_mmio with «end» := reserved_end
-                                }),
-                            pci_allocator := bm,
-                            irq_allocator := val5,
-                            gpe_allocator := val6,
-                            next_anon_id := 0#usize
-                          })
-                      | core.ops.control_flow.ControlFlow.Break residual =>
-                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                          system_allocator.SystemAllocator
-                          (core.convert.FromSame Error) residual
-                    | core.ops.control_flow.ControlFlow.Break residual =>
-                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                        system_allocator.SystemAllocator (core.convert.FromSame
-                        Error) residual
-                  | some platform =>
-                    let r5 ←
-                      address_allocator.AddressAllocator.new platform (some
-                        page_size) none
-                    let cf5 ←
-                      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                        r5
-                    match cf5 with
-                    | core.ops.control_flow.ControlFlow.Continue val5 =>
-                      let i2 ← lift (UScalar.cast .U64 config.first_irq)
-                      let r6 ←
-                        address_allocator.AddressAllocator.new
-                          { start := i2, «end» := 1023#u64 } (some 1#u64)
+                          { start := i1, «end» := 1023#u64 } (some 1#u64)
                           none
                       let cf6 ←
                         core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
@@ -2390,15 +2352,9 @@ def system_allocator.SystemAllocator.new
                             {
                               io_address_space := none,
                               mmio_address_spaces :=
-                                (Array.make 2#usize [ val2, val4 ]),
-                              mmio_platform_address_spaces := (some val5),
-                              reserved_region :=
-                                (some
-                                  {
-                                    config.high_mmio
-                                      with
-                                      «end» := reserved_end
-                                  }),
+                                (Array.make 2#usize [ val3, val5 ]),
+                              mmio_platform_address_spaces := none,
+                              reserved_region := (some val1),
                               pci_allocator := bm,
                               irq_allocator := val6,
                               gpe_allocator := val7,
@@ -2412,10 +2368,62 @@ def system_allocator.SystemAllocator.new
                         core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                           system_allocator.SystemAllocator
                           (core.convert.FromSame Error) residual
-                    | core.ops.control_flow.ControlFlow.Break residual =>
-                      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                        system_allocator.SystemAllocator (core.convert.FromSame
-                        Error) residual
+                    | some platform =>
+                      let r6 ←
+                        address_allocator.AddressAllocator.new platform (some
+                          page_size) none
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        let i1 ← lift (UScalar.cast .U64 config.first_irq)
+                        let r7 ←
+                          address_allocator.AddressAllocator.new
+                            { start := i1, «end» := 1023#u64 } (some 1#u64)
+                            none
+                        let cf7 ←
+                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                            r7
+                        match cf7 with
+                        | core.ops.control_flow.ControlFlow.Continue val7 =>
+                          let r8 ←
+                            address_allocator.AddressAllocator.new
+                              { start := 0#u64, «end» := 255#u64 } (some
+                              1#u64) none
+                          let cf8 ←
+                            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                              r8
+                          match cf8 with
+                          | core.ops.control_flow.ControlFlow.Continue val8 =>
+                            ok (core.result.Result.Ok
+                              {
+                                io_address_space := none,
+                                mmio_address_spaces :=
+                                  (Array.make 2#usize [ val3, val5 ]),
+                                mmio_platform_address_spaces := (some val6),
+                                reserved_region := (some val1),
+                                pci_allocator := bm,
+                                irq_allocator := val7,
+                                gpe_allocator := val8,
+                                next_anon_id := 0#usize
+                              })
+                          | core.ops.control_flow.ControlFlow.Break residual =>
+                            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                              system_allocator.SystemAllocator
+                              (core.convert.FromSame Error) residual
+                        | core.ops.control_flow.ControlFlow.Break residual =>
+                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                            system_allocator.SystemAllocator
+                            (core.convert.FromSame Error) residual
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
+                  | core.ops.control_flow.ControlFlow.Break residual =>
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      system_allocator.SystemAllocator (core.convert.FromSame
+                      Error) residual
                 | core.ops.control_flow.ControlFlow.Break residual =>
                   core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                     system_allocator.SystemAllocator (core.convert.FromSame
@@ -2428,119 +2436,61 @@ def system_allocator.SystemAllocator.new
               core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                 system_allocator.SystemAllocator (core.convert.FromSame Error)
                 residual
-          | core.ops.control_flow.ControlFlow.Break residual =>
-            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-              system_allocator.SystemAllocator (core.convert.FromSame Error)
-              residual
-        | some io =>
-          if io.end > 65535#u64
-          then ok (core.result.Result.Err (Error.IOPortOutOfRange io))
-          else
-            let r1 ←
-              address_allocator.AddressAllocator.new io (some 1024#u64) none
-            let cf1 ←
-              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                r1
-            match cf1 with
-            | core.ops.control_flow.ControlFlow.Continue val1 =>
+          | some io =>
+            if io.end > 65535#u64
+            then ok (core.result.Result.Err (Error.IOPortOutOfRange io))
+            else
               let r2 ←
-                system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
-                  mmio_address_ranges config.low_mmio
+                address_allocator.AddressAllocator.new io (some 1024#u64) none
               let cf2 ←
                 core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                   r2
               match cf2 with
               | core.ops.control_flow.ControlFlow.Continue val2 =>
                 let r3 ←
-                  address_allocator.AddressAllocator.new_from_list
-                    (core.iter.traits.collect.IntoIteratorVec
-                    address_range.AddressRange) val2 (some page_size) none
+                  system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                    mmio_address_ranges config.low_mmio
                 let cf3 ←
                   core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                     r3
                 match cf3 with
                 | core.ops.control_flow.ControlFlow.Continue val3 =>
                   let r4 ←
-                    system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
-                      mmio_address_ranges
-                      { config.high_mmio with start := high_mmio_start }
+                    address_allocator.AddressAllocator.new_from_list
+                      (core.iter.traits.collect.IntoIteratorVec
+                      address_range.AddressRange) val3 (some page_size) none
                   let cf4 ←
                     core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                       r4
                   match cf4 with
                   | core.ops.control_flow.ControlFlow.Continue val4 =>
                     let r5 ←
-                      address_allocator.AddressAllocator.new_from_list
-                        (core.iter.traits.collect.IntoIteratorVec
-                        address_range.AddressRange) val4 (some page_size) none
+                      system_allocator.SystemAllocator.new.closure.Insts.CoreOpsFunctionFnTupleAddressRangeResultVecAddressRangeError.call
+                        mmio_address_ranges high_mmio
                     let cf5 ←
                       core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
                         r5
                     match cf5 with
                     | core.ops.control_flow.ControlFlow.Continue val5 =>
-                      let bm ←
-                        alloc.collections.btree.map.BTreeMapKVGlobal.new Std.U8
-                          address_allocator.AddressAllocator
-                      match config.platform_mmio with
-                      | none =>
-                        let i2 ← lift (UScalar.cast .U64 config.first_irq)
-                        let r6 ←
-                          address_allocator.AddressAllocator.new
-                            { start := i2, «end» := 1023#u64 } (some 1#u64)
-                            none
-                        let cf6 ←
-                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                            r6
-                        match cf6 with
-                        | core.ops.control_flow.ControlFlow.Continue val6 =>
+                      let r6 ←
+                        address_allocator.AddressAllocator.new_from_list
+                          (core.iter.traits.collect.IntoIteratorVec
+                          address_range.AddressRange) val5 (some page_size)
+                          none
+                      let cf6 ←
+                        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                          r6
+                      match cf6 with
+                      | core.ops.control_flow.ControlFlow.Continue val6 =>
+                        let bm ←
+                          alloc.collections.btree.map.BTreeMapKVGlobal.new
+                            Std.U8 address_allocator.AddressAllocator
+                        match config.platform_mmio with
+                        | none =>
+                          let i1 ← lift (UScalar.cast .U64 config.first_irq)
                           let r7 ←
                             address_allocator.AddressAllocator.new
-                              { start := 0#u64, «end» := 255#u64 } (some
-                              1#u64) none
-                          let cf7 ←
-                            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                              r7
-                          match cf7 with
-                          | core.ops.control_flow.ControlFlow.Continue val7 =>
-                            ok (core.result.Result.Ok
-                              {
-                                io_address_space := (some val1),
-                                mmio_address_spaces :=
-                                  (Array.make 2#usize [ val3, val5 ]),
-                                mmio_platform_address_spaces := none,
-                                reserved_region :=
-                                  (some
-                                    {
-                                      config.high_mmio
-                                        with
-                                        «end» := reserved_end
-                                    }),
-                                pci_allocator := bm,
-                                irq_allocator := val6,
-                                gpe_allocator := val7,
-                                next_anon_id := 0#usize
-                              })
-                          | core.ops.control_flow.ControlFlow.Break residual =>
-                            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                              system_allocator.SystemAllocator
-                              (core.convert.FromSame Error) residual
-                        | core.ops.control_flow.ControlFlow.Break residual =>
-                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                            system_allocator.SystemAllocator
-                            (core.convert.FromSame Error) residual
-                      | some platform =>
-                        let r6 ←
-                          address_allocator.AddressAllocator.new platform (some
-                            page_size) none
-                        let cf6 ←
-                          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-                            r6
-                        match cf6 with
-                        | core.ops.control_flow.ControlFlow.Continue val6 =>
-                          let i2 ← lift (UScalar.cast .U64 config.first_irq)
-                          let r7 ←
-                            address_allocator.AddressAllocator.new
-                              { start := i2, «end» := 1023#u64 } (some 1#u64)
+                              { start := i1, «end» := 1023#u64 } (some 1#u64)
                               none
                           let cf7 ←
                             core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
@@ -2559,17 +2509,11 @@ def system_allocator.SystemAllocator.new
                               =>
                               ok (core.result.Result.Ok
                                 {
-                                  io_address_space := (some val1),
+                                  io_address_space := (some val2),
                                   mmio_address_spaces :=
-                                    (Array.make 2#usize [ val3, val5 ]),
-                                  mmio_platform_address_spaces := (some val6),
-                                  reserved_region :=
-                                    (some
-                                      {
-                                        config.high_mmio
-                                          with
-                                          «end» := reserved_end
-                                      }),
+                                    (Array.make 2#usize [ val4, val6 ]),
+                                  mmio_platform_address_spaces := none,
+                                  reserved_region := (some val1),
                                   pci_allocator := bm,
                                   irq_allocator := val7,
                                   gpe_allocator := val8,
@@ -2584,10 +2528,67 @@ def system_allocator.SystemAllocator.new
                             core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                               system_allocator.SystemAllocator
                               (core.convert.FromSame Error) residual
-                        | core.ops.control_flow.ControlFlow.Break residual =>
-                          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                            system_allocator.SystemAllocator
-                            (core.convert.FromSame Error) residual
+                        | some platform =>
+                          let r7 ←
+                            address_allocator.AddressAllocator.new platform
+                              (some page_size) none
+                          let cf7 ←
+                            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                              r7
+                          match cf7 with
+                          | core.ops.control_flow.ControlFlow.Continue val7 =>
+                            let i1 ←
+                              lift (UScalar.cast .U64 config.first_irq)
+                            let r8 ←
+                              address_allocator.AddressAllocator.new
+                                { start := i1, «end» := 1023#u64 } (some
+                                1#u64) none
+                            let cf8 ←
+                              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                                r8
+                            match cf8 with
+                            | core.ops.control_flow.ControlFlow.Continue val8
+                              =>
+                              let r9 ←
+                                address_allocator.AddressAllocator.new
+                                  { start := 0#u64, «end» := 255#u64 } (some
+                                  1#u64) none
+                              let cf9 ←
+                                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                                  r9
+                              match cf9 with
+                              | core.ops.control_flow.ControlFlow.Continue val9
+                                =>
+                                ok (core.result.Result.Ok
+                                  {
+                                    io_address_space := (some val2),
+                                    mmio_address_spaces :=
+                                      (Array.make 2#usize [ val4, val6 ]),
+                                    mmio_platform_address_spaces := (some val7),
+                                    reserved_region := (some val1),
+                                    pci_allocator := bm,
+                                    irq_allocator := val8,
+                                    gpe_allocator := val9,
+                                    next_anon_id := 0#usize
+                                  })
+                              | core.ops.control_flow.ControlFlow.Break
+                                residual =>
+                                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                                  system_allocator.SystemAllocator
+                                  (core.convert.FromSame Error) residual
+                            | core.ops.control_flow.ControlFlow.Break residual
+                              =>
+                              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                                system_allocator.SystemAllocator
+                                (core.convert.FromSame Error) residual
+                          | core.ops.control_flow.ControlFlow.Break residual =>
+                            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                              system_allocator.SystemAllocator
+                              (core.convert.FromSame Error) residual
+                      | core.ops.control_flow.ControlFlow.Break residual =>
+                        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                          system_allocator.SystemAllocator
+                          (core.convert.FromSame Error) residual
                     | core.ops.control_flow.ControlFlow.Break residual =>
                       core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                         system_allocator.SystemAllocator (core.convert.FromSame
@@ -2604,16 +2605,16 @@ def system_allocator.SystemAllocator.new
                 core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
                   system_allocator.SystemAllocator (core.convert.FromSame
                   Error) residual
-            | core.ops.control_flow.ControlFlow.Break residual =>
-              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
-                system_allocator.SystemAllocator (core.convert.FromSame Error)
-                residual
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            system_allocator.SystemAllocator (core.convert.FromSame Error)
+            residual
     | core.ops.control_flow.ControlFlow.Break residual =>
       core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
         system_allocator.SystemAllocator (core.convert.FromSame Error) residual
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::get_anon_alloc]:
-    Source: 'resources/src/system_allocator.rs', lines 455:4-458:5
+    Source: 'resources/src/system_allocator.rs', lines 454:4-457:5
     Visibility: public -/
 def system_allocator.SystemAllocator.get_anon_alloc
   (self : system_allocator.SystemAllocator) :
@@ -2623,7 +2624,7 @@ def system_allocator.SystemAllocator.get_anon_alloc
   ok (Alloc.Anon i, { self with next_anon_id := i })
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}}::call_once]:
-    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 240:17-240:29 -/
 def
   system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
   (c : system_allocator.SystemAllocator.allocate_irq.closure)
@@ -2633,7 +2634,7 @@ def
   ok (UScalar.cast .U32 tupled_args)
 
 /-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq::{closure}}]
-    Source: 'resources/src/system_allocator.rs', lines 241:17-241:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 240:17-240:29 -/
 @[reducible]
 def
   system_allocator.SystemAllocator.allocate_irq.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
@@ -2644,7 +2645,7 @@ def
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_irq]:
-    Source: 'resources/src/system_allocator.rs', lines 237:4-243:5
+    Source: 'resources/src/system_allocator.rs', lines 236:4-242:5
     Visibility: public -/
 def system_allocator.SystemAllocator.allocate_irq
   (self : system_allocator.SystemAllocator) :
@@ -2664,7 +2665,7 @@ def system_allocator.SystemAllocator.allocate_irq
   ok (o, { self1 with irq_allocator := aa })
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::release_irq]:
-    Source: 'resources/src/system_allocator.rs', lines 246:4-248:5
+    Source: 'resources/src/system_allocator.rs', lines 245:4-247:5
     Visibility: public -/
 def system_allocator.SystemAllocator.release_irq
   (self : system_allocator.SystemAllocator) (irq : Std.U32) :
@@ -2676,7 +2677,7 @@ def system_allocator.SystemAllocator.release_irq
   ok { self with irq_allocator := aa }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_irq]:
-    Source: 'resources/src/system_allocator.rs', lines 251:4-263:5
+    Source: 'resources/src/system_allocator.rs', lines 250:4-262:5
     Visibility: public -/
 def system_allocator.SystemAllocator.reserve_irq
   (self : system_allocator.SystemAllocator) (irq : Std.U32) :
@@ -2694,7 +2695,7 @@ def system_allocator.SystemAllocator.reserve_irq
   ok (b, { self1 with irq_allocator := aa })
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}}::call_once]:
-    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 269:17-269:29 -/
 def
   system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32.call_once
   (c : system_allocator.SystemAllocator.allocate_gpe.closure)
@@ -2704,7 +2705,7 @@ def
   ok (UScalar.cast .U32 tupled_args)
 
 /-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{impl core::ops::function::FnOnce<(u64,), u32> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe::{closure}}]
-    Source: 'resources/src/system_allocator.rs', lines 270:17-270:29 -/
+    Source: 'resources/src/system_allocator.rs', lines 269:17-269:29 -/
 @[reducible]
 def
   system_allocator.SystemAllocator.allocate_gpe.closure.Insts.CoreOpsFunctionFnOnceTupleU64U32
@@ -2715,7 +2716,7 @@ def
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_gpe]:
-    Source: 'resources/src/system_allocator.rs', lines 266:4-272:5
+    Source: 'resources/src/system_allocator.rs', lines 265:4-271:5
     Visibility: public -/
 def system_allocator.SystemAllocator.allocate_gpe
   (self : system_allocator.SystemAllocator) :
@@ -2735,7 +2736,7 @@ def system_allocator.SystemAllocator.allocate_gpe
   ok (o, { self1 with gpe_allocator := aa })
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::get_pci_allocator_mut]:
-    Source: 'resources/src/system_allocator.rs', lines 274:4-298:5 -/
+    Source: 'resources/src/system_allocator.rs', lines 273:4-297:5 -/
 def system_allocator.SystemAllocator.get_pci_allocator_mut
   (self : system_allocator.SystemAllocator) (bus : Std.U8) :
   Result ((Option address_allocator.AddressAllocator) × (Option
@@ -2797,7 +2798,7 @@ def system_allocator.SystemAllocator.get_pci_allocator_mut
     ok (some aa, back)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::pci_bus_empty]:
-    Source: 'resources/src/system_allocator.rs', lines 301:4-303:5
+    Source: 'resources/src/system_allocator.rs', lines 300:4-302:5
     Visibility: public -/
 def system_allocator.SystemAllocator.pci_bus_empty
   (self : system_allocator.SystemAllocator) (bus : Std.U8) : Result Bool := do
@@ -2809,7 +2810,7 @@ def system_allocator.SystemAllocator.pci_bus_empty
   ok (¬ b)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{impl core::ops::function::FnOnce<(u64,), resources::pci_address::PciAddress> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}<'_0>}::call_once]:
-    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+    Source: 'resources/src/system_allocator.rs', lines 310:17-314:13 -/
 def
   system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress.call_once
   (c : system_allocator.SystemAllocator.allocate_pci.closure)
@@ -2823,7 +2824,7 @@ def
   ok { bus := c, dev := i1, func := i3 }
 
 /-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{impl core::ops::function::FnOnce<(u64,), resources::pci_address::PciAddress> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci::{closure}<'_0>}]
-    Source: 'resources/src/system_allocator.rs', lines 311:17-315:13 -/
+    Source: 'resources/src/system_allocator.rs', lines 310:17-314:13 -/
 @[reducible]
 def
   system_allocator.SystemAllocator.allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress
@@ -2835,7 +2836,7 @@ def
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_pci]:
-    Source: 'resources/src/system_allocator.rs', lines 306:4-317:5
+    Source: 'resources/src/system_allocator.rs', lines 305:4-316:5
     Visibility: public -/
 def system_allocator.SystemAllocator.allocate_pci
   (self : system_allocator.SystemAllocator) (bus : Std.U8) (tag : String) :
@@ -2867,7 +2868,7 @@ def system_allocator.SystemAllocator.allocate_pci
     ok (o1, self2)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_pci]:
-    Source: 'resources/src/system_allocator.rs', lines 320:4-331:5
+    Source: 'resources/src/system_allocator.rs', lines 319:4-330:5
     Visibility: public -/
 def system_allocator.SystemAllocator.reserve_pci
   (self : system_allocator.SystemAllocator) (pci_addr : pci_address.PciAddress)
@@ -2893,7 +2894,7 @@ def system_allocator.SystemAllocator.reserve_pci
     ok (b, self2)
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::release_pci]:
-    Source: 'resources/src/system_allocator.rs', lines 334:4-341:5
+    Source: 'resources/src/system_allocator.rs', lines 333:4-340:5
     Visibility: public -/
 def system_allocator.SystemAllocator.release_pci
   (self : system_allocator.SystemAllocator) (pci_addr : pci_address.PciAddress)

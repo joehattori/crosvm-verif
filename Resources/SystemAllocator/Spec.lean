@@ -107,8 +107,10 @@ def Reservation (original : AddressRange) (size : Option U64)
   match size, reserved with
   | none, none => remaining = original
   | some n, some r =>
-      remaining.start.val = original.start.val + n.val ∧ remaining.end = original.end ∧
-      r.start = original.start ∧ r.end.val + 1 = original.start.val + n.val
+      (if n.val = original.lenModel then remaining.isEmptyModel
+       else remaining.start.val = original.start.val + n.val ∧ remaining.end = original.end) ∧
+      (if n.val = 0 then r.isEmptyModel
+       else r.start = original.start ∧ r.end.val + 1 = original.start.val + n.val)
   | _, _ => False
 
 /-- Optional spaces are absent exactly when their configuration is absent. -/
@@ -199,8 +201,7 @@ def InitialState (config : SystemAllocatorConfig) (ranges : List AddressRange)
   AddressAllocator.initialState ⟨0#u64, 255#u64⟩ a.gpe_allocator 1#u64 ∧
   a.next_anon_id = 0#usize ∧ WellFormed a
 
-/-- Constructor errors in source evaluation order. Arithmetic failure is excluded
-    by the theorem's explicit reservation bounds. The fixed I/O, IRQ, and GPE
+/-- Constructor errors in source evaluation order. The fixed I/O, IRQ, and GPE
     alignments are valid; all MMIO constructors share the page-size alignment. -/
 def newError (config : SystemAllocatorConfig) (reserve : Option U64) (pageSize : U64) : Option resources.Error := do
   if let some n := reserve then
@@ -400,19 +401,57 @@ private theorem afterReservation_outcome (config : SystemAllocatorConfig)
     · exact hr
     · exact ha
 
+private theorem reserved_from_start_and_size (pool : AddressRange) (n : U64)
+    (hfits : n.val ≤ pool.lenModel) :
+    AddressRange.from_start_and_size pool.start n ⦃ opt =>
+      ∃ r, opt = some r ∧
+        (if n.val = 0 then r.isEmptyModel
+         else r.start = pool.start ∧ r.end.val + 1 = pool.start.val + n.val) ⦄ := by
+  apply WP.spec_mono (AddressRange.from_start_and_size_spec pool.start n)
+  intro opt h
+  by_cases hn : n.val = 0
+  · simpa [hn] using h
+  · have hpos : 0 < pool.lenModel := by omega
+    have hend_bound : pool.start.val + (n.val - 1) ≤ U64.max := by
+      unfold AddressRange.lenModel AddressRange.isEmptyModel at hfits hpos
+      split_ifs at hfits hpos <;> scalar_tac
+    simp only [hn, hend_bound, ↓reduceIte] at h ⊢
+    obtain ⟨r, rfl, hstart, hend, _⟩ := h
+    exact ⟨r, rfl, hstart, by omega⟩
+
+private theorem remaining_high_mmio (pool : AddressRange) (n len : U64)
+    (hlenval : len.val = pool.lenModel) (hfits : n.val ≤ pool.lenModel) :
+    (if n = len then AddressRange.empty
+     else do
+       let i1 ← pool.start + n
+       ok { pool with start := i1 }) ⦃ remaining =>
+      if n.val = pool.lenModel then remaining.isEmptyModel
+      else remaining.start.val = pool.start.val + n.val ∧ remaining.end = pool.end ⦄ := by
+  split
+  · rename_i heq
+    have hn : n.val = pool.lenModel := by rw [heq, hlenval]
+    step with AddressRange.empty_spec as ⟨remaining, _, _, hrem⟩
+    simpa [hn] using hrem
+  · rename_i hne
+    have hn : n.val ≠ pool.lenModel := by
+      intro h
+      apply hne
+      apply UScalar.eq_of_val_eq
+      omega
+    have hlt : n.val < pool.lenModel := by omega
+    have hbound : pool.start.val + n.val ≤ U64.max := by
+      unfold AddressRange.lenModel AddressRange.isEmptyModel at hlt
+      split_ifs at hlt <;> scalar_tac
+    step as ⟨start, hstart⟩
+    simp [hn, hstart]
+
 /-- Total correctness of construction, assuming a successful host page-size query
     and disjoint MMIO restrictions. Invalid configurations return the specified error. -/
 @[step]
 theorem new_spec (config : SystemAllocatorConfig) (reserve : Option U64)
     (ranges : Slice AddressRange) (hostPageSize : Usize)
     (hpage : _root_.base.sys.unix.system_info.pagesize = ok hostPageSize)
-    (hd : AddressAllocator.DisjointPools ranges.val)
-    -- TODO(BUG-003): Remove these bounds after fixing the unchecked reservation
-    -- arithmetic in SystemAllocator::new and regenerating Lean.
-    (hreserve : ∀ n, reserve = some n → config.high_mmio.lenModel ≤ U64.max →
-      n.val ≤ config.high_mmio.lenModel →
-      0 < config.high_mmio.start.val + n.val ∧
-        config.high_mmio.start.val + n.val ≤ U64.max) :
+    (hd : AddressAllocator.DisjointPools ranges.val) :
     SystemAllocator.new config reserve ranges ⦃ result =>
       NewOutcome config reserve ranges.val (UScalar.cast .U64 hostPageSize) result ⦄ := by
   unfold SystemAllocator.new
@@ -444,18 +483,16 @@ theorem new_spec (config : SystemAllocatorConfig) (reserve : Option U64)
         simp [NewOutcome, newError, Nat.not_lt_of_ge hlen, hout']
       · rename_i hfits
         have hfits' : n.val ≤ config.high_mmio.lenModel := by scalar_tac
-        have hbounds := hreserve n rfl hlen hfits'
-        step as ⟨upper, hupper⟩
-        step as ⟨last, hlast⟩
-        step as ⟨start, hstart⟩
-        have hr : Reservation config.high_mmio (some n)
-            { config.high_mmio with start := start } (some { config.high_mmio with «end» := last }) := by
-          refine ⟨?_, rfl, rfl, ?_⟩ <;> simp only <;> omega
+        step with reserved_from_start_and_size config.high_mmio n hfits' as ⟨opt, r, hopt, hr_reserved⟩
+        subst opt
+        simp only [core.option.Option.ok_or_some, bind_ok]
+        step with remaining_high_mmio config.high_mmio n len hlenval hfits' as ⟨high, hr_high⟩
+        have hr : Reservation config.high_mmio (some n) high (some r) := ⟨hr_high, hr_reserved⟩
         have he : newError config (some n) (UScalar.cast .U64 hostPageSize) =
             newError config none (UScalar.cast .U64 hostPageSize) := by
           simp [newError, Nat.not_lt_of_ge hlen, Nat.not_lt_of_ge hfits']
         have h := afterReservation_outcome config (some n) ranges (UScalar.cast .U64 hostPageSize)
-          _ _ hd hr he
+          high (some r) hd hr he
         cases hio : config.io <;> cases hp : config.platform_mmio <;>
           simp only [afterReservation, afterIo, completeAllocator, andThen, lift, bind_ok,
             core.result.Result.Insts.CoreOpsTry.branch, hio, hp] at h ⊢ <;>
