@@ -1184,4 +1184,106 @@ theorem pci_bus_empty_spec (self : SystemAllocator) (bus : U8) :
   rw [findEntryKey_u8]
   by_cases h : bus ∈ self.pci_allocator <;> simp [Finmap.mem_keys, h]
 
+/-! ### MMIO allocation -/
+
+/-- Array position of the address space selected by the MMIO type. -/
+def mmioIndex : MmioType → Usize
+  | .Low => 0#usize
+  | .High => 1#usize
+
+theorem mmioIndex_lt (mmio_type : MmioType) : (mmioIndex mmio_type).val < 2 := by
+  cases mmio_type <;> simp [mmioIndex]
+
+/-- The address space selected by the MMIO type. -/
+def mmioAllocator (self : SystemAllocator) (mmio_type : MmioType) : AddressAllocator :=
+  self.mmio_address_spaces.val[(mmioIndex mmio_type).val]'(by simpa using mmioIndex_lt mmio_type)
+
+/-- Replace the address space selected by the MMIO type. -/
+def setMmioAllocator (self : SystemAllocator) (mmio_type : MmioType)
+    (space : AddressAllocator) : SystemAllocator :=
+  { self with mmio_address_spaces := self.mmio_address_spaces.set (mmioIndex mmio_type) space }
+
+theorem mmioAllocator_wellFormed {self : SystemAllocator} (hwf : WellFormed self)
+    (mmio_type : MmioType) : AddressAllocator.WellFormed (mmioAllocator self mmio_type) :=
+  hwf.2.1 _ (List.getElem_mem _)
+
+/-- Replacing an MMIO space by a well-formed one preserves system well-formedness. -/
+theorem setMmioAllocator_wellFormed {self : SystemAllocator} {space : AddressAllocator}
+    (hwf : WellFormed self) (mmio_type : MmioType) (hspace : AddressAllocator.WellFormed space) :
+    WellFormed (setMmioAllocator self mmio_type space) := by
+  obtain ⟨hio, hmmio, hrest⟩ := hwf
+  refine ⟨hio, ?_, hrest⟩
+  intro mmio hmem
+  simp only [setMmioAllocator, Array.set_val_eq] at hmem
+  rcases List.mem_or_eq_of_mem_set hmem with h | h
+  · exact hmmio mmio h
+  · exact h ▸ hspace
+
+open scoped Classical in
+/-- Alignment selected by the options: an explicit alignment is raised to the space's
+    minimum alignment; otherwise the preferred alignment is used when some placement
+    admits it, falling back to the minimum alignment. -/
+noncomputable def mmioAlignment (space : AddressAllocator) (size : U64)
+    (opts : AllocOptions) : Nat :=
+  match opts.alignment with
+  | some align => max space.min_align.val align.val
+  | none =>
+    if ∃ start, AddressAllocator.Placement space.regions size.val space.preferred_align.val start
+    then space.preferred_align.val else space.min_align.val
+
+/-- Allocate from the selected MMIO space with the alignment and search direction
+    requested by the options, and write the updated space back. -/
+def MmioAllocationOutcome (self : SystemAllocator) (size : U64) (allocation : resources.Alloc)
+    (tag : String) (opts : AllocOptions) (mmio_type : MmioType)
+    (result : core.result.Result U64 resources.Error) (a : SystemAllocator) : Prop :=
+  let space := mmioAllocator self mmio_type
+  ∃ after : AddressAllocator,
+    a = setMmioAllocator self mmio_type after ∧
+    AddressAllocator.AlignedAllocationOutcome space size allocation tag
+      (mmioAlignment space size opts) opts.top_down result after
+
+private theorem mmio_index_spec (mmio_type : MmioType) :
+    lift (IScalar.hcast .Usize (read_discriminant mmio_type)) ⦃ i => i = mmioIndex mmio_type ⦄ := by
+  apply WP.spec_mono (IScalar.hcast_inBounds_spec .Usize _ ?_)
+  · intro i hi
+    apply UScalar.eq_of_val_eq
+    cases mmio_type <;> simp [mmioIndex, read_discriminant, MmioType.read_discriminant] at hi ⊢ <;>
+      omega
+  · cases mmio_type <;> simp [read_discriminant, MmioType.read_discriminant]; scalar_tac
+
+/-- Allocate with the requested options from the selected MMIO space, preserving
+    system invariants. The address-allocator contract determines success and errors. -/
+@[step]
+theorem allocate_mmio_internal_spec (self : SystemAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (opts : AllocOptions) (mmio_type : MmioType)
+    (hwf : WellFormed self) :
+    allocate_mmio_internal self size allocation tag opts mmio_type ⦃ result a =>
+      WellFormed a ∧ MmioAllocationOutcome self size allocation tag opts mmio_type result a ⦄ := by
+  unfold allocate_mmio_internal
+  step with mmio_index_spec mmio_type as ⟨i, hi⟩
+  subst i
+  step with Array.index_mut_usize_spec self.mmio_address_spaces (mmioIndex mmio_type)
+    (by simpa using mmioIndex_lt mmio_type) as ⟨space, back, hspace, hback⟩
+  subst space back
+  rw [← mmioAllocator]
+  have hwspace := mmioAllocator_wellFormed hwf mmio_type
+  obtain ⟨_, _, alignment, top_down⟩ := opts
+  cases alignment with
+  | none =>
+    cases top_down <;> simp only [Bool.false_eq_true, ↓reduceIte]
+    · step with AddressAllocator.allocate_spec (mmioAllocator self mmio_type) size allocation tag hwspace
+        as ⟨result, after, hwafter, hout⟩
+      exact ⟨setMmioAllocator_wellFormed hwf mmio_type hwafter, after, rfl, hout⟩
+    · step with AddressAllocator.reverse_allocate_spec (mmioAllocator self mmio_type) size allocation tag
+        hwspace as ⟨result, after, hwafter, hout⟩
+      exact ⟨setMmioAllocator_wellFormed hwf mmio_type hwafter, after, rfl, hout⟩
+  | some align =>
+    cases top_down <;> simp only [Bool.false_eq_true, ↓reduceIte]
+    · step with AddressAllocator.allocate_with_align_spec (mmioAllocator self mmio_type) size allocation
+        tag align hwspace as ⟨result, after, hwafter, hout⟩
+      exact ⟨setMmioAllocator_wellFormed hwf mmio_type hwafter, after, rfl, hout⟩
+    · step with AddressAllocator.reverse_allocate_with_align_spec (mmioAllocator self mmio_type) size
+        allocation tag align hwspace as ⟨result, after, hwafter, hout⟩
+      exact ⟨setMmioAllocator_wellFormed hwf mmio_type hwafter, after, rfl, hout⟩
+
 end resources.system_allocator.SystemAllocator

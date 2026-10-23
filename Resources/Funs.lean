@@ -2916,4 +2916,46 @@ def system_allocator.SystemAllocator.release_pci
     let self1 := get_pci_allocator_mut_back (some v1)
     ok (b, self1)
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_mmio_internal]:
+    Source: 'resources/src/system_allocator.rs', lines 371:4-386:5 -/
+def system_allocator.SystemAllocator.allocate_mmio_internal
+  (self : system_allocator.SystemAllocator) (size : Std.U64) (alloc1 : Alloc)
+  (tag : String) (opts : system_allocator.AllocOptions)
+  (mmio_type : system_allocator.MmioType) :
+  Result ((core.result.Result Std.U64 Error) ×
+    system_allocator.SystemAllocator)
+  := do
+  let mmio_type1 := read_discriminant mmio_type
+  let i ← lift (IScalar.hcast .Usize mmio_type1)
+  let (allocator, index_mut_back) ←
+    Array.index_mut_usize self.mmio_address_spaces i
+  match opts.alignment with
+  | none =>
+    if opts.top_down
+    then
+      let (r, allocator1) ←
+        address_allocator.AddressAllocator.reverse_allocate allocator size
+          alloc1 tag
+      let a := index_mut_back allocator1
+      ok (r, { self with mmio_address_spaces := a })
+    else
+      let (r, allocator1) ←
+        address_allocator.AddressAllocator.allocate allocator size alloc1 tag
+      let a := index_mut_back allocator1
+      ok (r, { self with mmio_address_spaces := a })
+  | some align =>
+    if opts.top_down
+    then
+      let (r, allocator1) ←
+        address_allocator.AddressAllocator.reverse_allocate_with_align
+          allocator size alloc1 tag align
+      let a := index_mut_back allocator1
+      ok (r, { self with mmio_address_spaces := a })
+    else
+      let (r, allocator1) ←
+        address_allocator.AddressAllocator.allocate_with_align allocator size
+          alloc1 tag align
+      let a := index_mut_back allocator1
+      ok (r, { self with mmio_address_spaces := a })
+
 end resources

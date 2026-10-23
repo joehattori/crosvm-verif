@@ -198,6 +198,23 @@ structure pci_address.PciAddress where
   dev : Std.U8
   func : Std.U8
 
+/-- [resources::system_allocator::MmioType]
+    Source: 'resources/src/system_allocator.rs', lines 24:0-27:1
+    Visibility: public -/
+@[discriminant isize]
+inductive system_allocator.MmioType where
+| Low : system_allocator.MmioType
+| High : system_allocator.MmioType
+
+/-- [resources::system_allocator::AllocOptions]
+    Source: 'resources/src/system_allocator.rs', lines 31:0-36:1
+    Visibility: public -/
+structure system_allocator.AllocOptions where
+  prefetchable : Bool
+  max_address : Std.U64
+  alignment : Option Std.U64
+  top_down : Bool
+
 /-- [resources::system_allocator::SystemAllocatorConfig]
     Source: 'resources/src/system_allocator.rs', lines 87:0-106:1
     Visibility: public -/
