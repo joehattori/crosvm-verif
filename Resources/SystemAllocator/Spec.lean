@@ -591,7 +591,7 @@ private theorem allocated_start_u32 {self a : AddressAllocator} {allocation : re
     (hlimit : limit ≤ U32.max)
     (hout : AddressAllocator.AllocationOutcome self 1#u64 allocation tag false (.Ok start) a) :
     UScalar.cast .U64 (UScalar.cast .U32 start) = start := by
-  have hbound := hunit.free_le hwf hout.placement.covers
+  have hbound := hunit.free_le hwf hout.covers
   have hcast : (UScalar.cast .U32 start).val = start.val := by
     rw [UScalar.cast_val_eq]
     apply Nat.mod_eq_of_lt
@@ -921,7 +921,7 @@ private theorem pci_allocated_bound {self a : AddressAllocator} {bus : U8}
     (hwf : AddressAllocator.WellFormed self) (hpci : PciAllocatorInvariant bus self)
     (hout : AddressAllocator.AllocationOutcome self 1#u64 allocation tag false (.Ok start) a) :
     start.val ≤ 255 := by
-  obtain ⟨r, hr, ha⟩ := hwf.free_mem_pools hout.placement.covers
+  obtain ⟨r, hr, ha⟩ := hwf.free_mem_pools hout.covers
   rw [hpci.1] at hr
   have hr := List.mem_singleton.mp hr
   subst r

@@ -1026,6 +1026,21 @@ theorem AlignedAllocationOutcome.pools_alignments {self a : AddressAllocator} {s
           obtain ⟨range, _, _, hpools, hmin, hpref, _⟩ := h.2
           exact ⟨hpools, hmin, hpref⟩
 
+/-- Every error preserves the allocator. -/
+theorem AlignedAllocationOutcome.eq_of_err {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
+    {error : resources.Error}
+    (h : AlignedAllocationOutcome self size allocation tag alignment reverse (.Err error) a) :
+    a = self := by
+  unfold AlignedAllocationOutcome at h
+  split at h
+  · exact h.2
+  · split at h
+    · exact h.2
+    · split at h
+      · exact h.2
+      · exact h.2.1
+
 /-- A successful allocation starts at a placement of the effective alignment. -/
 theorem AlignedAllocationOutcome.placement {self a : AddressAllocator} {size : U64}
     {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool} {start : U64}
@@ -1158,17 +1173,62 @@ theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
 
 /-! ### Preferred alignment fallback -/
 
-open scoped Classical in
-/-- Allocation without an explicit alignment: the preferred alignment is requested
-    when some placement admits it, otherwise the minimum alignment. -/
+/-- Allocation without an explicit alignment: the preferred alignment is tried first,
+    and the minimum alignment is used only if that attempt fails (its error is discarded). -/
 def AllocationOutcome (self : AddressAllocator) (size : U64) (allocation : resources.Alloc)
     (tag : String) (reverse : Bool) (result : core.result.Result U64 resources.Error)
     (a : AddressAllocator) : Prop :=
-  AlignedAllocationOutcome self size allocation tag
-    (if ∃ start, Placement self.regions size.val self.preferred_align.val start
-     then self.preferred_align.val else self.min_align.val) reverse result a
+  ∃ (first : core.result.Result U64 resources.Error) (tried : AddressAllocator),
+    AlignedAllocationOutcome self size allocation tag self.preferred_align.val reverse first tried ∧
+    match first with
+    | .Ok _ => result = first ∧ a = tried
+    | .Err _ => AlignedAllocationOutcome tried size allocation tag tried.min_align.val reverse result a
 
-open scoped Classical in
+/-- Allocation leaves the recorded pools and alignment policy unchanged. -/
+theorem AllocationOutcome.pools_alignments {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {reverse : Bool}
+    {result : core.result.Result U64 resources.Error}
+    (h : AllocationOutcome self size allocation tag reverse result a) :
+    a.pools = self.pools ∧ a.min_align = self.min_align ∧ a.preferred_align = self.preferred_align := by
+  obtain ⟨first, tried, hfirst, h⟩ := h
+  obtain ⟨hp, hm, hq⟩ := hfirst.pools_alignments
+  cases first with
+  | Ok start =>
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨hp, hm, hq⟩
+  | Err error =>
+    obtain ⟨hp', hm', hq'⟩ := h.pools_alignments
+    exact ⟨hp'.trans hp, hm'.trans hm, hq'.trans hq⟩
+
+/-- Allocation preserves well-formedness on both success and expected errors. -/
+theorem AllocationOutcome.wellFormed {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {reverse : Bool}
+    {result : core.result.Result U64 resources.Error}
+    (h : AllocationOutcome self size allocation tag reverse result a) (hwf : WellFormed self) :
+    WellFormed a := by
+  obtain ⟨first, tried, hfirst, h⟩ := h
+  cases first with
+  | Ok start =>
+    obtain ⟨rfl, rfl⟩ := h
+    exact hfirst.wellFormed hwf
+  | Err error => exact h.wellFormed (hfirst.wellFormed hwf)
+
+/-- A successful allocation starts at a free address. -/
+theorem AllocationOutcome.covers {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {reverse : Bool} {start : U64}
+    (h : AllocationOutcome self size allocation tag reverse (.Ok start) a) :
+    Covers self.regions start.val := by
+  obtain ⟨first, tried, hfirst, h⟩ := h
+  cases first with
+  | Ok start' =>
+    obtain ⟨hresult, rfl⟩ := h
+    cases hresult
+    exact hfirst.placement.covers
+  | Err error =>
+    have htried := hfirst.eq_of_err
+    subst tried
+    exact h.placement.covers
+
 /-- The shared two-attempt allocation sequence, parameterized by search direction. -/
 private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (reverse : Bool)
@@ -1179,34 +1239,16 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
       | .Ok _ => ok (result, a)
       | .Err _ => internal_allocate_with_align a size allocation tag a.min_align reverse)
       ⦃ result a => AllocationOutcome self size allocation tag reverse result a ⦄ := by
-  classical
-  rcases hwf.toStructuralInvariant with ⟨hv, hmin, hpref, horder⟩
-  have hmax := max_eq_right horder
-  step with internal_allocate_with_align_spec self size allocation tag self.preferred_align reverse hv
-    as ⟨result, a, hfirst⟩
+  step with internal_allocate_with_align_spec self size allocation tag self.preferred_align reverse
+    hwf.validRegions as ⟨result, a, hfirst⟩
   cases result with
   | Ok start =>
-    have hsuccess : AlignedAllocation self size allocation tag self.preferred_align.val reverse start a := by
-      simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
-      split_ifs at hfirst <;> simp_all
-    have hfits : ∃ candidate, Placement self.regions size.val self.preferred_align.val candidate :=
-      ⟨start.val, hsuccess.1.1⟩
-    simpa only [AllocationOutcome, hfits, ↓reduceIte, WP.spec_ok, WP.uncurry'] using hfirst
+    simp only [WP.spec_ok, WP.uncurry']
+    exact ⟨.Ok start, a, hfirst, rfl, rfl⟩
   | Err error =>
-    have hself : a = self := by
-      simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
-      split_ifs at hfirst <;> tauto
-    subst a
-    step with internal_allocate_with_align_spec self size allocation tag self.min_align reverse hv as ⟨result, a, hsecond⟩
-    by_cases hk : allocation ∈ self.allocs
-    · simpa [AllocationOutcome, AlignedAllocationOutcome, hk] using hsecond
-    by_cases hz : size.val = 0
-    · simpa [AllocationOutcome, AlignedAllocationOutcome, hk, hz] using hsecond
-    have hno : ¬∃ start, Placement self.regions size.val self.preferred_align.val start := by
-      simp only [AlignedAllocationOutcome, hmax, if_neg hk, if_neg hz,
-        hpref, not_true_eq_false, ↓reduceIte] at hfirst
-      exact hfirst.2.2
-    simpa only [AllocationOutcome, hno, ↓reduceIte] using hsecond
+    step with internal_allocate_with_align_spec a size allocation tag a.min_align reverse
+      (hfirst.wellFormed hwf).validRegions as ⟨result, a', hsecond⟩
+    exact ⟨.Err error, a, hfirst, hsecond⟩
 
 /-! ### Public allocation -/
 
