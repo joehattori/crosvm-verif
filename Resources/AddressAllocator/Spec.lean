@@ -863,6 +863,12 @@ theorem Placement.of_dvd {rs : List AddressRange} {size alignment start smaller 
   obtain ⟨slot, hm, hs, ha, he⟩ := h
   exact ⟨slot, hm, hs, Nat.mod_eq_zero_of_dvd (hd.trans (Nat.dvd_of_mod_eq_zero ha)), he⟩
 
+/-- A placement starts at a free address. -/
+theorem Placement.covers {rs : List AddressRange} {size alignment start : Nat}
+    (h : Placement rs size alignment start) : Covers rs start := by
+  obtain ⟨slot, hm, hs, _, he⟩ := h
+  exact ⟨slot, hm, hs, by omega⟩
+
 /-- Forward allocation chooses the lowest possible address; reverse chooses the highest. -/
 def BestPlacement (rs : List AddressRange) (size alignment : Nat) (reverse : Bool)
     (start : Nat) : Prop :=
@@ -1020,6 +1026,20 @@ theorem AlignedAllocationOutcome.pools_alignments {self a : AddressAllocator} {s
           obtain ⟨range, _, _, hpools, hmin, hpref, _⟩ := h.2
           exact ⟨hpools, hmin, hpref⟩
 
+/-- A successful allocation starts at a placement of the effective alignment. -/
+theorem AlignedAllocationOutcome.placement {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool} {start : U64}
+    (h : AlignedAllocationOutcome self size allocation tag alignment reverse (.Ok start) a) :
+    Placement self.regions size.val (max self.min_align.val alignment) start.val := by
+  unfold AlignedAllocationOutcome at h
+  split at h
+  · simp at h
+  · split at h
+    · simp at h
+    · split at h
+      · simp at h
+      · exact h.1.1
+
 /-- A successful allocation under a fresh key preserves the full invariant. -/
 theorem AlignedAllocation.wellFormed {self a : AddressAllocator} {size start : U64}
     {allocation : resources.Alloc} {tag : String} {alignment : Nat} {reverse : Bool}
@@ -1139,11 +1159,14 @@ theorem internal_allocate_with_align_spec (self : AddressAllocator) (size : U64)
 /-! ### Preferred alignment fallback -/
 
 open scoped Classical in
-/-- Alignment requested by the preferred-alignment fallback: the preferred alignment
+/-- Allocation without an explicit alignment: the preferred alignment is requested
     when some placement admits it, otherwise the minimum alignment. -/
-noncomputable def preferredAlignment (a : AddressAllocator) (size : U64) : Nat :=
-  if ∃ start, Placement a.regions size.val a.preferred_align.val start
-  then a.preferred_align.val else a.min_align.val
+def AllocationOutcome (self : AddressAllocator) (size : U64) (allocation : resources.Alloc)
+    (tag : String) (reverse : Bool) (result : core.result.Result U64 resources.Error)
+    (a : AddressAllocator) : Prop :=
+  AlignedAllocationOutcome self size allocation tag
+    (if ∃ start, Placement self.regions size.val self.preferred_align.val start
+     then self.preferred_align.val else self.min_align.val) reverse result a
 
 open scoped Classical in
 /-- The shared two-attempt allocation sequence, parameterized by search direction. -/
@@ -1155,9 +1178,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
       match result with
       | .Ok _ => ok (result, a)
       | .Err _ => internal_allocate_with_align a size allocation tag a.min_align reverse)
-      ⦃ result a =>
-        AlignedAllocationOutcome self size allocation tag (preferredAlignment self size)
-          reverse result a ⦄ := by
+      ⦃ result a => AllocationOutcome self size allocation tag reverse result a ⦄ := by
   classical
   rcases hwf.toStructuralInvariant with ⟨hv, hmin, hpref, horder⟩
   have hmax := max_eq_right horder
@@ -1170,7 +1191,7 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
       split_ifs at hfirst <;> simp_all
     have hfits : ∃ candidate, Placement self.regions size.val self.preferred_align.val candidate :=
       ⟨start.val, hsuccess.1.1⟩
-    simpa only [preferredAlignment, hfits, ↓reduceIte, WP.spec_ok, WP.uncurry'] using hfirst
+    simpa only [AllocationOutcome, hfits, ↓reduceIte, WP.spec_ok, WP.uncurry'] using hfirst
   | Err error =>
     have hself : a = self := by
       simp only [AlignedAllocationOutcome, hmax, hpref, not_true_eq_false, ↓reduceIte] at hfirst
@@ -1178,14 +1199,14 @@ private theorem allocate_preferred_spec (self : AddressAllocator) (size : U64)
     subst a
     step with internal_allocate_with_align_spec self size allocation tag self.min_align reverse hv as ⟨result, a, hsecond⟩
     by_cases hk : allocation ∈ self.allocs
-    · simpa [AlignedAllocationOutcome, hk] using hsecond
+    · simpa [AllocationOutcome, AlignedAllocationOutcome, hk] using hsecond
     by_cases hz : size.val = 0
-    · simpa [AlignedAllocationOutcome, hk, hz] using hsecond
+    · simpa [AllocationOutcome, AlignedAllocationOutcome, hk, hz] using hsecond
     have hno : ¬∃ start, Placement self.regions size.val self.preferred_align.val start := by
       simp only [AlignedAllocationOutcome, hmax, if_neg hk, if_neg hz,
         hpref, not_true_eq_false, ↓reduceIte] at hfirst
       exact hfirst.2.2
-    simpa only [preferredAlignment, hno, ↓reduceIte] using hsecond
+    simpa only [AllocationOutcome, hno, ↓reduceIte] using hsecond
 
 /-! ### Public allocation -/
 
@@ -1222,8 +1243,7 @@ theorem reverse_allocate_with_align_spec (self : AddressAllocator) (size : U64)
 theorem allocate_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self) :
     allocate self size allocation tag ⦃ result a =>
-      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag (preferredAlignment self size)
-        false result a ⦄ := by
+      WellFormed a ∧ AllocationOutcome self size allocation tag false result a ⦄ := by
   unfold allocate allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
   apply WP.spec_mono (allocate_preferred_spec self size allocation tag false hwf)
@@ -1237,8 +1257,7 @@ theorem allocate_spec (self : AddressAllocator) (size : U64)
 theorem reverse_allocate_spec (self : AddressAllocator) (size : U64)
     (allocation : resources.Alloc) (tag : String) (hwf : WellFormed self) :
     reverse_allocate self size allocation tag ⦃ result a =>
-      WellFormed a ∧ AlignedAllocationOutcome self size allocation tag (preferredAlignment self size)
-        true result a ⦄ := by
+      WellFormed a ∧ AllocationOutcome self size allocation tag true result a ⦄ := by
   unfold reverse_allocate reverse_allocate_with_align
   simp only [alloc.string.String.Insts.CoreCloneClone.clone, bind_ok]
   apply WP.spec_mono (allocate_preferred_spec self size allocation tag true hwf)

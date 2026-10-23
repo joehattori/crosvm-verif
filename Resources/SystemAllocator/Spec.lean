@@ -549,11 +549,11 @@ def IrqAllocationOutcome (self : SystemAllocator) (result : Option U32)
   a = { self with next_anon_id := a.next_anon_id, irq_allocator := a.irq_allocator } ∧
   match result with
   | none => ∃ error,
-      AddressAllocator.AlignedAllocationOutcome self.irq_allocator 1#u64
-        (.Anon a.next_anon_id) "irq-auto" 1 false (.Err error) a.irq_allocator
+      AddressAllocator.AllocationOutcome self.irq_allocator 1#u64
+        (.Anon a.next_anon_id) "irq-auto" false (.Err error) a.irq_allocator
   | some irq =>
-      AddressAllocator.AlignedAllocationOutcome self.irq_allocator 1#u64
-        (.Anon a.next_anon_id) "irq-auto" 1 false (.Ok (UScalar.cast .U64 irq)) a.irq_allocator
+      AddressAllocator.AllocationOutcome self.irq_allocator 1#u64
+        (.Anon a.next_anon_id) "irq-auto" false (.Ok (UScalar.cast .U64 irq)) a.irq_allocator
 
 private theorem string_tag (str : Str) (tag : String)
     (hbytes : (⟨str.val.toArray.map (fun b => UInt8.ofBitVec b.bv)⟩ : ByteArray) = tag.toByteArray) :
@@ -569,10 +569,6 @@ private theorem irq_tag :
   simp only [Aeneas.Std.toStr, Slice.from_val, List.map_toArray]
   with_unfolding_all rfl
 
-private theorem unit_placement_iff (rs : List AddressRange) (addr : Nat) :
-    AddressAllocator.Placement rs 1 1 addr ↔ AddressAllocator.Covers rs addr := by
-  simp [AddressAllocator.Placement, AddressAllocator.Covers, AddressRange.containsModel, Nat.mod_one]
-
 private theorem u32_into_u64 (value : U32) :
     core.convert.num.FromU64U32.from value = UScalar.cast .U64 value := by
   apply UScalar.eq_of_val_eq
@@ -583,37 +579,19 @@ private theorem allocate_unit_spec (self : AddressAllocator) (allocation : resou
     (hunit : UnitAllocatorInvariant limit self) :
     AddressAllocator.allocate self 1#u64 allocation tag ⦃ result a =>
       AddressAllocator.WellFormed a ∧ UnitAllocatorInvariant limit a ∧
-      AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag 1 false result a ⦄ := by
+      AddressAllocator.AllocationOutcome self 1#u64 allocation tag false result a ⦄ := by
   apply WP.spec_mono (AddressAllocator.allocate_spec self 1#u64 allocation tag hwf)
   rintro ⟨result, a⟩ h
-  have hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag 1 false result a := by
-    simpa [AddressAllocator.preferredAlignment, hunit.1, hunit.2.1] using h.2
-  refine ⟨h.1, ?_, hout⟩
-  by_cases hk : allocation ∈ self.allocs
-  · have hs : a = self := by
-      simp [AddressAllocator.AlignedAllocationOutcome, hk] at hout
-      exact hout.2
-    simpa [hs] using hunit
-  · simp only [AddressAllocator.AlignedAllocationOutcome, if_neg hk] at hout
-    simp [hunit.1, show Nat.isPowerOfTwo 1 from by decide] at hout
-    cases result with
-    | Err error => simpa [hout.2.1] using hunit
-    | Ok start =>
-      obtain ⟨range, _, _, hpools, hmin, hpref, _⟩ := hout.2
-      exact hunit.preserved hpools hmin hpref
+  have hf := h.2.pools_alignments
+  exact ⟨h.1, hunit.preserved hf.1 hf.2.1 hf.2.2, h.2⟩
 
 private theorem allocated_start_u32 {self a : AddressAllocator} {allocation : resources.Alloc}
     {tag : String} {start : U64} {limit : Nat} (hwf : AddressAllocator.WellFormed self)
     (hunit : UnitAllocatorInvariant limit self)
     (hlimit : limit ≤ U32.max)
-    (hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag 1 false (.Ok start) a) :
+    (hout : AddressAllocator.AllocationOutcome self 1#u64 allocation tag false (.Ok start) a) :
     UScalar.cast .U64 (UScalar.cast .U32 start) = start := by
-  have hs : AddressAllocator.AlignedAllocation self 1#u64 allocation tag 1 false start a := by
-    unfold AddressAllocator.AlignedAllocationOutcome at hout
-    split at hout
-    · simp at hout
-    · simpa [hunit.1, show Nat.isPowerOfTwo 1 from by decide] using hout
-  have hbound := hunit.free_le hwf ((unit_placement_iff _ _).mp hs.1.1)
+  have hbound := hunit.free_le hwf hout.placement.covers
   have hcast : (UScalar.cast .U32 start).val = start.val := by
     rw [UScalar.cast_val_eq]
     apply Nat.mod_eq_of_lt
@@ -754,11 +732,11 @@ def GpeAllocationOutcome (self : SystemAllocator) (result : Option U32)
   a = { self with next_anon_id := a.next_anon_id, gpe_allocator := a.gpe_allocator } ∧
   match result with
   | none => ∃ error,
-      AddressAllocator.AlignedAllocationOutcome self.gpe_allocator 1#u64
-        (.Anon a.next_anon_id) "gpe-auto" 1 false (.Err error) a.gpe_allocator
+      AddressAllocator.AllocationOutcome self.gpe_allocator 1#u64
+        (.Anon a.next_anon_id) "gpe-auto" false (.Err error) a.gpe_allocator
   | some gpe =>
-      AddressAllocator.AlignedAllocationOutcome self.gpe_allocator 1#u64
-        (.Anon a.next_anon_id) "gpe-auto" 1 false (.Ok (UScalar.cast .U64 gpe)) a.gpe_allocator
+      AddressAllocator.AllocationOutcome self.gpe_allocator 1#u64
+        (.Anon a.next_anon_id) "gpe-auto" false (.Ok (UScalar.cast .U64 gpe)) a.gpe_allocator
 
 private theorem gpe_tag :
     _root_.alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay (toStr "gpe-auto") =
@@ -927,57 +905,32 @@ theorem get_pci_allocator_mut_spec (self : SystemAllocator) (bus : U8) (hwf : We
       cases updated <;> simp [_root_.alloc.collections.btree.map.entryBack] <;>
         congr 1 <;> exact Subsingleton.elim _ _
 
-open scoped Classical in
-/-- Prefer a free function-zero slot, falling back to another free function. -/
-noncomputable def pciAlignment (a : AddressAllocator) : Nat :=
-  if ∃ start, AddressAllocator.Placement a.regions 1 8 start then 8 else 1
-
-open scoped Classical in
 private theorem pci_allocate_spec (self : AddressAllocator) (bus : U8)
     (allocation : resources.Alloc) (tag : String)
     (hwf : AddressAllocator.WellFormed self) (hpci : PciAllocatorInvariant bus self) :
     AddressAllocator.allocate self 1#u64 allocation tag ⦃ result a =>
       AddressAllocator.WellFormed a ∧ PciAllocatorInvariant bus a ∧
-      AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag
-        (pciAlignment self) false result a ⦄ := by
+      AddressAllocator.AllocationOutcome self 1#u64 allocation tag false result a ⦄ := by
   apply WP.spec_mono (AddressAllocator.allocate_spec self 1#u64 allocation tag hwf)
   rintro ⟨result, a⟩ h
-  have hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag
-      (pciAlignment self) false result a := by
-    have heff : AddressAllocator.preferredAlignment self 1#u64 = pciAlignment self := by
-      rw [AddressAllocator.preferredAlignment, hpci.2.1, hpci.2.2]
-      rfl
-    exact heff ▸ h.2
-  have hf := hout.pools_alignments
-  exact ⟨h.1, by simpa only [PciAllocatorInvariant, hf.1, hf.2.1, hf.2.2] using hpci, hout⟩
+  have hf := h.2.pools_alignments
+  exact ⟨h.1, by simpa only [PciAllocatorInvariant, hf.1, hf.2.1, hf.2.2] using hpci, h.2⟩
 
 private theorem pci_allocated_bound {self a : AddressAllocator} {bus : U8}
     {allocation : resources.Alloc} {tag : String} {start : U64}
     (hwf : AddressAllocator.WellFormed self) (hpci : PciAllocatorInvariant bus self)
-    (hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag
-      (pciAlignment self) false (.Ok start) a) : start.val ≤ 255 := by
-  have hs : AddressAllocator.AlignedAllocation self 1#u64 allocation tag
-      (max self.min_align.val (pciAlignment self)) false start a := by
-    unfold AddressAllocator.AlignedAllocationOutcome at hout
-    split at hout
-    · simp at hout
-    · split at hout
-      · simp at hout
-      · split at hout
-        · simp at hout
-        · exact hout
-  obtain ⟨slot, hslot, hstart, _, hend⟩ := hs.1.1
-  have hfree : AddressAllocator.Covers self.regions start.val :=
-    ⟨slot, hslot, hstart, by simpa using hend⟩
-  have hpool := hwf.free_mem_pools hfree
-  obtain ⟨r, hr, ha⟩ := hpool
+    (hout : AddressAllocator.AllocationOutcome self 1#u64 allocation tag false (.Ok start) a) :
+    start.val ≤ 255 := by
+  obtain ⟨r, hr, ha⟩ := hwf.free_mem_pools hout.placement.covers
   rw [hpci.1] at hr
   have hr := List.mem_singleton.mp hr
   subst r
   exact ha.2
 
 /-- Advance the anonymous ID, borrow the bus allocator, allocate a slot, and return
-    the updated borrow. Errors become `none`; successful slots decode to PCI addresses. -/
+    the updated borrow. Under the bus invariant, the preferred alignment selects a free
+    function-zero slot when one exists, falling back to another free function.
+    Errors become `none`; successful slots decode to PCI addresses. -/
 def PciAllocationOutcome (self : SystemAllocator) (bus : U8) (tag : String)
     (result : Option resources.pci_address.PciAddress) (a : SystemAllocator) : Prop :=
   ∃ nextId : Usize,
@@ -987,12 +940,12 @@ def PciAllocationOutcome (self : SystemAllocator) (bus : U8) (tag : String)
       PciAllocatorBorrow next bus before back ∧
       a = back (some after) ∧
       match result with
-      | none => ∃ error, AddressAllocator.AlignedAllocationOutcome before 1#u64
-          (.Anon nextId) tag (pciAlignment before) false (.Err error) after
+      | none => ∃ error, AddressAllocator.AllocationOutcome before 1#u64
+          (.Anon nextId) tag false (.Err error) after
       | some pci => ∃ slot : U64, pci.bus = bus ∧
           pci.dev.val = slot.val / 8 ∧ pci.func.val = slot.val % 8 ∧
-          AddressAllocator.AlignedAllocationOutcome before 1#u64
-            (.Anon nextId) tag (pciAlignment before) false (.Ok slot) after
+          AddressAllocator.AllocationOutcome before 1#u64
+            (.Anon nextId) tag false (.Ok slot) after
 
 private theorem pci_address_spec (bus : U8) (slot : U64) (hbound : slot.val ≤ 255) :
     allocate_pci.closure.Insts.CoreOpsFunctionFnOnceTupleU64PciAddress.call_once bus slot
@@ -1229,8 +1182,7 @@ def MmioAllocationOutcome (self : SystemAllocator) (size : U64) (allocation : re
     match opts.alignment with
     | some align => AddressAllocator.AlignedAllocationOutcome space size allocation tag
         align.val opts.top_down result after
-    | none => AddressAllocator.AlignedAllocationOutcome space size allocation tag
-        (AddressAllocator.preferredAlignment space size) opts.top_down result after
+    | none => AddressAllocator.AllocationOutcome space size allocation tag opts.top_down result after
 
 private theorem mmio_index_spec (mmio_type : MmioType) :
     lift (IScalar.hcast .Usize (read_discriminant mmio_type)) ⦃ i => i = mmioIndex mmio_type ⦄ := by
