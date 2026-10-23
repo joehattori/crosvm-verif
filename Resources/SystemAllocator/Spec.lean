@@ -587,7 +587,7 @@ private theorem allocate_unit_spec (self : AddressAllocator) (allocation : resou
   apply WP.spec_mono (AddressAllocator.allocate_spec self 1#u64 allocation tag hwf)
   rintro ⟨result, a⟩ h
   have hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag 1 false result a := by
-    simpa [hunit.1, hunit.2.1] using h.2
+    simpa [AddressAllocator.preferredAlignment, hunit.1, hunit.2.1] using h.2
   refine ⟨h.1, ?_, hout⟩
   by_cases hk : allocation ∈ self.allocs
   · have hs : a = self := by
@@ -595,7 +595,7 @@ private theorem allocate_unit_spec (self : AddressAllocator) (allocation : resou
       exact hout.2
     simpa [hs] using hunit
   · simp only [AddressAllocator.AlignedAllocationOutcome, if_neg hk] at hout
-    simp [show Nat.isPowerOfTwo 1 from by decide] at hout
+    simp [hunit.1, show Nat.isPowerOfTwo 1 from by decide] at hout
     cases result with
     | Err error => simpa [hout.2.1] using hunit
     | Ok start =>
@@ -612,7 +612,7 @@ private theorem allocated_start_u32 {self a : AddressAllocator} {allocation : re
     unfold AddressAllocator.AlignedAllocationOutcome at hout
     split at hout
     · simp at hout
-    · simpa [show Nat.isPowerOfTwo 1 from by decide] using hout
+    · simpa [hunit.1, show Nat.isPowerOfTwo 1 from by decide] using hout
   have hbound := hunit.free_le hwf ((unit_placement_iff _ _).mp hs.1.1)
   have hcast : (UScalar.cast .U32 start).val = start.val := by
     rw [UScalar.cast_val_eq]
@@ -944,9 +944,8 @@ private theorem pci_allocate_spec (self : AddressAllocator) (bus : U8)
   rintro ⟨result, a⟩ h
   have hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag
       (pciAlignment self) false result a := by
-    have heff : (if ∃ start, AddressAllocator.Placement self.regions 1 self.preferred_align.val start
-        then self.preferred_align.val else self.min_align.val) = pciAlignment self := by
-      rw [hpci.2.1, hpci.2.2]
+    have heff : AddressAllocator.preferredAlignment self 1#u64 = pciAlignment self := by
+      rw [AddressAllocator.preferredAlignment, hpci.2.1, hpci.2.2]
       rfl
     exact heff ▸ h.2
   have hf := hout.pools_alignments
@@ -958,7 +957,7 @@ private theorem pci_allocated_bound {self a : AddressAllocator} {bus : U8}
     (hout : AddressAllocator.AlignedAllocationOutcome self 1#u64 allocation tag
       (pciAlignment self) false (.Ok start) a) : start.val ≤ 255 := by
   have hs : AddressAllocator.AlignedAllocation self 1#u64 allocation tag
-      (pciAlignment self) false start a := by
+      (max self.min_align.val (pciAlignment self)) false start a := by
     unfold AddressAllocator.AlignedAllocationOutcome at hout
     split at hout
     · simp at hout
@@ -1219,28 +1218,19 @@ theorem setMmioAllocator_wellFormed {self : SystemAllocator} {space : AddressAll
   · exact hmmio mmio h
   · exact h ▸ hspace
 
-open scoped Classical in
-/-- Alignment selected by the options: an explicit alignment is raised to the space's
-    minimum alignment; otherwise the preferred alignment is used when some placement
-    admits it, falling back to the minimum alignment. -/
-noncomputable def mmioAlignment (space : AddressAllocator) (size : U64)
-    (opts : AllocOptions) : Nat :=
-  match opts.alignment with
-  | some align => max space.min_align.val align.val
-  | none =>
-    if ∃ start, AddressAllocator.Placement space.regions size.val space.preferred_align.val start
-    then space.preferred_align.val else space.min_align.val
-
-/-- Allocate from the selected MMIO space with the alignment and search direction
-    requested by the options, and write the updated space back. -/
+/-- Allocate from the selected MMIO space in the requested search direction, with the
+    explicit alignment or the preferred-alignment fallback, and write the updated space back. -/
 def MmioAllocationOutcome (self : SystemAllocator) (size : U64) (allocation : resources.Alloc)
     (tag : String) (opts : AllocOptions) (mmio_type : MmioType)
     (result : core.result.Result U64 resources.Error) (a : SystemAllocator) : Prop :=
   let space := mmioAllocator self mmio_type
   ∃ after : AddressAllocator,
     a = setMmioAllocator self mmio_type after ∧
-    AddressAllocator.AlignedAllocationOutcome space size allocation tag
-      (mmioAlignment space size opts) opts.top_down result after
+    match opts.alignment with
+    | some align => AddressAllocator.AlignedAllocationOutcome space size allocation tag
+        align.val opts.top_down result after
+    | none => AddressAllocator.AlignedAllocationOutcome space size allocation tag
+        (AddressAllocator.preferredAlignment space size) opts.top_down result after
 
 private theorem mmio_index_spec (mmio_type : MmioType) :
     lift (IScalar.hcast .Usize (read_discriminant mmio_type)) ⦃ i => i = mmioIndex mmio_type ⦄ := by
