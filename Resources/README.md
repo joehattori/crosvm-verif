@@ -11,7 +11,11 @@
 - [AddressAllocatorSet](AddressAllocatorSet/Spec.lean): construction preserves
   the allocator slice, including order and component states, and mutable borrow
   write-back returns the final set's slice. Empty slices are supported; construction
-  does not require or establish component well-formedness.
+  does not require or establish component well-formedness. PCI offset lookup returns
+  the first successful component result in slice order, or the last component's
+  error if all reject the request (`OutOfSpace` for an empty set). Lookup reuses
+  the single-allocator bounds contract and requires neither component
+  well-formedness nor unique allocation keys across the set.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
@@ -57,7 +61,8 @@ String conversion models UTF-8 `str` contents; general formatting is unsupported
 See the [top-level README](../README.md#build-and-extraction) for commands.
 
 - Build Aeneas from the working checkout, which includes the allocator's required
-  name-generation and shared-borrow join fixes.
+  name-generation and shared-borrow join fixes, including preservation of frozen
+  mutable borrows when preparing shared loans for loop joins.
 - Initialize crosvm's nested dependency with
   `git -C crosvm submodule update --init third_party/minijail`.
 - On macOS, the current crosvm pin needs a build workaround:

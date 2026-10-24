@@ -1753,6 +1753,58 @@ def address_allocator.AddressAllocatorSet.new
   let back := fun aas => aas.allocators
   ok ({ allocators }, back)
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::address_from_pci_offset]: loop body 0:
+    Source: 'resources/src/address_allocator.rs', lines 475:8-482:5
+    Visibility: public -/
+@[rust_loop_body]
+def address_allocator.AddressAllocatorSet.address_from_pci_offset_loop.body
+  (alloc1 : Alloc) (offset : Std.U64) (size : Std.U64)
+  (iter : core.slice.iter.Iter address_allocator.AddressAllocator)
+  (last_res : core.result.Result Std.U64 Error) :
+  Result (ControlFlow ((core.slice.iter.Iter
+    address_allocator.AddressAllocator) × (core.result.Result Std.U64 Error))
+    (core.result.Result Std.U64 Error))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none => ok (done last_res)
+  | some allocator =>
+    let last_res1 ←
+      address_allocator.AddressAllocator.address_from_pci_offset allocator
+        alloc1 offset size
+    let b ← core.result.Result.is_ok last_res1
+    if b
+    then ok (done last_res1)
+    else ok (cont (iter1, last_res1))
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::address_from_pci_offset]: loop 0:
+    Source: 'resources/src/address_allocator.rs', lines 475:8-482:5
+    Visibility: public -/
+@[rust_loop]
+def address_allocator.AddressAllocatorSet.address_from_pci_offset_loop
+  (iter : core.slice.iter.Iter address_allocator.AddressAllocator)
+  (alloc1 : Alloc) (offset : Std.U64) (size : Std.U64)
+  (last_res : core.result.Result Std.U64 Error) :
+  Result (core.result.Result Std.U64 Error)
+  := do
+  loop
+    (fun (iter1, last_res1) =>
+      address_allocator.AddressAllocatorSet.address_from_pci_offset_loop.body
+      alloc1 offset size iter1 last_res1)
+    (iter, last_res)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::address_from_pci_offset]:
+    Source: 'resources/src/address_allocator.rs', lines 473:4-482:5
+    Visibility: public -/
+def address_allocator.AddressAllocatorSet.address_from_pci_offset
+  (self : address_allocator.AddressAllocatorSet) (alloc1 : Alloc)
+  (offset : Std.U64) (size : Std.U64) :
+  Result (core.result.Result Std.U64 Error)
+  := do
+  let iter ← core.slice.Slice.iter self.allocators
+  address_allocator.AddressAllocatorSet.address_from_pci_offset_loop iter
+    alloc1 offset size (core.result.Result.Err Error.OutOfSpace)
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]
