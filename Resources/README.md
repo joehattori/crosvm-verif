@@ -8,6 +8,10 @@
   preferred-alignment fallback, release by key or containing address, and PCI
   offset lookup, subject to the stated preconditions. Construction and public
   allocation/release operations preserve pool accounting and disjointness.
+- [AddressAllocatorSet](AddressAllocatorSet/Spec.lean): construction preserves
+  the allocator slice, including order and component states, and mutable borrow
+  write-back returns the final set's slice. Empty slices are supported; construction
+  does not require or establish component well-formedness.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter

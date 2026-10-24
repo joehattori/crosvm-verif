@@ -40,6 +40,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_allocator::AddressAllocator::release' \
 		--start-from 'crate::address_allocator::AddressAllocator::release_containing' \
 		--start-from 'crate::address_allocator::AddressAllocator::address_from_pci_offset' \
+		--start-from 'crate::address_allocator::AddressAllocatorSet::new' \
 		--start-from 'crate::system_allocator::SystemAllocator::new' \
 		--start-from 'crate::system_allocator::SystemAllocator::get_anon_alloc' \
 		--start-from 'crate::system_allocator::SystemAllocator::allocate_irq' \

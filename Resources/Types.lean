@@ -190,6 +190,12 @@ def address_allocator.AddressAllocator.find_overlapping.closure :=
 def address_allocator.AddressAllocator.allocate_at.closure :=
   address_range.AddressRange
 
+/-- [resources::address_allocator::AddressAllocatorSet]
+    Source: 'resources/src/address_allocator.rs', lines 404:0-406:1
+    Visibility: public -/
+structure address_allocator.AddressAllocatorSet where
+  allocators : Slice address_allocator.AddressAllocator
+
 /-- [resources::pci_address::PciAddress]
     Source: 'resources/src/pci_address.rs', lines 51:0-58:1
     Visibility: public -/

@@ -1741,6 +1741,18 @@ def address_allocator.AddressAllocator.address_from_pci_offset
   | Alloc.FileBacked _ =>
     ok (core.result.Result.Err (Error.InvalidAlloc alloc1))
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::new]:
+    Source: 'resources/src/address_allocator.rs', lines 409:4-411:5
+    Visibility: public -/
+def address_allocator.AddressAllocatorSet.new
+  (allocators : Slice address_allocator.AddressAllocator) :
+  Result (address_allocator.AddressAllocatorSet ×
+    (address_allocator.AddressAllocatorSet → Slice
+    address_allocator.AddressAllocator))
+  := do
+  let back := fun aas => aas.allocators
+  ok ({ allocators }, back)
+
 /-- Trait implementation: [resources::address_range::{impl core::marker::Copy for resources::address_range::AddressRange}]
     Source: 'resources/src/address_range.rs', lines 16:9-16:13 -/
 @[reducible]
