@@ -16,6 +16,12 @@
   error if all reject the request (`OutOfSpace` for an empty set). Lookup reuses
   the single-allocator bounds contract and requires neither component
   well-formedness nor unique allocation keys across the set.
+  Allocation tries components in order with each component's preferred-alignment
+  fallback, updates only the first successful component, and preserves component
+  well-formedness. If all attempts fail, the set is unchanged and the last error
+  is returned; an empty set returns `OutOfSpace`. Any component error permits the
+  next attempt. Allocation assumes component well-formedness, without requiring
+  disjoint pools or unique allocation keys across components.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
@@ -62,7 +68,8 @@ See the [top-level README](../README.md#build-and-extraction) for commands.
 
 - Build Aeneas from the working checkout, which includes the allocator's required
   name-generation and shared-borrow join fixes, including preservation of frozen
-  mutable borrows when preparing shared loans for loop joins.
+  mutable borrows when preparing shared loans for loop joins, distinct names for
+  specialized default methods, and shared references to external trait models.
 - Initialize crosvm's nested dependency with
   `git -C crosvm submodule update --init third_party/minijail`.
 - On macOS, the current crosvm pin needs a build workaround:

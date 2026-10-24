@@ -215,6 +215,193 @@ axiom core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
   core.iter.adapters.rev.Rev I → P → Result ((Option Clause0_Clause0_Item)
     × (core.iter.adapters.rev.Rev I))
 
+/-- [core::iter::traits::iterator::Iterator::map::<core::slice::iter::IterMut<_, _>, _, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 845:4-848:34
+    Name pattern: [core::iter::traits::iterator::Iterator::map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+axiom core.iter.traits.iterator.Iterator.map.defaultIterMutT1T2Mut1T3
+  {T0 : Type} {T1 : Type} {T2 : Type} {T3 : Type} (IteratorIterMutMut1T3Inst :
+  core.iter.traits.iterator.Iterator T0 T3)
+  (opsfunctionFnMutT2TupleMut1T3T1Inst : core.ops.function.FnMut T2 T3 T1) :
+  core.slice.iter.IterMut T0 → T2 → Result ((core.iter.adapters.map.Map
+    (core.slice.iter.IterMut T0) T2) × (core.iter.adapters.map.Map
+    (core.slice.iter.IterMut T0) T2 → core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::map::<core::slice::iter::IterMut<_, _>, _, _, _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 845:4-848:34
+    Name pattern: [core::iter::traits::iterator::Iterator::map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+axiom core.iter.traits.iterator.Iterator.map.defaultIterMutT1T2T3
+  {T0 : Type} {T1 : Type} {T2 : Type} {T3 : Type} (IteratorIterMutT3Inst :
+  core.iter.traits.iterator.Iterator T0 T3) (opsfunctionFnMutT2TupleT3T1Inst :
+  core.ops.function.FnMut T2 T3 T1) :
+  core.slice.iter.IterMut T0 → T2 → Result ((core.iter.adapters.map.Map
+    (core.slice.iter.IterMut T0) T2) × (core.iter.adapters.map.Map
+    (core.slice.iter.IterMut T0) T2 → core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::map::<_, _, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 845:4-848:34
+    Name pattern: [core::iter::traits::iterator::Iterator::map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+axiom core.iter.traits.iterator.Iterator.map.defaultT0T1T2Mut0T3
+  {T0 : Type} {T1 : Type} {T2 : Type} {T3 : Type} (IteratorT0Mut0T3Inst :
+  core.iter.traits.iterator.Iterator T0 T3)
+  (opsfunctionFnMutT2TupleMut0T3T1Inst : core.ops.function.FnMut T2 T3 T1) :
+  T0 → T2 → Result (core.iter.adapters.map.Map T0 T2)
+
+/-- [core::iter::traits::iterator::Iterator::filter::<core::slice::iter::IterMut<_, _>, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
+    Name pattern: [core::iter::traits::iterator::Iterator::filter]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
+axiom core.iter.traits.iterator.Iterator.filter.defaultIterMutT1Mut1T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorIterMutMut1T2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0Mut1T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  core.slice.iter.IterMut T0 → T1 → Result
+    ((core.iter.adapters.filter.Filter (core.slice.iter.IterMut T0) T1) ×
+    (core.iter.adapters.filter.Filter (core.slice.iter.IterMut T0) T1 →
+    core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::filter::<core::slice::iter::IterMut<_, _>, _, _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
+    Name pattern: [core::iter::traits::iterator::Iterator::filter]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
+axiom core.iter.traits.iterator.Iterator.filter.defaultIterMutT1T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorIterMutT2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  core.slice.iter.IterMut T0 → T1 → Result
+    ((core.iter.adapters.filter.Filter (core.slice.iter.IterMut T0) T1) ×
+    (core.iter.adapters.filter.Filter (core.slice.iter.IterMut T0) T1 →
+    core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::filter::<_, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
+    Name pattern: [core::iter::traits::iterator::Iterator::filter]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
+axiom core.iter.traits.iterator.Iterator.filter.defaultT0T1Mut0T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorT0Mut0T2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0Mut0T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  T0 → T1 → Result (core.iter.adapters.filter.Filter T0 T1)
+
+/-- [core::iter::traits::iterator::Iterator::find::<_, core::slice::iter::IterMut<_, _>, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
+    Name pattern: [core::iter::traits::iterator::Iterator::find]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+axiom core.iter.traits.iterator.Iterator.find.default0IterMutT1Mut2T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorIterMutMut2T2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0Mut2T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  core.slice.iter.IterMut T0 → T1 → Result ((Option T2) ×
+    (core.slice.iter.IterMut T0) × (core.slice.iter.IterMut T0 →
+    core.slice.iter.IterMut T0) × (Option T2 → Unit))
+
+/-- [core::iter::traits::iterator::Iterator::find::<_, core::slice::iter::IterMut<_, _>, _, _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
+    Name pattern: [core::iter::traits::iterator::Iterator::find]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+axiom core.iter.traits.iterator.Iterator.find.default0IterMutT1T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorIterMutT2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  core.slice.iter.IterMut T0 → T1 → Result ((Option T2) ×
+    (core.slice.iter.IterMut T0) × (core.slice.iter.IterMut T0 →
+    core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::find::<_, _, _, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
+    Name pattern: [core::iter::traits::iterator::Iterator::find]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+axiom core.iter.traits.iterator.Iterator.find.default0T0T1Mut1T2
+  {T0 : Type} {T1 : Type} {T2 : Type} (IteratorT0Mut1T2Inst :
+  core.iter.traits.iterator.Iterator T0 T2)
+  (opsfunctionFnMutT1TupleShared0Mut1T2BoolInst : core.ops.function.FnMut T1 T2
+  Bool) :
+  T0 → T1 → Result ((Option T2) × T0 × (Option T2 → Unit))
+
+/-- [core::iter::traits::iterator::Iterator::max::<core::slice::iter::IterMut<_, _>, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3261:4-3264:51
+    Name pattern: [core::iter::traits::iterator::Iterator::max]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
+axiom core.iter.traits.iterator.Iterator.max.defaultIterMutMut1T1
+  {T0 : Type} {T1 : Type} (IteratorIterMutMut1T1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdMut1T1Inst : core.cmp.Ord
+  T1) :
+  core.slice.iter.IterMut T0 → Result ((Option T1) ×
+    (core.slice.iter.IterMut T0) × (Option T1 → Unit))
+
+/-- [core::iter::traits::iterator::Iterator::max::<core::slice::iter::IterMut<_, _>, _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3261:4-3264:51
+    Name pattern: [core::iter::traits::iterator::Iterator::max]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
+axiom core.iter.traits.iterator.Iterator.max.defaultIterMutT1
+  {T0 : Type} {T1 : Type} (IteratorIterMutT1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdInst : core.cmp.Ord T1) :
+  core.slice.iter.IterMut T0 → Result ((Option T1) ×
+    (core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::max::<_, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3261:4-3264:51
+    Name pattern: [core::iter::traits::iterator::Iterator::max]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
+axiom core.iter.traits.iterator.Iterator.max.defaultT0Mut0T1
+  {T0 : Type} {T1 : Type} (IteratorT0Mut0T1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdMut0T1Inst : core.cmp.Ord
+  T1) :
+  T0 → Result ((Option T1) × (Option T1 → Unit))
+
+/-- [core::iter::traits::iterator::Iterator::min::<core::slice::iter::IterMut<_, _>, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
+    Name pattern: [core::iter::traits::iterator::Iterator::min]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::min"]
+axiom core.iter.traits.iterator.Iterator.min.defaultIterMutMut1T1
+  {T0 : Type} {T1 : Type} (IteratorIterMutMut1T1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdMut1T1Inst : core.cmp.Ord
+  T1) :
+  core.slice.iter.IterMut T0 → Result ((Option T1) ×
+    (core.slice.iter.IterMut T0) × (Option T1 → Unit))
+
+/-- [core::iter::traits::iterator::Iterator::min::<core::slice::iter::IterMut<_, _>, _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
+    Name pattern: [core::iter::traits::iterator::Iterator::min]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::min"]
+axiom core.iter.traits.iterator.Iterator.min.defaultIterMutT1
+  {T0 : Type} {T1 : Type} (IteratorIterMutT1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdInst : core.cmp.Ord T1) :
+  core.slice.iter.IterMut T0 → Result ((Option T1) ×
+    (core.slice.iter.IterMut T0))
+
+/-- [core::iter::traits::iterator::Iterator::min::<_, &_ mut _>]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
+    Name pattern: [core::iter::traits::iterator::Iterator::min]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::min"]
+axiom core.iter.traits.iterator.Iterator.min.defaultT0Mut0T1
+  {T0 : Type} {T1 : Type} (IteratorT0Mut0T1Inst :
+  core.iter.traits.iterator.Iterator T0 T1) (cmpOrdMut0T1Inst : core.cmp.Ord
+  T1) :
+  T0 → Result ((Option T1) × (Option T1 → Unit))
+
 /-- [core::ops::range::{core::ops::range::RangeInclusive<Idx>}::start]:
     Source: '/rustc/library/core/src/ops/range.rs', lines 425:4-425:37
     Name pattern: [core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::start]
