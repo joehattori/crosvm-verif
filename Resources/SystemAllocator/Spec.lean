@@ -1184,6 +1184,34 @@ def MmioAllocationOutcome (self : SystemAllocator) (size : U64) (allocation : re
         align.val opts.top_down result after
     | none => AddressAllocator.AllocationOutcome space size allocation tag opts.top_down result after
 
+/-- Every expected MMIO allocation error leaves the entire system unchanged. -/
+theorem MmioAllocationOutcome.eq_of_err {self a : SystemAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {opts : AllocOptions} {mmio_type : MmioType}
+    {error : resources.Error}
+    (h : MmioAllocationOutcome self size allocation tag opts mmio_type (.Err error) a) :
+    a = self := by
+  obtain ⟨after, rfl, h⟩ := h
+  have heq : after = mmioAllocator self mmio_type := by
+    cases ha : opts.alignment <;> simp only [ha] at h <;> exact h.eq_of_err
+  rw [heq]
+  have hset : self.mmio_address_spaces.set (mmioIndex mmio_type)
+      (mmioAllocator self mmio_type) = self.mmio_address_spaces :=
+    Array.set_getElem_eq _ _ (by simpa using mmioIndex_lt mmio_type)
+  simp only [setMmioAllocator, hset]
+
+/-- A successful allocation's inclusive endpoint lies in the selected original pool. -/
+theorem MmioAllocationOutcome.end_mem_pools {self a : SystemAllocator} {size start : U64}
+    {allocation : resources.Alloc} {tag : String} {opts : AllocOptions} {mmio_type : MmioType}
+    (h : MmioAllocationOutcome self size allocation tag opts mmio_type (.Ok start) a)
+    (hwf : WellFormed self) :
+    AddressAllocator.Covers (mmioAllocator self mmio_type).pools.val
+      (start.val + (size.val - 1)) := by
+  obtain ⟨after, _, h⟩ := h
+  apply (mmioAllocator_wellFormed hwf mmio_type).free_mem_pools
+  cases ha : opts.alignment <;> simp only [ha] at h
+  case none => exact h.end_covers
+  case some align => exact h.placement.end_covers
+
 private theorem mmio_index_spec (mmio_type : MmioType) :
     lift (IScalar.hcast .Usize (read_discriminant mmio_type)) ⦃ i => i = mmioIndex mmio_type ⦄ := by
   apply WP.spec_mono (IScalar.hcast_inBounds_spec .Usize _ ?_)
@@ -1227,5 +1255,145 @@ theorem allocate_mmio_internal_spec (self : SystemAllocator) (size : U64)
     · step with AddressAllocator.reverse_allocate_with_align_spec (mmioAllocator self mmio_type) size
         allocation tag align hwspace as ⟨result, after, hwafter, hout⟩
       exact ⟨setMmioAllocator_wellFormed hwf mmio_type hwafter, after, rfl, hout⟩
+
+/-- Only unrestricted, prefetchable requests prefer the high address space. -/
+def preferredMmioType (opts : AllocOptions) : MmioType :=
+  if opts.max_address.val < U64.max ∨ opts.prefetchable = false then .Low else .High
+
+open scoped Classical in
+/-- Public MMIO policy: reject sub-32-bit limits, then allocate in the preferred
+    space. Only high-space exhaustion retries in low space. Each attempt reuses
+    the internal allocation contract, including alignment, ordering, and state updates. -/
+def MmioRequestOutcome (self : SystemAllocator) (size : U64) (allocation : resources.Alloc)
+    (tag : String) (opts : AllocOptions) (result : core.result.Result U64 resources.Error)
+    (a : SystemAllocator) : Prop :=
+  if opts.max_address.val < U32.max then result = .Err .OutOfSpace ∧ a = self
+  else ∃ (first : core.result.Result U64 resources.Error) (tried : SystemAllocator),
+    MmioAllocationOutcome self size allocation tag opts (preferredMmioType opts) first tried ∧
+    if preferredMmioType opts = .High ∧ first = .Err .OutOfSpace then
+      MmioAllocationOutcome tried size allocation tag opts .Low result a
+    else result = first ∧ a = tried
+
+/-- Public MMIO allocation preserves the entire system on every expected error. -/
+theorem MmioRequestOutcome.eq_of_err {self a : SystemAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {opts : AllocOptions} {error : resources.Error}
+    (h : MmioRequestOutcome self size allocation tag opts (.Err error) a) : a = self := by
+  unfold MmioRequestOutcome at h
+  split at h
+  · exact h.2
+  · obtain ⟨first, tried, hfirst, h⟩ := h
+    split at h
+    · rename_i hfallback
+      rw [hfallback.2] at hfirst
+      exact h.eq_of_err.trans hfirst.eq_of_err
+    · obtain ⟨rfl, rfl⟩ := h
+      exact hfirst.eq_of_err
+
+/-- The requested inclusive address limit is respected when the low pool has its
+    documented 32-bit bound. System well-formedness alone does not impose that bound. -/
+theorem MmioRequestOutcome.end_le_max_address {self a : SystemAllocator} {size start : U64}
+    {allocation : resources.Alloc} {tag : String} {opts : AllocOptions}
+    (h : MmioRequestOutcome self size allocation tag opts (.Ok start) a)
+    (hwf : WellFormed self)
+    (hlow : ∀ addr, AddressAllocator.Covers (mmioAllocator self .Low).pools.val addr →
+      addr ≤ U32.max) :
+    start.val + size.val ≤ opts.max_address.val + 1 := by
+  unfold MmioRequestOutcome at h
+  split at h
+  · simp at h
+  · rename_i hlimit
+    obtain ⟨first, tried, hfirst, h⟩ := h
+    split at h
+    · rename_i hfallback
+      rw [hfallback.2] at hfirst
+      have htried := hfirst.eq_of_err
+      subst tried
+      have := hlow _ (h.end_mem_pools hwf)
+      omega
+    · obtain ⟨rfl, rfl⟩ := h
+      have hend := hfirst.end_mem_pools hwf
+      unfold preferredMmioType at hend
+      split at hend
+      · have := hlow _ hend
+        omega
+      · rename_i hhigh
+        obtain ⟨slot, _, hslot⟩ := hend
+        have hbound : slot.end.val ≤ U64.max := by scalar_tac
+        simp only [AddressRange.containsModel] at hslot
+        omega
+
+private theorem mmio_type_eq_spec (left right : MmioType) :
+    MmioType.Insts.CoreCmpPartialEqMmioType.eq left right
+      ⦃ equal => equal = true ↔ left = right ⦄ := by
+  cases left <;> cases right <;>
+    simp [MmioType.Insts.CoreCmpPartialEqMmioType.eq, MmioType.read_discriminant]
+
+/-- Total correctness of public MMIO allocation, including space selection,
+    high-to-low fallback, alignment, search direction, and invariant preservation. -/
+@[step]
+theorem allocate_mmio_spec (self : SystemAllocator) (size : U64)
+    (allocation : resources.Alloc) (tag : String) (opts : AllocOptions)
+    (hwf : WellFormed self) :
+    allocate_mmio self size allocation tag opts ⦃ result a =>
+      WellFormed a ∧ MmioRequestOutcome self size allocation tag opts result a ⦄ := by
+  unfold allocate_mmio
+  step with UScalar.cast_inBounds_spec .U64 core.num.U32.MAX
+    (by simp [core.num.U32.MAX, U32.rMax, U64.max_eq])
+    as ⟨limit, hlimit⟩
+  have hlimit : limit.val = U32.max := by
+    simpa [core.num.U32.MAX, U32.max_eq, U32.rMax] using hlimit
+  split
+  · rename_i hsmall
+    have hsmall : opts.max_address.val < U32.max := by scalar_tac
+    simp only [WP.spec_ok]
+    exact ⟨hwf, by simp [MmioRequestOutcome, hsmall]⟩
+  · rename_i hlarge
+    have hlarge : ¬opts.max_address.val < U32.max := by scalar_tac
+    have hselect :
+        (if opts.max_address < core.num.U64.MAX then ok MmioType.Low
+         else if opts.prefetchable then ok MmioType.High else ok MmioType.Low) =
+        ok (preferredMmioType opts) := by
+      simp only [preferredMmioType, core.num.U64.MAX, UScalar.lt_equiv]
+      cases opts.prefetchable <;> simp [U64.max_eq, U64.rMax]
+      split <;> simp_all
+    rw [hselect]
+    simp only [bind_ok, alloc.string.String.Insts.CoreCloneClone.clone]
+    step with allocate_mmio_internal_spec self size allocation tag opts (preferredMmioType opts) hwf
+      as ⟨first, tried, hwtried, hfirst⟩
+    step with mmio_type_eq_spec (preferredMmioType opts) .High as ⟨high, hhigh⟩
+    split
+    · rename_i hhigh'
+      have hhigh' := hhigh.mp hhigh'
+      cases first with
+      | Ok start =>
+        simp only [bind_ok]
+        change (ok (.Ok start, tried)) ⦃ result a =>
+          WellFormed a ∧ MmioRequestOutcome self size allocation tag opts result a ⦄
+        simp only [WP.spec_ok]
+        exact ⟨hwtried, by
+          simp only [MmioRequestOutcome, hlarge, ↓reduceIte]
+          exact ⟨.Ok start, tried, hfirst, by simp⟩⟩
+      | Err error =>
+        cases error <;> simp only [bind_ok]
+        all_goals first
+          | (change allocate_mmio_internal tried size allocation tag opts .Low ⦃ result a =>
+               WellFormed a ∧ MmioRequestOutcome self size allocation tag opts result a ⦄
+             step with allocate_mmio_internal_spec tried size allocation tag opts .Low hwtried
+              as ⟨result, a, hwa, hout⟩
+             exact ⟨hwa, by
+               simp only [MmioRequestOutcome, hlarge, ↓reduceIte]
+               exact ⟨.Err .OutOfSpace, tried, hfirst, by simpa [hhigh'] using hout⟩⟩)
+          | (change (ok (_, tried)) ⦃ result a =>
+               WellFormed a ∧ MmioRequestOutcome self size allocation tag opts result a ⦄
+             simp only [WP.spec_ok]
+             exact ⟨hwtried, by
+               simp only [MmioRequestOutcome, hlarge, ↓reduceIte]
+               exact ⟨_, tried, hfirst, by simp⟩⟩)
+    · rename_i hlow
+      have hlow : preferredMmioType opts ≠ .High := by simp_all
+      simp only [WP.spec_ok]
+      exact ⟨hwtried, by
+        simp only [MmioRequestOutcome, hlarge, ↓reduceIte]
+        exact ⟨first, tried, hfirst, by simp [hlow]⟩⟩
 
 end resources.system_allocator.SystemAllocator

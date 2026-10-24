@@ -869,6 +869,12 @@ theorem Placement.covers {rs : List AddressRange} {size alignment start : Nat}
   obtain ⟨slot, hm, hs, _, he⟩ := h
   exact ⟨slot, hm, hs, by omega⟩
 
+/-- The inclusive endpoint of a placement is also free. -/
+theorem Placement.end_covers {rs : List AddressRange} {size alignment start : Nat}
+    (h : Placement rs size alignment start) : Covers rs (start + (size - 1)) := by
+  obtain ⟨slot, hm, hs, _, he⟩ := h
+  exact ⟨slot, hm, by omega, he⟩
+
 /-- Forward allocation chooses the lowest possible address; reverse chooses the highest. -/
 def BestPlacement (rs : List AddressRange) (size alignment : Nat) (reverse : Bool)
     (start : Nat) : Prop :=
@@ -1212,6 +1218,31 @@ theorem AllocationOutcome.wellFormed {self a : AddressAllocator} {size : U64}
     obtain ⟨rfl, rfl⟩ := h
     exact hfirst.wellFormed hwf
   | Err error => exact h.wellFormed (hfirst.wellFormed hwf)
+
+/-- Both preferred-alignment attempts preserve the allocator on error. -/
+theorem AllocationOutcome.eq_of_err {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {reverse : Bool} {error : resources.Error}
+    (h : AllocationOutcome self size allocation tag reverse (.Err error) a) : a = self := by
+  obtain ⟨first, tried, hfirst, h⟩ := h
+  cases first with
+  | Ok start => simp at h
+  | Err error => exact h.eq_of_err.trans hfirst.eq_of_err
+
+/-- A successful allocation's inclusive endpoint belongs to an original free region. -/
+theorem AllocationOutcome.end_covers {self a : AddressAllocator} {size : U64}
+    {allocation : resources.Alloc} {tag : String} {reverse : Bool} {start : U64}
+    (h : AllocationOutcome self size allocation tag reverse (.Ok start) a) :
+    Covers self.regions (start.val + (size.val - 1)) := by
+  obtain ⟨first, tried, hfirst, h⟩ := h
+  cases first with
+  | Ok start' =>
+    obtain ⟨hresult, rfl⟩ := h
+    cases hresult
+    exact hfirst.placement.end_covers
+  | Err error =>
+    have htried := hfirst.eq_of_err
+    subst tried
+    exact h.placement.end_covers
 
 /-- A successful allocation starts at a free address. -/
 theorem AllocationOutcome.covers {self a : AddressAllocator} {size : U64}

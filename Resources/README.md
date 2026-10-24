@@ -14,8 +14,10 @@
   exhaustion, IRQ release, PCI bus allocator presence checks, lookup and creation
   with mutable borrow write-back, PCI slot allocation with preferred alignment
   and function fallback, PCI slot reservation and release, and MMIO allocation
-  from the low or high space with the requested alignment and search direction,
-  preserving component invariants.
+  from the low or high space with the requested alignment and search direction;
+  public MMIO allocation's address-limit rejection, prefetchability-based space
+  selection, and high-to-low fallback only on `OutOfSpace`. MMIO allocation preserves
+  component invariants and leaves the system unchanged on errors.
 
 The internal free-region insertion helper is specified for intermediate states;
 the full accounting invariant is restored by the enclosing release operation.
@@ -26,6 +28,11 @@ The Lean specifications state the precise guarantees and preconditions.
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
 System allocator construction assumes disjoint MMIO restrictions and a
 successful host page-size query.
+Public MMIO allocation respects the requested maximum address when the low
+MMIO pool contains only addresses at most `u32::MAX`, as documented by the Rust
+configuration API. This pool bound is an explicit hypothesis: the constructor
+and component well-formedness do not enforce it. Requests with a maximum below
+`u32::MAX` return `OutOfSpace` without changing the system.
 
 The handwritten [external types](TypesExternal.lean) and
 [functions](FunsExternal.lean) are part of the trust boundary: their correspondence

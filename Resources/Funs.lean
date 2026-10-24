@@ -121,10 +121,10 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
-  (T : Type) (residual : Option Never) : Result (Option T) := do
-  match residual with
-  | none => ok none
-  | some _ => fail panic
+  (T : Type) (o : Option Never) : Result (Option T) := do
+  let i := read_discriminant o
+  core.intrinsics.assume (i = 0#isize)
+  ok none
 
 /-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual::<&_ mut _>]:
     Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
@@ -134,13 +134,13 @@ def
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
-  (T0 : Type) (residual : Option Never) :
+  (T0 : Type) (o : Option Never) :
   Result ((Option T0) × (Option T0 → Unit))
   := do
-  match residual with
-  | none => let back := fun o => ()
-            ok (none, back)
-  | some _ => fail panic
+  let i := read_discriminant o
+  core.intrinsics.assume (i = 0#isize)
+  let back := fun o1 => ()
+  ok (none, back)
 
 /-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2101:0-2101:42
@@ -1866,6 +1866,17 @@ def core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange :
     core.ops.range.RangeInclusiveU64.Insts.CoreConvertFromAddressRange.from
 }
 
+/-- [resources::system_allocator::{impl core::cmp::PartialEq<resources::system_allocator::MmioType> for resources::system_allocator::MmioType}::eq]:
+    Source: 'resources/src/system_allocator.rs', lines 23:22-23:31
+    Visibility: public -/
+def system_allocator.MmioType.Insts.CoreCmpPartialEqMmioType.eq
+  (self : system_allocator.MmioType) (other : system_allocator.MmioType) :
+  Result Bool
+  := do
+  let self1 := read_discriminant self
+  let other1 := read_discriminant other
+  ok (self1 = other1)
+
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_mut]:
     Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 def
@@ -2957,5 +2968,61 @@ def system_allocator.SystemAllocator.allocate_mmio_internal
           alloc1 tag align
       let a := index_mut_back allocator1
       ok (r, { self with mmio_address_spaces := a })
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::allocate_mmio]:
+    Source: 'resources/src/system_allocator.rs', lines 343:4-369:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.allocate_mmio
+  (self : system_allocator.SystemAllocator) (size : Std.U64) (alloc1 : Alloc)
+  (tag : String) (opts : system_allocator.AllocOptions) :
+  Result ((core.result.Result Std.U64 Error) ×
+    system_allocator.SystemAllocator)
+  := do
+  let i ← lift (UScalar.cast .U64 core.num.U32.MAX)
+  if opts.max_address < i
+  then ok (core.result.Result.Err Error.OutOfSpace, self)
+  else
+    let mmio_type ←
+      if opts.max_address < core.num.U64.MAX
+      then ok system_allocator.MmioType.Low
+      else
+        if opts.prefetchable
+        then ok system_allocator.MmioType.High
+        else ok system_allocator.MmioType.Low
+    let s ← alloc.string.String.Insts.CoreCloneClone.clone tag
+    let (res, self1) ←
+      system_allocator.SystemAllocator.allocate_mmio_internal self size alloc1
+        s opts mmio_type
+    let b ←
+      system_allocator.MmioType.Insts.CoreCmpPartialEqMmioType.eq mmio_type
+        system_allocator.MmioType.High
+    if b
+    then
+      let (self2, res1, b1) ←
+        match res with
+        | core.result.Result.Ok _ => ok (self1, res, false)
+        | core.result.Result.Err e =>
+          do
+          let b2 ←
+            match e with
+            | Error.AllocSizeZero => ok false
+            | Error.BadAlignment => ok false
+            | Error.BadAlloc _ => ok false
+            | Error.ExistingAlloc _ => ok false
+            | Error.InvalidAlloc _ => ok false
+            | Error.IOPortOutOfRange _ => ok false
+            | Error.MissingPlatformMMIOAddresses => ok false
+            | Error.NoIoAllocator => ok false
+            | Error.OutOfBounds => ok false
+            | Error.OutOfSpace => ok true
+            | Error.PoolOverflow _ _ => ok false
+            | Error.RegionOverlap _ => ok false
+          ok (self1, res, b2)
+      if b1
+      then
+        system_allocator.SystemAllocator.allocate_mmio_internal self2 size
+          alloc1 tag opts system_allocator.MmioType.Low
+      else ok (res1, self2)
+    else ok (res, self1)
 
 end resources
