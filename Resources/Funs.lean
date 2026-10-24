@@ -1667,6 +1667,19 @@ def address_allocator.AddressAllocator.release_containing
   | none => ok (core.result.Result.Err Error.OutOfSpace, self)
   | some alloc1 => address_allocator.AddressAllocator.release self alloc1
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::get]:
+    Source: 'resources/src/address_allocator.rs', lines 309:4-311:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.get
+  (self : address_allocator.AddressAllocator) (alloc1 : Alloc) :
+  Result (Option (address_range.AddressRange × String))
+  := do
+  std.collections.hash.map.HashMap.get Alloc.Insts.CoreCmpEq
+    Alloc.Insts.CoreHashHash
+    std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher
+    (core.borrow.Borrow.Blanket Alloc) Alloc.Insts.CoreHashHash
+    Alloc.Insts.CoreCmpEq self.allocs alloc1
+
 /-- [resources::address_range::{resources::address_range::AddressRange}::from_start_and_size]:
     Source: 'resources/src/address_range.rs', lines 32:4-40:5
     Visibility: public -/
@@ -1898,6 +1911,50 @@ def address_allocator.AddressAllocatorSet.allocate_at
       range alloc1 tag (core.result.Result.Err Error.OutOfSpace)
   let s := iter_mut_back back
   ok (r, { allocators := s }, fun self1 => self1)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::get]: loop body 0:
+    Source: 'resources/src/address_allocator.rs', lines 464:8-471:5
+    Visibility: public -/
+@[rust_loop_body]
+def address_allocator.AddressAllocatorSet.get_loop.body
+  (alloc1 : Alloc)
+  (iter : core.slice.iter.Iter address_allocator.AddressAllocator) :
+  Result (ControlFlow (core.slice.iter.Iter address_allocator.AddressAllocator)
+    (Option (address_range.AddressRange × String)))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none => ok (done none)
+  | some allocator =>
+    let opt ← address_allocator.AddressAllocator.get allocator alloc1
+    let b := core.option.Option.is_some opt
+    if b
+    then ok (done opt)
+    else ok (cont iter1)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::get]: loop 0:
+    Source: 'resources/src/address_allocator.rs', lines 464:8-471:5
+    Visibility: public -/
+@[rust_loop]
+def address_allocator.AddressAllocatorSet.get_loop
+  (iter : core.slice.iter.Iter address_allocator.AddressAllocator)
+  (alloc1 : Alloc) :
+  Result (Option (address_range.AddressRange × String))
+  := do
+  loop
+    (fun iter1 => address_allocator.AddressAllocatorSet.get_loop.body alloc1
+      iter1)
+    iter
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::get]:
+    Source: 'resources/src/address_allocator.rs', lines 463:4-471:5
+    Visibility: public -/
+def address_allocator.AddressAllocatorSet.get
+  (self : address_allocator.AddressAllocatorSet) (alloc1 : Alloc) :
+  Result (Option (address_range.AddressRange × String))
+  := do
+  let iter ← core.slice.Slice.iter self.allocators
+  address_allocator.AddressAllocatorSet.get_loop iter alloc1
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::address_from_pci_offset]: loop body 0:
     Source: 'resources/src/address_allocator.rs', lines 475:8-482:5

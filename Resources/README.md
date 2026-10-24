@@ -5,17 +5,20 @@
   or a vector of pools,
   slot allocation, free-region insertion with neighbor coalescing, fixed-address
   allocation, and forward/reverse allocation with explicit alignment or
-  preferred-alignment fallback, release by key or containing address, and PCI
-  offset lookup, subject to the stated preconditions. Construction and public
-  allocation/release operations preserve pool accounting and disjointness.
+  preferred-alignment fallback, release by key or containing address, allocation
+  lookup, and PCI offset lookup, subject to the stated preconditions. Construction
+  and public allocation/release operations preserve pool accounting and disjointness.
 - [AddressAllocatorSet](AddressAllocatorSet/Spec.lean): construction preserves
   the allocator slice, including order and component states, and mutable borrow
-  write-back returns the final set's slice. Empty slices are supported; construction
-  does not require or establish component well-formedness. PCI offset lookup returns
-  the first successful component result in slice order, or the last component's
-  error if all reject the request (`OutOfSpace` for an empty set). Lookup reuses
-  the single-allocator bounds contract and requires neither component
-  well-formedness nor unique allocation keys across the set.
+  write-back returns the final set's slice. Lookup returns the exact range and tag
+  from the first allocator containing the key, or `None` exactly when all allocators
+  lack the key. Empty slices and keys present in multiple allocators are supported;
+  construction and lookup require no component well-formedness assumption, and
+  construction does not establish it.
+  PCI offset lookup returns the first successful component result in slice order,
+  or the last component's error if all reject the request (`OutOfSpace` for an empty
+  set). This lookup reuses the single-allocator bounds contract and requires
+  neither component well-formedness nor unique allocation keys across the set.
   Allocation tries components in order with each component's preferred-alignment
   fallback, updates only the first successful component, and preserves component
   well-formedness. If all attempts fail, the set is unchanged and the last error

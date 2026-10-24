@@ -2059,6 +2059,20 @@ theorem release_containing_spec (self : AddressAllocator) (value : U64)
     step with release_spec self allocation hwf as ⟨result, a, hwfa, hrelease⟩
     exact ⟨hwfa, Or.inr ⟨allocation, range, tag, hlookup, hrange, hrelease⟩⟩
 
+/-! ### Allocation lookup -/
+
+/-- Lookup returns exactly the stored range and tag, or `none` for a missing key. -/
+def GetOutcome (self : AddressAllocator) (allocation : resources.Alloc)
+    (found : Option (AddressRange × String)) : Prop :=
+  found = Finmap.lookup allocation self.allocs
+
+/-- Total correctness of lookup, without allocator well-formedness assumptions. -/
+@[step]
+theorem get_spec (self : AddressAllocator) (allocation : resources.Alloc) :
+    get self allocation ⦃ found => GetOutcome self allocation found ⦄ := by
+  unfold get GetOutcome
+  exact get_alloc_spec self allocation
+
 /-! ### PCI offsets -/
 
 /-- A PCI offset resolves exactly when a nonempty request fits in the recorded BAR.

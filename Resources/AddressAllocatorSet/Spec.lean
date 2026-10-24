@@ -298,6 +298,64 @@ theorem allocate_at_spec (self : AddressAllocatorSet) (range : AddressRange)
     as ⟨result, it, hw, hout⟩
   exact ⟨hw, hout, fun _ => trivial⟩
 
+/-- A successful lookup returns the exact range and tag from the first allocator
+    containing the key. Absence means that every allocator lacks the key. -/
+def GetOutcome (self : AddressAllocatorSet) (allocation : resources.Alloc)
+    (found : Option (resources.address_range.AddressRange × String)) : Prop :=
+  match found with
+  | none => ∀ allocator ∈ self.allocators.val, AddressAllocator.GetOutcome allocator allocation none
+  | some entry => ∃ before allocator after,
+      self.allocators.val = before ++ allocator :: after ∧
+      AddressAllocator.GetOutcome allocator allocation (some entry) ∧
+      ∀ earlier ∈ before, AddressAllocator.GetOutcome earlier allocation none
+
+-- The unvisited suffix shrinks on every unsuccessful lookup. Its first present
+-- entry is unchanged when the current allocator does not contain the key.
+private theorem get_loop_spec (allocators : Slice AddressAllocator) (i : Nat)
+    (allocation : resources.Alloc) :
+    get_loop ⟨allocators, i⟩ allocation ⦃ found =>
+      found = (allocators.val.drop i).findSome?
+        (fun allocator => Finmap.lookup allocation allocator.allocs) ⦄ := by
+  unfold get_loop
+  rw [loop.eq_def]
+  simp only [get_loop.body, core.slice.iter.IteratorSliceIter.next,
+    Slice.len_val, Slice.length]
+  split
+  · rename_i hnext
+    simp only [bind_ok]
+    step with AddressAllocator.get_spec allocators.val[i] allocation as ⟨found, hfound⟩
+    unfold AddressAllocator.GetOutcome at hfound
+    subst found
+    rw [List.drop_eq_getElem_cons hnext]
+    cases hlookup : Finmap.lookup allocation allocators.val[i].allocs with
+    | none =>
+      simp only [Option.isSome_none, Bool.false_eq_true,
+        ↓reduceIte, bind_ok, List.findSome?_cons, hlookup]
+      exact get_loop_spec allocators (i + 1) allocation
+    | some entry =>
+      simp only [Option.isSome_some, ↓reduceIte, bind_ok, WP.spec_ok,
+        List.findSome?_cons, hlookup]
+  · rename_i hdone
+    simp [List.drop_eq_nil_of_le (by omega : allocators.val.length ≤ i)]
+termination_by allocators.val.length - i
+
+/-- Total correctness of ordered lookup, including empty sets and duplicate keys
+    across allocators. No allocator invariant or uniqueness assumption is needed. -/
+@[step]
+theorem get_spec (self : AddressAllocatorSet) (allocation : resources.Alloc) :
+    get self allocation ⦃ found => GetOutcome self allocation found ⦄ := by
+  unfold get
+  simp only [core.slice.Slice.iter, bind_ok]
+  step with get_loop_spec self.allocators 0 allocation as ⟨found, hfound⟩
+  simp only [List.drop_zero] at hfound
+  cases found with
+  | none =>
+    simpa only [GetOutcome, AddressAllocator.GetOutcome, eq_comm] using
+      List.findSome?_eq_none_iff.mp hfound.symm
+  | some entry =>
+    simpa only [GetOutcome, AddressAllocator.GetOutcome, eq_comm] using
+      List.findSome?_eq_some_iff.mp hfound.symm
+
 /-- The first allocator whose PCI request fits supplies the address. If every
     allocator rejects the request, return the last allocator's error, or
     `OutOfSpace` for an empty set. Each component uses the single-allocator
