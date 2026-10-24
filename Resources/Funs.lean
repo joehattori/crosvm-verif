@@ -1826,6 +1826,79 @@ def address_allocator.AddressAllocatorSet.allocate
   let s := iter_mut_back back
   ok (r, { allocators := s }, fun self1 => self1)
 
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::allocate_at]: loop body 0:
+    Source: 'resources/src/address_allocator.rs', lines 443:8-450:5
+    Visibility: public -/
+@[rust_loop_body]
+def address_allocator.AddressAllocatorSet.allocate_at_loop.body
+  (range : address_range.AddressRange) (alloc1 : Alloc) (tag : String)
+  (iter : core.slice.iter.IterMut address_allocator.AddressAllocator)
+  (back : core.slice.iter.IterMut address_allocator.AddressAllocator →
+  core.slice.iter.IterMut address_allocator.AddressAllocator)
+  (last_res : core.result.Result Unit Error) :
+  Result (ControlFlow ((core.slice.iter.IterMut
+    address_allocator.AddressAllocator) × (core.slice.iter.IterMut
+    address_allocator.AddressAllocator → core.slice.iter.IterMut
+    address_allocator.AddressAllocator) × (core.result.Result Unit Error))
+    ((core.result.Result Unit Error) × (core.slice.iter.IterMut
+    address_allocator.AddressAllocator)))
+  := do
+  let (o, iter1, next_back) ← core.slice.iter.IteratorIterMut.next iter
+  match o with
+  | none => ok (done (last_res, let im := next_back iter1 none
+                                back im))
+  | some allocator =>
+    let s ← alloc.string.String.Insts.CoreCloneClone.clone tag
+    let (last_res1, allocator1) ←
+      address_allocator.AddressAllocator.allocate_at allocator range alloc1 s
+    let b ← core.result.Result.is_ok last_res1
+    if b
+    then
+      ok (done (last_res1,
+        let im := next_back iter1 (some allocator1)
+        back im))
+    else
+      ok (cont (iter1,
+        fun im => let im1 := next_back im (some allocator1)
+                  back im1, last_res1))
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::allocate_at]: loop 0:
+    Source: 'resources/src/address_allocator.rs', lines 443:8-450:5
+    Visibility: public -/
+@[rust_loop]
+def address_allocator.AddressAllocatorSet.allocate_at_loop
+  (iter : core.slice.iter.IterMut address_allocator.AddressAllocator)
+  (back : core.slice.iter.IterMut address_allocator.AddressAllocator →
+  core.slice.iter.IterMut address_allocator.AddressAllocator)
+  (range : address_range.AddressRange) (alloc1 : Alloc) (tag : String)
+  (last_res : core.result.Result Unit Error) :
+  Result ((core.result.Result Unit Error) × (core.slice.iter.IterMut
+    address_allocator.AddressAllocator))
+  := do
+  loop
+    (fun (iter1, back1, last_res1) =>
+      address_allocator.AddressAllocatorSet.allocate_at_loop.body range alloc1
+      tag iter1 back1 last_res1)
+    (iter, back, last_res)
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::allocate_at]:
+    Source: 'resources/src/address_allocator.rs', lines 441:4-450:5
+    Visibility: public -/
+def address_allocator.AddressAllocatorSet.allocate_at
+  (self : address_allocator.AddressAllocatorSet)
+  (range : address_range.AddressRange) (alloc1 : Alloc) (tag : String) :
+  Result ((core.result.Result Unit Error) ×
+    address_allocator.AddressAllocatorSet ×
+    (address_allocator.AddressAllocatorSet →
+    address_allocator.AddressAllocatorSet))
+  := do
+  let (iter, iter_mut_back) ← core.slice.Slice.iter_mut self.allocators
+  let (r, back) ←
+    address_allocator.AddressAllocatorSet.allocate_at_loop iter (fun im => im)
+      range alloc1 tag (core.result.Result.Err Error.OutOfSpace)
+  let s := iter_mut_back back
+  ok (r, { allocators := s }, fun self1 => self1)
+
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocatorSet<'a>}::address_from_pci_offset]: loop body 0:
     Source: 'resources/src/address_allocator.rs', lines 475:8-482:5
     Visibility: public -/

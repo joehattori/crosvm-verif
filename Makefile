@@ -42,6 +42,7 @@ $(LLBC_DIR)/resources.llbc:
 		--start-from 'crate::address_allocator::AddressAllocator::address_from_pci_offset' \
 		--start-from 'crate::address_allocator::AddressAllocatorSet::new' \
 		--start-from 'crate::address_allocator::AddressAllocatorSet::allocate' \
+		--start-from 'crate::address_allocator::AddressAllocatorSet::allocate_at' \
 		--start-from 'crate::address_allocator::AddressAllocatorSet::address_from_pci_offset' \
 		--start-from 'crate::system_allocator::SystemAllocator::new' \
 		--start-from 'crate::system_allocator::SystemAllocator::get_anon_alloc' \

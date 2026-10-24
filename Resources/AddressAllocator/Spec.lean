@@ -1427,6 +1427,35 @@ theorem AllocationAtOutcome.pools_alignments {self a : AddressAllocator} {range 
         cases u
         exact ⟨h.2.1, h.2.2.1, h.2.2.2.1⟩
 
+/-- A failed fixed-address allocation leaves the complete allocator unchanged. -/
+theorem AllocationAtOutcome.error_unchanged {self a : AddressAllocator} {range : AddressRange}
+    {allocation : resources.Alloc} {tag : String} {error : resources.Error}
+    (h : AllocationAtOutcome self range allocation tag (.Err error) a) : a = self := by
+  unfold AllocationAtOutcome at h
+  split at h
+  · exact h.2
+  · split at h
+    · exact h.2
+    · exact h.1
+
+/-- Success is equivalent to a fresh key, a nonempty request, and a free slot
+    containing the entire requested range. -/
+theorem AllocationAtOutcome.success_iff {self a : AddressAllocator} {range : AddressRange}
+    {allocation : resources.Alloc} {tag : String} {result : core.result.Result Unit resources.Error}
+    (h : AllocationAtOutcome self range allocation tag result a) :
+    result = .Ok () ↔ allocation ∉ self.allocs ∧ ¬range.isEmptyModel ∧
+      RangeAvailable self.regions range := by
+  unfold AllocationAtOutcome at h
+  split at h
+  · rcases h with ⟨rfl, _⟩
+    simp_all
+  · split at h
+    · rcases h with ⟨rfl, _⟩
+      simp_all
+    · cases result with
+      | Ok u => cases u; simp_all
+      | Err error => simp_all
+
 /-- Fixed-address allocation is correct for every range, including empty ranges
     and ranges ending at `u64::MAX`; it requires no alignment or overflow bounds. -/
 @[step]
