@@ -435,4 +435,183 @@ theorem address_from_pci_offset_spec (self : AddressAllocatorSet) (allocation : 
   exact pci_offset_loop_spec self allocation offset size 0 .OutOfSpace
     (Nat.zero_le _) (by simp) (by simp)
 
+/-- The first successful release determines the result. Earlier attempts retain
+    their state changes, and later components are unchanged. If every attempt
+    fails, return the last error, or `OutOfSpace` for an empty set. -/
+def ReleaseOutcome (self : AddressAllocatorSet) (allocation : resources.Alloc)
+    (result : core.result.Result AddressRange resources.Error)
+    (updated : AddressAllocatorSet) : Prop :=
+  match result with
+  | .Ok range =>
+    ∃ (i : Fin self.allocators.val.length) (released : AddressAllocator) (changed : List AddressAllocator),
+      AddressAllocator.ReleaseOutcome self.allocators.val[i] allocation (.Ok range) released ∧
+      List.Forall₂ (fun before after => ∃ error,
+        AddressAllocator.ReleaseOutcome before allocation (.Err error) after)
+        (self.allocators.val.take i.val) changed ∧
+      updated.allocators.val = changed ++ released :: self.allocators.val.drop (i.val + 1)
+  | .Err error =>
+    List.Forall₂ (fun before after => ∃ e,
+      AddressAllocator.ReleaseOutcome before allocation (.Err e) after)
+      self.allocators.val updated.allocators.val ∧
+    match self.allocators.val.getLast?, updated.allocators.val.getLast? with
+    | none, none => error = .OutOfSpace
+    | some before, some after =>
+      AddressAllocator.ReleaseOutcome before allocation (.Err error) after
+    | _, _ => False
+
+/-- The set retains its length and each component's pools and alignments. -/
+theorem ReleaseOutcome.pools_alignments {self updated allocation result}
+    (h : ReleaseOutcome self allocation result updated) :
+    List.Forall₂ (fun before after => after.pools = before.pools ∧
+      after.min_align = before.min_align ∧ after.preferred_align = before.preferred_align)
+      self.allocators.val updated.allocators.val := by
+  cases result with
+  | Ok range =>
+    obtain ⟨i, released, changed, hlast, hfailed, hupdated⟩ := h
+    rw [hupdated]
+    conv_lhs =>
+      rw [← List.take_append_drop i.val self.allocators.val, List.drop_eq_getElem_cons i.isLt]
+    exact List.rel_append (hfailed.imp (fun _ _ ⟨_, h⟩ => h.pools_alignments))
+      (.cons hlast.pools_alignments (by simp [List.forall₂_same]))
+  | Err error => exact h.1.imp (fun _ _ ⟨_, h⟩ => h.pools_alignments)
+
+/-- An absent key leaves the set unchanged, returning `BadAlloc` for a nonempty
+    set and `OutOfSpace` for an empty set. -/
+theorem ReleaseOutcome.missing {self updated allocation result}
+    (h : ReleaseOutcome self allocation result updated)
+    (hmissing : ∀ a ∈ self.allocators.val, Finmap.lookup allocation a.allocs = none) :
+    updated = self ∧ result = .Err (match self.allocators.val with
+      | [] => .OutOfSpace
+      | _ :: _ => .BadAlloc allocation) := by
+  cases result with
+  | Ok range =>
+    obtain ⟨i, released, changed, hlast, _, _⟩ := h
+    have hm := hmissing self.allocators.val[i] (List.getElem_mem i.isLt)
+    simp only [AddressAllocator.ReleaseOutcome, hm] at hlast
+    cases hlast.1
+  | Err error =>
+    obtain ⟨hfailed, hlast⟩ := h
+    have heq : self.allocators.val = updated.allocators.val := by
+      have hboth := (List.forall₂_and_left _ _).mpr ⟨hmissing, hfailed⟩
+      have hsame : List.Forall₂ (fun before after => before = after)
+          self.allocators.val updated.allocators.val := hboth.imp (fun before after ⟨hm, _, h⟩ => by
+        simp only [AddressAllocator.ReleaseOutcome, hm] at h
+        exact h.2.symm)
+      simpa only [List.forall₂_eq_eq_eq] using hsame
+    have hset : updated = self := by
+      cases self
+      cases updated
+      congr 1
+      exact Slice.ext _ _ heq.symm
+    subst updated
+    refine ⟨rfl, congrArg core.result.Result.Err ?_⟩
+    cases hl : self.allocators.val.getLast? with
+    | none =>
+      have hempty := List.getLast?_eq_none_iff.mp hl
+      simpa [hl, hempty] using hlast
+    | some last =>
+      have hm := hmissing last (List.mem_of_getLast? hl)
+      simp only [hl, AddressAllocator.ReleaseOutcome, hm, core.result.Result.Err.injEq] at hlast
+      rw [hlast.1]
+      cases he : self.allocators.val with
+      | nil => simp [he] at hl
+      | cons => rfl
+
+/-- `changed` records the failed prefix. Pending mutable borrows write that
+    prefix back while preserving the remaining slice supplied by the loop. -/
+private theorem release_loop_spec (s : Slice AddressAllocator) (i : Nat)
+    (back : core.slice.iter.IterMut AddressAllocator → core.slice.iter.IterMut AddressAllocator)
+    (allocation : resources.Alloc) (lastError : resources.Error)
+    (changed : List AddressAllocator) (hi : i ≤ s.val.length)
+    (hwf : ∀ a ∈ s.val, AddressAllocator.WellFormed a)
+    (hwfc : ∀ a ∈ changed, AddressAllocator.WellFormed a)
+    (hfailed : List.Forall₂ (fun before after => ∃ error,
+      AddressAllocator.ReleaseOutcome before allocation (.Err error) after) (s.val.take i) changed)
+    (hlast : match (s.val.take i).getLast?, changed.getLast? with
+      | none, none => lastError = .OutOfSpace
+      | some before, some after => AddressAllocator.ReleaseOutcome before allocation (.Err lastError) after
+      | _, _ => False)
+    (hback : ∀ final : core.slice.iter.IterMut AddressAllocator,
+      final.slice.val.length = s.val.length →
+      (back final).slice.val = changed ++ final.slice.val.drop i) :
+    release_loop ⟨s, i⟩ back allocation (.Err lastError) ⦃ result final =>
+      WellFormed ⟨final.slice⟩ ∧ ReleaseOutcome ⟨s⟩ allocation result ⟨final.slice⟩ ⦄ := by
+  unfold release_loop
+  rw [loop.eq_def]
+  simp only [release_loop.body, core.slice.iter.IteratorIterMut.next, Slice.len_val, Slice.length]
+  split
+  · rename_i hnext
+    simp
+    step with AddressAllocator.release_spec s.val[i] allocation
+      (hwf _ (List.getElem_mem hnext)) as ⟨pair, hwfa, houtcome⟩
+    rcases pair with ⟨result, a⟩
+    dsimp only at hwfa houtcome
+    have hwrite (final : core.slice.iter.IterMut AddressAllocator)
+        (hlen : final.slice.val.length = s.val.length) :
+        (back { final with slice := final.slice.setAtNat i a }).slice.val =
+          changed ++ a :: final.slice.val.drop (i + 1) := by
+      rw [hback _ (by simpa [Slice.setAtNat] using hlen)]
+      simp only [Slice.setAtNat, Slice.from_val, List.drop_set, Nat.lt_irrefl,
+        ↓reduceIte, Nat.sub_self]
+      rw [List.drop_eq_getElem_cons (by omega : i < final.slice.val.length)]
+      rfl
+    cases result with
+    | Ok range =>
+      simp [core.result.Result.is_ok]
+      constructor
+      · intro b hb
+        rw [hwrite ⟨s, i + 1⟩ rfl] at hb
+        simp only [List.mem_append, List.mem_cons] at hb
+        rcases hb with hb | rfl | hb
+        · exact hwfc b hb
+        · exact hwfa
+        · exact hwf b (List.mem_of_mem_drop hb)
+      · exact ⟨⟨i, hnext⟩, a, changed, houtcome, hfailed, hwrite ⟨s, i + 1⟩ rfl⟩
+    | Err error =>
+      simp [core.result.Result.is_ok]
+      apply release_loop_spec s (i + 1)
+        (fun final => back { final with slice := final.slice.setAtNat i a })
+        allocation error (changed ++ [a]) (by omega) hwf
+      · intro b hb
+        simp only [List.mem_append, List.mem_singleton] at hb
+        rcases hb with hb | rfl
+        · exact hwfc b hb
+        · exact hwfa
+      · rw [List.take_succ_eq_append_getElem hnext]
+        exact List.rel_append hfailed (.cons ⟨error, houtcome⟩ .nil)
+      · rw [List.take_succ_eq_append_getElem hnext]
+        simpa only [List.getLast?_append, List.getLast?_singleton, Option.or] using houtcome
+      · intro final hlen
+        simpa only [List.append_assoc, List.singleton_append] using hwrite final hlen
+  · rename_i hdone
+    have he : i = s.val.length := by omega
+    have hwrite : (back ⟨s, i⟩).slice.val = changed := by
+      simpa only [he, List.drop_length, List.append_nil] using hback ⟨s, i⟩ rfl
+    simp
+    constructor
+    · simpa only [WellFormed, hwrite] using hwfc
+    · unfold ReleaseOutcome
+      dsimp only
+      rw [hwrite]
+      constructor
+      · simpa only [he, List.take_length] using hfailed
+      · simp only [he, List.take_length] at hlast
+        cases hbefore : s.val.getLast? <;> cases hafter : changed.getLast? <;> simp_all only
+termination_by s.val.length - i
+
+/-- Release searches in slice order, preserves component invariants, and writes
+    back all attempted releases. The returned mutable borrow is the identity. -/
+@[step]
+theorem release_spec (self : AddressAllocatorSet) (allocation : resources.Alloc)
+    (hwf : WellFormed self) :
+    release self allocation ⦃ result updated back =>
+      ReleaseOutcome self allocation result updated ∧ WellFormed updated ∧
+      ∀ final, back final = final ⦄ := by
+  unfold release
+  simp only [core.slice.Slice.iter_mut, bind_ok]
+  step with release_loop_spec self.allocators 0 (fun it => it) allocation .OutOfSpace []
+    (by omega) hwf (by simp) (by simp) (by simp) (by simp)
+    as ⟨result, final, hwfa, houtcome⟩
+  exact ⟨houtcome, hwfa, by simp⟩
+
 end resources.address_allocator.AddressAllocatorSet

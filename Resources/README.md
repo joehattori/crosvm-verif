@@ -30,6 +30,12 @@
   and returning the last error (`OutOfSpace` for an empty set). Success is equivalent
   to some component having a fresh key and a free slot containing the entire
   nonempty request; no disjoint pools or distinct keys across components are required.
+  Release tries components in order, stops at the first success, and preserves
+  component well-formedness, slice length, pools, and alignments. Failed attempts
+  retain their component state changes; the suffix after success is unchanged.
+  Exhaustion returns the last error, or `OutOfSpace` for an empty set. A key absent
+  from every component leaves the set unchanged and returns `BadAlloc` when the
+  set is nonempty.
 - [SystemAllocator](SystemAllocator/Spec.lean): construction, including initial
   resource pools, component well-formedness, and configuration errors; anonymous
   allocation ID generation, IRQ/GPE allocation and IRQ reservation until counter
@@ -69,6 +75,10 @@ borrowed-key ordering; ordered traversal is not modeled.
 Optional mutable-reference branching models both the selected value and its
 borrow write-back.
 String conversion models UTF-8 `str` contents; general formatting is unsupported.
+
+Set release assumes each component is well-formed, without requiring allocation
+keys to be unique across components. It composes the single-allocator release
+contract, including removal of empty allocation records on `AllocSizeZero` errors.
 
 # Extraction and checks
 
