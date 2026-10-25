@@ -38,6 +38,18 @@ theorem AllocationAtOutcome.error_unchanged {self a : AddressAllocatorSet} {rang
     {allocation : resources.Alloc} {tag : String} {error : resources.Error}
     (h : AllocationAtOutcome self range allocation tag (.Err error) a) : a = self := h.1
 
+/-- Fixed-address allocation preserves the extent of the borrowed slice. -/
+theorem AllocationAtOutcome.length {self a : AddressAllocatorSet} {range : AddressRange}
+    {allocation : resources.Alloc} {tag : String} {result : core.result.Result Unit resources.Error}
+    (h : AllocationAtOutcome self range allocation tag result a) :
+    a.allocators.val.length = self.allocators.val.length := by
+  cases result with
+  | Err error => simp [h.error_unchanged]
+  | Ok u =>
+    cases u
+    obtain ⟨i, updated, _, _, heq⟩ := h
+    simp [heq, Slice.setAtNat]
+
 /-- The set succeeds exactly when some component can satisfy the request.
     A duplicate key or overlap in an earlier component does not stop the search. -/
 theorem AllocationAtOutcome.success_iff {self a : AddressAllocatorSet} {range : AddressRange}

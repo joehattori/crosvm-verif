@@ -664,6 +664,16 @@ axiom
   {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
   alloc.collections.btree.set.Range T → Result (Option T)
 
+/-- [alloc::slice::{[T]}::sort_by]:
+    Source: '/rustc/library/alloc/src/slice.rs', lines 192:4-194:37
+    Name pattern: [alloc::slice::{[@T]}::sort_by]
+    Visibility: public -/
+@[rust_fun "alloc::slice::{[@T]}::sort_by"]
+axiom alloc.slice.Slice.sort_by
+  {T : Type} {F : Type} (coreopsfunctionFnMutFPairShared0TSharedTOrderingInst :
+  core.ops.function.FnMut F (T × T) Ordering) :
+  Slice T → F → Result (Slice T)
+
 /-- [alloc::string::{impl core::clone::Clone for alloc::string::String}::clone]:
     Source: '/rustc/library/alloc/src/string.rs', lines 2425:4-2425:27
     Name pattern: [alloc::string::{core::clone::Clone<alloc::string::String>}::clone]
@@ -678,6 +688,15 @@ axiom alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
 @[rust_fun "alloc::string::{alloc::string::ToString<@T>}::to_string"]
 axiom alloc.string.ToString.Blanket.to_string
   {T : Type} (corefmtDisplayInst : core.fmt.Display T) : T → Result String
+
+/-- [alloc::vec::{impl core::iter::traits::collect::IntoIterator<&'a T, core::slice::iter::Iter<'a, T>> for &'a alloc::vec::Vec<T>}::into_iter]:
+    Source: '/rustc/library/alloc/src/vec/mod.rs', lines 4088:4-4088:40
+    Name pattern: [alloc::vec::{core::iter::traits::collect::IntoIterator<&'a alloc::vec::Vec<@T>, &'a @T, core::slice::iter::Iter<'a, @T>>}::into_iter]
+    Visibility: public -/
+@[rust_fun
+  "alloc::vec::{core::iter::traits::collect::IntoIterator<&'a alloc::vec::Vec<@T>, &'a @T, core::slice::iter::Iter<'a, @T>>}::into_iter"]
+axiom SharedAVec.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter.into_iter
+  {T : Type} (A : Type) : alloc.vec.Vec T → Result (core.slice.iter.Iter T)
 
 /-- [base::sys::unix::system_info::pagesize]:
     Source: 'base/src/sys/unix/system_info.rs', lines 32:0-32:26

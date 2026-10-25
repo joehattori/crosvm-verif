@@ -3393,25 +3393,6 @@ def system_allocator.SystemAllocator.allocate_mmio
       else ok (res1, self2)
     else ok (res, self1)
 
-/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_allocator_any]:
-    Source: 'resources/src/system_allocator.rs', lines 436:4-438:5
-    Visibility: public -/
-def system_allocator.SystemAllocator.mmio_allocator_any
-  (self : system_allocator.SystemAllocator) :
-  Result (address_allocator.AddressAllocatorSet ×
-    (address_allocator.AddressAllocatorSet →
-    system_allocator.SystemAllocator))
-  := do
-  let (s, to_slice_mut_back) ←
-    lift (Array.to_slice_mut self.mmio_address_spaces)
-  let (aas, new_back) ← address_allocator.AddressAllocatorSet.new s
-  let back :=
-    fun aas1 =>
-      let s1 := new_back aas1
-      let a := to_slice_mut_back s1
-      { self with mmio_address_spaces := a }
-  ok (aas, back)
-
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}::call_mut]:
     Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
 def
@@ -3487,5 +3468,193 @@ def system_allocator.SystemAllocator.mmio_pools
     address_range.AddressRange)
     system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange)
     (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) fm
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_allocator_any]:
+    Source: 'resources/src/system_allocator.rs', lines 436:4-438:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.mmio_allocator_any
+  (self : system_allocator.SystemAllocator) :
+  Result (address_allocator.AddressAllocatorSet ×
+    (address_allocator.AddressAllocatorSet →
+    system_allocator.SystemAllocator))
+  := do
+  let (s, to_slice_mut_back) ←
+    lift (Array.to_slice_mut self.mmio_address_spaces)
+  let (aas, new_back) ← address_allocator.AddressAllocatorSet.new s
+  let back :=
+    fun aas1 =>
+      let s1 := new_back aas1
+      let a := to_slice_mut_back s1
+      { self with mmio_address_spaces := a }
+  ok (aas, back)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange, &'_1 resources::address_range::AddressRange), core::cmp::Ordering> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{closure}}::call_mut]:
+    Source: 'resources/src/system_allocator.rs', lines 397:22-397:50 -/
+def
+  system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering.call_mut
+  (c : system_allocator.SystemAllocator.reserve_mmio.closure)
+  (tupled_args : (address_range.AddressRange × address_range.AddressRange)) :
+  Result (Ordering × system_allocator.SystemAllocator.reserve_mmio.closure)
+  := do
+  let (a, b) := tupled_args
+  let o ← lift (core.cmp.impls.OrdU64.cmp a.start b.start)
+  ok (o, c)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange, &'_1 resources::address_range::AddressRange), core::cmp::Ordering> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{closure}}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 397:22-397:50 -/
+def
+  system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnOncePairShared0AddressRangeShared1AddressRangeOrdering.call_once
+  (c : system_allocator.SystemAllocator.reserve_mmio.closure)
+  (p : (address_range.AddressRange × address_range.AddressRange)) :
+  Result Ordering
+  := do
+  let (o, _) ←
+    system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering.call_mut
+      c p
+  ok o
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange, &'_1 resources::address_range::AddressRange), core::cmp::Ordering> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 397:22-397:50 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnOncePairShared0AddressRangeShared1AddressRangeOrdering
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.reserve_mmio.closure
+  (address_range.AddressRange × address_range.AddressRange) Ordering := {
+  call_once :=
+    system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnOncePairShared0AddressRangeShared1AddressRangeOrdering.call_once
+}
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange, &'_1 resources::address_range::AddressRange), core::cmp::Ordering> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 397:22-397:50 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering
+  : core.ops.function.FnMut
+  system_allocator.SystemAllocator.reserve_mmio.closure
+  (address_range.AddressRange × address_range.AddressRange) Ordering := {
+  FnOnceInst :=
+    system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnOncePairShared0AddressRangeShared1AddressRangeOrdering
+  call_mut :=
+    system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering.call_mut
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio]: loop body 0:
+    Source: 'resources/src/system_allocator.rs', lines 394:8-396:9
+    Visibility: public -/
+@[rust_loop_body]
+def system_allocator.SystemAllocator.reserve_mmio_loop0.body
+  (iter : alloc.vec.into_iter.IntoIter address_range.AddressRange)
+  (pools : alloc.vec.Vec address_range.AddressRange) :
+  Result (ControlFlow ((alloc.vec.into_iter.IntoIter
+    address_range.AddressRange) × (alloc.vec.Vec address_range.AddressRange))
+    (alloc.vec.Vec address_range.AddressRange))
+  := do
+  let (o, iter1) ← alloc.vec.into_iter.IteratorIntoIter.next iter
+  match o with
+  | none => ok (done pools)
+  | some pool =>
+    let pools1 ← alloc.vec.Vec.push pools pool
+    ok (cont (iter1, pools1))
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio]: loop 0:
+    Source: 'resources/src/system_allocator.rs', lines 394:8-396:9
+    Visibility: public -/
+@[rust_loop]
+def system_allocator.SystemAllocator.reserve_mmio_loop0
+  (iter : alloc.vec.into_iter.IntoIter address_range.AddressRange)
+  (pools : alloc.vec.Vec address_range.AddressRange) :
+  Result (alloc.vec.Vec address_range.AddressRange)
+  := do
+  loop
+    (fun (iter1, pools1) =>
+      system_allocator.SystemAllocator.reserve_mmio_loop0.body iter1 pools1)
+    (iter, pools)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio]: loop body 1:
+    Source: 'resources/src/system_allocator.rs', lines 398:8-415:5
+    Visibility: public -/
+@[rust_loop_body]
+def system_allocator.SystemAllocator.reserve_mmio_loop1.body
+  (range : address_range.AddressRange)
+  (iter : core.slice.iter.Iter address_range.AddressRange)
+  (self : system_allocator.SystemAllocator) :
+  Result (ControlFlow ((core.slice.iter.Iter address_range.AddressRange) ×
+    system_allocator.SystemAllocator) ((core.result.Result Unit Error) ×
+    system_allocator.SystemAllocator))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none => ok (done (core.result.Result.Ok (), self))
+  | some pool =>
+    if pool.start > range.end
+    then ok (done (core.result.Result.Ok (), self))
+    else
+      let overlap ← address_range.AddressRange.intersect pool range
+      let b ← address_range.AddressRange.is_empty overlap
+      if b
+      then ok (cont (iter1, self))
+      else
+        let (id, self1) ←
+          system_allocator.SystemAllocator.get_anon_alloc self
+        let (aas, mmio_allocator_any_back) ←
+          system_allocator.SystemAllocator.mmio_allocator_any self1
+        let s ←
+          alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay
+            (toStr "pci mmio reserve")
+        let (r, aas1, allocate_at_back) ←
+          address_allocator.AddressAllocatorSet.allocate_at aas overlap id s
+        let cf ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue _ =>
+          let self2 := mmio_allocator_any_back (allocate_at_back aas1)
+          ok (cont (iter1, self2))
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          let r1 ←
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              Unit (core.convert.FromSame Error) residual
+          let self2 := mmio_allocator_any_back (allocate_at_back aas1)
+          ok (done (r1, self2))
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio]: loop 1:
+    Source: 'resources/src/system_allocator.rs', lines 398:8-415:5
+    Visibility: public -/
+@[rust_loop]
+def system_allocator.SystemAllocator.reserve_mmio_loop1
+  (iter : core.slice.iter.Iter address_range.AddressRange)
+  (self : system_allocator.SystemAllocator)
+  (range : address_range.AddressRange) :
+  Result ((core.result.Result Unit Error) × system_allocator.SystemAllocator)
+  := do
+  loop
+    (fun (iter1, self1) =>
+      system_allocator.SystemAllocator.reserve_mmio_loop1.body range iter1
+      self1)
+    (iter, self)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::reserve_mmio]:
+    Source: 'resources/src/system_allocator.rs', lines 392:4-415:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.reserve_mmio
+  (self : system_allocator.SystemAllocator)
+  (range : address_range.AddressRange) :
+  Result ((core.result.Result Unit Error) × system_allocator.SystemAllocator)
+  := do
+  let v ← system_allocator.SystemAllocator.mmio_pools self
+  let iter ← alloc.vec.IntoIteratorVec.into_iter v
+  let pools ←
+    system_allocator.SystemAllocator.reserve_mmio_loop0 iter (alloc.vec.Vec.new
+      address_range.AddressRange)
+  let (s, deref_mut_back) ← lift (alloc.vec.Vec.deref_mut pools)
+  let s1 ←
+    alloc.slice.Slice.sort_by
+      system_allocator.SystemAllocator.reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering
+      s ()
+  let pools1 := deref_mut_back s1
+  let iter1 ←
+    SharedAVec.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter.into_iter
+      Global pools1
+  system_allocator.SystemAllocator.reserve_mmio_loop1 iter1 self range
 
 end resources

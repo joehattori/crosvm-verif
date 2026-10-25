@@ -1550,4 +1550,422 @@ theorem allocate_mmio_spec (self : SystemAllocator) (size : U64)
         simp only [MmioRequestOutcome, hlarge, ↓reduceIte]
         exact ⟨first, tried, hfirst, by simp [hlow]⟩⟩
 
+
+/-! ### MMIO reservation -/
+
+set_option maxRecDepth 2048
+
+/-- Stable pool order used for reservation, including duplicate pools. -/
+def sortedMmioPools (self : SystemAllocator) : List AddressRange :=
+  (mmioPoolList self).mergeSort (fun a b => a.start.val ≤ b.start.val)
+
+/-- Exactly the nonempty intersections, in the supplied pool order. -/
+def reservationOverlaps (pools : List AddressRange) (range : AddressRange) : List AddressRange :=
+  pools.filterMap fun pool =>
+    let overlap := intersection pool range
+    if overlap.isEmptyModel then none else some overlap
+
+/-- One reservation consumes an anonymous ID, borrows both MMIO allocators,
+    and applies their fixed-address allocation contract. The borrow writes back
+    the final component states, including on an expected allocation error. -/
+def MmioReservationAttempt (self : SystemAllocator) (overlap : AddressRange)
+    (result : core.result.Result Unit resources.Error) (a : SystemAllocator) : Prop :=
+  ∃ next allocators back updated,
+    next.next_anon_id.val = self.next_anon_id.val + 1 ∧
+    next = { self with next_anon_id := next.next_anon_id } ∧
+    MmioAllocatorSetBorrow next allocators back ∧
+    AddressAllocatorSet.AllocationAtOutcome allocators overlap
+      (.Anon next.next_anon_id) "pci mmio reserve" result updated ∧
+    a = back updated
+
+/-- Reserve the intersections in order, stopping at the first failed attempt.
+    Successful earlier reservations remain in place; the failing attempt also
+    consumes its ID. The component contract determines the returned error. -/
+def MmioReservationSequence (self : SystemAllocator) : List AddressRange →
+    core.result.Result Unit resources.Error → SystemAllocator → Prop
+  | [], result, a => result = .Ok () ∧ a = self
+  | overlap :: rest, result, a => ∃ first next,
+      MmioReservationAttempt self overlap first next ∧
+      match first with
+      | .Ok () => MmioReservationSequence next rest result a
+      | .Err error => result = .Err error ∧ a = next
+
+/-- Reserve every nonempty pool intersection in stable ascending start order.
+    Empty requests and requests outside the pools leave the entire system unchanged.
+    Pools may overlap across components; errors and key collisions are described
+    by the existing allocator-set contract, without assuming IDs are fresh. -/
+def MmioReservationOutcome (self : SystemAllocator) (range : AddressRange)
+    (result : core.result.Result Unit resources.Error) (a : SystemAllocator) : Prop :=
+  MmioReservationSequence self (reservationOverlaps (sortedMmioPools self) range) result a
+
+private abbrev reservationComparator :=
+  reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering
+
+private theorem reservation_compare (x y : AddressRange) :
+    reservationComparator.call_mut () (x, y) = ok (compare x.start.val y.start.val, ()) := by
+  simp only [reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering.call_mut,
+    core.cmp.impls.OrdU64.cmp, lift, bind_ok, uncurry]
+
+private theorem reservation_sort_le (x y : AddressRange) :
+    alloc.slice.sortLe reservationComparator () x y = decide (x.start.val ≤ y.start.val) := by
+  unfold alloc.slice.sortLe
+  rw [reservation_compare]
+  simp [Nat.compare_ne_gt]
+
+private theorem reservation_sort_spec (pools : Slice AddressRange) :
+    alloc.slice.Slice.sort_by reservationComparator pools () ⦃ sorted =>
+      sorted.val = pools.val.mergeSort (fun a b => a.start.val ≤ b.start.val) ⦄ := by
+  have hpure : ∀ x y : AddressRange, ∃ order,
+      reservationComparator.call_mut () (x, y) = ok (order, ()) ∧
+      reservationComparator.call_mut () (y, x) = ok (order.swap, ()) := by
+    intro x y
+    exact ⟨compare x.start.val y.start.val, reservation_compare x y,
+      by rw [reservation_compare, Nat.compare_swap]⟩
+  have hle : alloc.slice.sortLe reservationComparator () =
+      (fun a b : AddressRange => decide (a.start.val ≤ b.start.val)) :=
+    funext fun x => funext fun y => reservation_sort_le x y
+  have htrans : ∀ x y z, alloc.slice.sortLe reservationComparator () x y →
+      alloc.slice.sortLe reservationComparator () y z →
+      alloc.slice.sortLe reservationComparator () x z := by
+    simp only [hle, decide_eq_true_eq]
+    exact fun _ _ _ => Nat.le_trans
+  unfold alloc.slice.Slice.sort_by
+  rw [if_pos ⟨hpure, htrans⟩]
+  simp only [WP.spec_ok, Slice.from_val, hle]
+
+private theorem copy_reservation_pools_spec (iter : alloc.vec.Vec AddressRange)
+    (pools : alloc.vec.Vec AddressRange)
+    (hsize : pools.val.length + iter.val.length ≤ Usize.max) :
+    reserve_mmio_loop0 iter pools ⦃ copied => copied.val = pools.val ++ iter.val ⦄ := by
+  unfold reserve_mmio_loop0
+  rw [loop.eq_def]
+  dsimp only
+  rw [reserve_mmio_loop0.body, alloc.vec.into_iter.IteratorIntoIter.next]
+  split
+  · rename_i hi
+    change iter.val = [] at hi
+    simp [bind_ok, uncurry, hi]
+  · rename_i pool rest hi
+    change iter.val = pool :: rest at hi
+    simp only [bind_ok, uncurry]
+    step with alloc.vec.Vec.push_spec pools pool (by simp only [hi, List.length_cons] at hsize; omega)
+      as ⟨pushed, hpushed⟩
+    have hrest : rest.length ≤ Usize.max := by
+      simp only [hi, List.length_cons] at hsize
+      omega
+    change reserve_mmio_loop0 (alloc.vec.Vec.from rest hrest) pushed
+      ⦃ copied => copied.val = pools.val ++ iter.val ⦄
+    apply WP.spec_mono (copy_reservation_pools_spec (alloc.vec.Vec.from rest hrest) pushed
+      (by
+        simp only [alloc.vec.Vec.from_val, hpushed, List.length_append,
+          hi, List.length_cons, List.length_nil] at hsize ⊢
+        omega))
+    intro copied hcopied
+    simpa [hpushed, hi, List.append_assoc] using hcopied
+
+termination_by iter.val.length
+decreasing_by
+  simp_wf
+  simp_all only [List.length_cons]
+  omega
+
+private theorem reservation_tag :
+    _root_.alloc.string.ToString.Blanket.to_string Str.Insts.CoreFmtDisplay
+      (toStr "pci mmio reserve") = ok "pci mmio reserve" := by
+  apply string_tag
+  simp only [Aeneas.Std.toStr, Slice.from_val, List.map_toArray]
+  with_unfolding_all rfl
+
+/-- Each attempt advances only the counter and the MMIO components. -/
+theorem MmioReservationAttempt.frame {self a : SystemAllocator} {overlap result}
+    (h : MmioReservationAttempt self overlap result a) :
+    a.next_anon_id.val = self.next_anon_id.val + 1 ∧
+    a = { self with next_anon_id := a.next_anon_id, mmio_address_spaces := a.mmio_address_spaces } := by
+  obtain ⟨next, allocators, back, updated, hcounter, hnext, hborrow, hout, rfl⟩ := h
+  rw [hborrow.2 updated (hout.length.trans hborrow.length)]
+  constructor
+  · exact hcounter
+  · exact congrArg (fun s : SystemAllocator => { s with
+      next_anon_id := next.next_anon_id
+      mmio_address_spaces := Array.from updated.allocators.val
+        (by simpa using hout.length.trans hborrow.length) }) hnext
+
+/-- A rejected attempt changes only the anonymous counter. Earlier successful
+    attempts in a sequence are not rolled back. -/
+theorem MmioReservationAttempt.error_state {self a : SystemAllocator} {overlap error}
+    (h : MmioReservationAttempt self overlap (.Err error) a) :
+    a = { self with next_anon_id := a.next_anon_id } := by
+  obtain ⟨next, allocators, back, updated, _, hnext, hborrow, hout, rfl⟩ := h
+  rw [hout.error_unchanged, hborrow.unchanged]
+  exact hnext
+
+
+@[simp] private theorem reservationOverlaps_cons (pool : AddressRange) (rest : List AddressRange)
+    (range : AddressRange) :
+    reservationOverlaps (pool :: rest) range =
+      if (intersection pool range).isEmptyModel then reservationOverlaps rest range
+      else intersection pool range :: reservationOverlaps rest range := by
+  by_cases h : (intersection pool range).isEmptyModel <;> simp [reservationOverlaps, h]
+
+private theorem reservationOverlaps_after (pools : List AddressRange) (range : AddressRange)
+    (hafter : ∀ pool ∈ pools, range.end.val < pool.start.val) :
+    reservationOverlaps pools range = [] := by
+  simp only [reservationOverlaps, List.filterMap_eq_nil_iff]
+  intro pool hp
+  have := hafter pool hp
+  simp only [intersection, AddressRange.isEmptyModel, val_min, val_max]
+  simp [show min pool.end.val range.end.val < max pool.start.val range.start.val by omega]
+
+private theorem reserve_mmio_loop_spec (pools : Slice AddressRange) (i : Nat)
+    (self : SystemAllocator) (range : AddressRange) (hwf : WellFormed self)
+    (hsorted : (pools.val.drop i).Pairwise (fun a b => a.start.val ≤ b.start.val))
+    (hnext : self.next_anon_id.val + (reservationOverlaps (pools.val.drop i) range).length ≤ Usize.max) :
+    reserve_mmio_loop1 ⟨pools, i⟩ self range ⦃ result a =>
+      WellFormed a ∧ MmioReservationSequence self (reservationOverlaps (pools.val.drop i) range) result a ⦄ := by
+  unfold reserve_mmio_loop1
+  rw [loop.eq_def]
+  dsimp only
+  rw [reserve_mmio_loop1.body, slice_next_eq]
+  dsimp only
+  split
+  · rename_i hi
+    change i < pools.val.length at hi
+    have hdrop := List.drop_eq_getElem_cons hi
+    rw [hdrop, List.pairwise_cons] at hsorted
+    simp only [bind_ok, uncurry]
+    split
+    · rename_i hafter
+      have hafter : range.end.val < pools.val[i].start.val := by scalar_tac
+      have hnone : reservationOverlaps (pools.val.drop i) range = [] :=
+        reservationOverlaps_after _ _ (by
+          rw [hdrop]
+          intro pool hp
+          rcases List.mem_cons.mp hp with rfl | hp
+          · exact hafter
+          · exact Nat.lt_of_lt_of_le hafter (hsorted.1 pool hp))
+      simp [hnone, MmioReservationSequence, hwf]
+    · step with intersect_eq_spec pools.val[i] range as ⟨overlap, hoverlap⟩
+      subst overlap
+      step with AddressRange.is_empty_spec (intersection pools.val[i] range) as ⟨empty, hempty⟩
+      split
+      · rename_i he
+        have he := hempty.mp he
+        have hoverlaps : reservationOverlaps (pools.val.drop i) range =
+            reservationOverlaps (pools.val.drop (i + 1)) range := by simp only [hdrop, reservationOverlaps_cons, if_pos he]
+        simp only [bind_ok]
+        rw [hoverlaps] at hnext ⊢
+        exact reserve_mmio_loop_spec pools (i + 1) self range hwf hsorted.2 hnext
+      · rename_i hn
+        have hn : ¬(intersection pools.val[i] range).isEmptyModel := fun he => hn (hempty.mpr he)
+        have hoverlaps : reservationOverlaps (pools.val.drop i) range =
+            intersection pools.val[i] range :: reservationOverlaps (pools.val.drop (i + 1)) range := by
+          simp only [hdrop, reservationOverlaps_cons, if_neg hn]
+        rw [hoverlaps] at hnext ⊢
+        step with get_anon_alloc_spec self (by simp only [List.length_cons] at hnext; omega)
+          as ⟨pair, hid, hnextstate⟩
+        rcases pair with ⟨id, next⟩
+        dsimp only at hid hnextstate
+        simp only [uncurry]
+        have hcounter : next.next_anon_id.val = self.next_anon_id.val + 1 := by simp [hnextstate]
+        have hnextframe : next = { self with next_anon_id := next.next_anon_id } := by simp [hnextstate]
+        have hwnext : WellFormed next := by simpa only [hnextstate, WellFormed] using hwf
+        subst id
+        step with mmio_allocator_any_spec next as ⟨pair, hborrow⟩
+        rcases pair with ⟨allocators, back⟩
+        dsimp only at hborrow
+        simp only [uncurry]
+        rw [reservation_tag]
+        simp only [bind_ok]
+        step with AddressAllocatorSet.allocate_at_spec allocators (intersection pools.val[i] range)
+          (.Anon next.next_anon_id) "pci mmio reserve" (hborrow.wellFormed hwnext)
+          as ⟨triple, hwupdated, hout, hback⟩
+        rcases triple with ⟨first, updated, allocationBack⟩
+        dsimp only at hwupdated hout hback
+        simp only [uncurry]
+        have hwfinal := hborrow.wellFormed_back hwnext updated
+          (hout.length.trans hborrow.length) hwupdated
+        have hattempt : MmioReservationAttempt self (intersection pools.val[i] range) first (back updated) :=
+          ⟨next, allocators, back, updated, hcounter, hnextframe, hborrow, hout, rfl⟩
+        simp only [hback]
+        cases first with
+        | Err error =>
+          simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch,
+            core.result.Result.Insts.CoreOpsTry.branch, bind_ok,
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+            core.convert.FromSame.from, bind_tc_eq, WP.spec_ok]
+          exact ⟨hwfinal, .Err error, back updated, hattempt, rfl, rfl⟩
+        | Ok u =>
+          cases u
+          simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch,
+            core.result.Result.Insts.CoreOpsTry.branch, bind_ok]
+          change reserve_mmio_loop1 ⟨pools, i + 1⟩ (back updated) range ⦃ result a =>
+            WellFormed a ∧ MmioReservationSequence self
+              (intersection pools.val[i] range :: reservationOverlaps (pools.val.drop (i + 1)) range) result a ⦄
+          apply WP.spec_mono (reserve_mmio_loop_spec pools (i + 1) (back updated) range hwfinal hsorted.2
+            (by have hc := hattempt.frame.1; simp only [List.length_cons] at hnext; omega))
+          rintro ⟨result, a⟩ ⟨hwa, hrest⟩
+          exact ⟨hwa, .Ok (), back updated, hattempt, hrest⟩
+  · rename_i hi
+    change ¬i < pools.val.length at hi
+    simp [List.drop_eq_nil_of_le (by omega : pools.val.length ≤ i),
+      reservationOverlaps, MmioReservationSequence, hwf]
+termination_by pools.val.length - i
+
+/-- Total correctness of reservation, including partial updates on errors. The
+    pool-count bound permits vector collection; the anonymous-ID budget is one
+    per nonempty intersection (including a possible failing final attempt).
+    No freshness, cross-component pool disjointness, or endpoint arithmetic
+    assumptions are required. Empty ranges and `u64::MAX` endpoints are covered. -/
+@[step]
+theorem reserve_mmio_spec (self : SystemAllocator) (range : AddressRange)
+    (hwf : WellFormed self) (hsize : (mmioPoolList self).length ≤ Usize.max)
+    (hnext : self.next_anon_id.val +
+      (reservationOverlaps (sortedMmioPools self) range).length ≤ Usize.max) :
+    reserve_mmio self range ⦃ result a =>
+      WellFormed a ∧ MmioReservationOutcome self range result a ⦄ := by
+  unfold reserve_mmio
+  step with mmio_pools_spec self hsize as ⟨original, horiginal⟩
+  simp only [alloc.vec.IntoIteratorVec.into_iter, bind_ok]
+  step with copy_reservation_pools_spec original (alloc.vec.Vec.new AddressRange)
+    (by simpa [horiginal] using hsize) as ⟨copied, hcopied⟩
+  have hcopied : copied.val = mmioPoolList self := by simpa [horiginal] using hcopied
+  simp only [alloc.vec.Vec.deref_mut, lift, bind_ok]
+  step with reservation_sort_spec copied.slice as ⟨sorted, hsorted⟩
+  have hsorted : sorted.val = sortedMmioPools self := by
+    simpa [sortedMmioPools, ← hcopied, alloc.vec.Vec.val] using hsorted
+  simp only [SharedAVec.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter.into_iter, bind_ok]
+  apply WP.spec_mono (reserve_mmio_loop_spec _ 0 self range hwf ?_ ?_)
+  · rintro ⟨result, a⟩ h
+    simpa [MmioReservationOutcome, alloc.vec.Vec.deref, alloc.vec.Vec.val, hsorted] using h
+  · simp only [alloc.vec.Vec.deref, alloc.vec.Vec.val, Slice.from_val, List.drop_zero, hsorted, sortedMmioPools]
+    simpa only [decide_eq_true_eq] using
+      (List.pairwise_mergeSort (le := fun a b : AddressRange => decide (a.start.val ≤ b.start.val))
+      (by simp only [decide_eq_true_eq]; exact fun _ _ _ => Nat.le_trans)
+      (by intro a b; simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) (mmioPoolList self))
+  · simpa [alloc.vec.Vec.deref, alloc.vec.Vec.val, hsorted] using hnext
+
+
+/-- The requested intersections cover exactly the request's addresses that are
+    in a configured pool, independently of emptiness representations and order. -/
+theorem reservationOverlaps_covers (pools : List AddressRange) (range : AddressRange) (addr : Nat) :
+    AddressAllocator.Covers (reservationOverlaps pools range) addr ↔
+      AddressAllocator.Covers pools addr ∧ range.containsModel addr := by
+  simp only [AddressAllocator.Covers, reservationOverlaps, List.mem_filterMap]
+  constructor
+  · rintro ⟨overlap, ⟨pool, hp, heq⟩, ha⟩
+    split at heq
+    · cases heq
+    · cases heq
+      simp only [intersection, AddressRange.containsModel, val_min, val_max] at ha
+      exact ⟨⟨pool, hp, by simp only [AddressRange.containsModel]; omega⟩,
+        by simp only [AddressRange.containsModel]; omega⟩
+  · rintro ⟨⟨pool, hp, hpool⟩, hrange⟩
+    have ha : (intersection pool range).containsModel addr := by
+      simp only [intersection, AddressRange.containsModel, val_min, val_max] at *
+      omega
+    have hn : ¬(intersection pool range).isEmptyModel := by
+      simp only [AddressRange.isEmptyModel, AddressRange.containsModel] at *
+      omega
+    exact ⟨intersection pool range, ⟨pool, hp, by simp [hn]⟩, ha⟩
+
+/-- No component other than MMIO, and no field other than its state and the
+    anonymous counter, is changed by a reservation sequence. -/
+theorem MmioReservationSequence.frame {self a : SystemAllocator} {overlaps result}
+    (h : MmioReservationSequence self overlaps result a) :
+    a = { self with next_anon_id := a.next_anon_id, mmio_address_spaces := a.mmio_address_spaces } := by
+  induction overlaps generalizing self with
+  | nil => obtain ⟨_, rfl⟩ := h; rfl
+  | cons overlap rest ih =>
+    obtain ⟨first, next, hattempt, hrest⟩ := h
+    have hf := hattempt.frame.2
+    cases first with
+    | Ok u =>
+      cases u
+      have hr := ih hrest
+      conv_lhs => rw [hr, hf]
+    | Err error =>
+      obtain ⟨_, rfl⟩ := hrest
+      exact hf
+
+/-- Success consumes exactly one ID for each nonempty pool intersection. -/
+theorem MmioReservationSequence.success_counter {self a : SystemAllocator} {overlaps}
+    (h : MmioReservationSequence self overlaps (.Ok ()) a) :
+    a.next_anon_id.val = self.next_anon_id.val + overlaps.length := by
+  induction overlaps generalizing self with
+  | nil => obtain ⟨_, rfl⟩ := h; simp
+  | cons overlap rest ih =>
+    obtain ⟨first, next, hattempt, hrest⟩ := h
+    have hc := hattempt.frame.1
+    cases first with
+    | Ok u =>
+      cases u
+      have hr := ih hrest
+      simp only [List.length_cons]
+      omega
+    | Err error => cases hrest.1
+
+/-- An error consumes a nonempty prefix's IDs, including the failed attempt. -/
+theorem MmioReservationSequence.error_counter {self a : SystemAllocator} {overlaps error}
+    (h : MmioReservationSequence self overlaps (.Err error) a) :
+    self.next_anon_id.val < a.next_anon_id.val ∧
+      a.next_anon_id.val ≤ self.next_anon_id.val + overlaps.length := by
+  induction overlaps generalizing self with
+  | nil => cases h.1
+  | cons overlap rest ih =>
+    obtain ⟨first, next, hattempt, hrest⟩ := h
+    have hc := hattempt.frame.1
+    cases first with
+    | Ok u =>
+      cases u
+      have hr := ih hrest
+      simp only [List.length_cons]
+      omega
+    | Err e =>
+      obtain ⟨_, rfl⟩ := hrest
+      simp only [List.length_cons]
+      omega
+
+/-- A reservation with no pool intersection succeeds without consuming an ID. -/
+theorem MmioReservationOutcome.no_overlap {self a : SystemAllocator} {range result}
+    (h : MmioReservationOutcome self range result a)
+    (hn : ∀ addr, ¬(AddressAllocator.Covers (mmioPoolList self) addr ∧ range.containsModel addr)) :
+    result = .Ok () ∧ a = self := by
+  have hempty : reservationOverlaps (sortedMmioPools self) range = [] := by
+    apply List.eq_nil_iff_forall_not_mem.mpr
+    intro overlap hmem
+    simp only [reservationOverlaps, List.mem_filterMap] at hmem
+    obtain ⟨pool, hp, heq⟩ := hmem
+    split at heq
+    · cases heq
+    · rename_i hnonempty
+      cases heq
+      obtain ⟨addr, ha⟩ := AddressRange.not_isEmptyModel_iff_exists_containsModel _ |>.mp hnonempty
+      apply hn addr
+      have hp' : pool ∈ mmioPoolList self := (List.mergeSort_perm _ _).mem_iff.mp hp
+      simp only [intersection, AddressRange.containsModel, val_min, val_max] at ha
+      exact ⟨⟨pool, hp', by simp only [AddressRange.containsModel]; omega⟩,
+        by simp only [AddressRange.containsModel]; omega⟩
+  simpa [MmioReservationOutcome, hempty, MmioReservationSequence] using h
+
+
+private theorem reservationOverlaps_empty (pools : List AddressRange) (range : AddressRange)
+    (hempty : range.isEmptyModel) : reservationOverlaps pools range = [] := by
+  simp only [reservationOverlaps, List.filterMap_eq_nil_iff]
+  intro pool _
+  have he : (intersection pool range).isEmptyModel := by
+    simp only [intersection, AddressRange.isEmptyModel, val_min, val_max] at *
+    omega
+  simp [he]
+
+/-- Every representation of an empty inclusive range is a no-op, even when the
+    anonymous counter is exhausted. Only the pool-vector capacity bound is needed. -/
+theorem reserve_mmio_empty_spec (self : SystemAllocator) (range : AddressRange)
+    (hwf : WellFormed self) (hsize : (mmioPoolList self).length ≤ Usize.max)
+    (hempty : range.isEmptyModel) :
+    reserve_mmio self range ⦃ result a => result = .Ok () ∧ a = self ⦄ := by
+  have hnone := reservationOverlaps_empty (sortedMmioPools self) range hempty
+  apply WP.spec_mono (reserve_mmio_spec self range hwf hsize (by simp only [hnone, List.length_nil, Nat.add_zero]; scalar_tac))
+  rintro ⟨result, a⟩ ⟨_, hout⟩
+  simpa [MmioReservationOutcome, hnone, MmioReservationSequence] using hout
+
 end resources.system_allocator.SystemAllocator
