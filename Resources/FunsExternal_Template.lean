@@ -147,6 +147,21 @@ axiom core.iter.traits.iterator.Iterator.find.default
   P Clause0_Item Bool) :
   Self → P → Result ((Option Clause0_Item) × Self)
 
+/-- [core::iter::traits::iterator::Iterator::flat_map]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 1547:4-1551:34
+    Name pattern: [core::iter::traits::iterator::Iterator::flat_map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::flat_map"]
+axiom core.iter.traits.iterator.Iterator.flat_map.default
+  {Self : Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item :
+  Type} {Clause1_IntoIter : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (collectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  Self → F → Result (core.iter.adapters.flatten.FlatMap Self U F
+    Clause1_Item Clause1_IntoIter)
+
 /-- [core::iter::traits::iterator::Iterator::filter]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 966:4-969:38
     Name pattern: [core::iter::traits::iterator::Iterator::filter]
@@ -185,6 +200,24 @@ axiom
   P Clause0_Item Bool) :
   core.iter.adapters.filter.Filter I P → Result ((Option Clause0_Item) ×
     (core.iter.adapters.filter.Filter I P))
+
+/-- [core::iter::adapters::flatten::{impl core::iter::traits::iterator::Iterator<Clause1_Item> for core::iter::adapters::flatten::FlatMap<I, U, F, Clause1_Item, Clause1_IntoIter>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 63:4-63:41
+    Name pattern: [core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>}::next"]
+axiom
+  core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
+  {I : Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item : Type}
+  {Clause1_IntoIter : Type} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  core.iter.adapters.flatten.FlatMap I U F Clause1_Item Clause1_IntoIter →
+    Result ((Option Clause1_Item) × (core.iter.adapters.flatten.FlatMap I U F
+    Clause1_Item Clause1_IntoIter))
 
 /-- [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}::next]:
     Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 106:4-106:35

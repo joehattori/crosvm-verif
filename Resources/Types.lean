@@ -272,4 +272,9 @@ def system_allocator.SystemAllocator.allocate_gpe.closure := Unit
 @[reducible]
 def system_allocator.SystemAllocator.allocate_pci.closure := Std.U8
 
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}]
+    Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
+@[reducible]
+def system_allocator.SystemAllocator.mmio_pools.closure := Unit
+
 end resources

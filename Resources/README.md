@@ -46,6 +46,17 @@
   public MMIO allocation's address-limit rejection, prefetchability-based space
   selection, and high-to-low fallback only on `OutOfSpace`. MMIO allocation preserves
   component invariants and leaves the system unchanged on errors.
+  `mmio_allocator_any` always returns the low and high MMIO allocators in that
+  order, with their complete states. Returning a two-component set writes both
+  components back in order and preserves every other system field; returning the
+  original set leaves the system unchanged. Borrowing requires no well-formedness
+  assumption, and writing back well-formed components preserves system
+  well-formedness. The write-back contract requires the original slice length of
+  two, as fixed by the Rust MMIO array.
+  `mmio_pools` returns all configured pools in low-then-high allocator order,
+  preserving each component's pool order, empty ranges, and duplicates. Its
+  specification requires the combined list length to fit `usize`; it does not
+  require component well-formedness.
 
 The internal free-region insertion helper is specified for intermediate states;
 the full accounting invariant is restored by the enclosing release operation.
@@ -75,6 +86,9 @@ borrowed-key ordering; ordered traversal is not modeled.
 Optional mutable-reference branching models both the selected value and its
 borrow write-back.
 String conversion models UTF-8 `str` contents; general formatting is unsupported.
+The forward `FlatMap` model drains each inner iterator in order, skips exhausted
+inners, and stops polling the outer iterator after its first `None`. It preserves
+closure state and propagates failures. Reverse iteration is not modeled.
 
 Set release assumes each component is well-formed, without requiring allocation
 keys to be unique across components. It composes the single-allocator release
@@ -88,6 +102,9 @@ See the [top-level README](../README.md#build-and-extraction) for commands.
   name-generation, shared-borrow join, and unused iterator-trait cleanup fixes,
   including preservation of frozen mutable borrows when preparing shared loans
   for loop joins.
+- Build Charon from the working checkout as well: MMIO pool extraction needs its
+  closure-lifetime repair, which recovers argument/return outlives relationships
+  from rustc's borrow-checker facts before MIR extraction consumes the bodies.
 - Initialize crosvm's nested dependency with
   `git -C crosvm submodule update --init third_party/minijail`.
 - On macOS, the current crosvm pin needs a build workaround:

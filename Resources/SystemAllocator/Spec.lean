@@ -1,5 +1,9 @@
 module
 public import Resources.AddressAllocator.Spec
+public import Resources.AddressAllocatorSet.Spec
+import all Resources.FunsExternal
+import all Aeneas.Std.Slice
+import all Aeneas.Std.SliceIter
 import all Aeneas.Std.VecIter
 import all Aeneas.Std.Scalar.Ops.Add
 import all Aeneas.Std.String
@@ -1149,6 +1153,156 @@ theorem mmioIndex_lt (mmio_type : MmioType) : (mmioIndex mmio_type).val < 2 := b
 /-- The address space selected by the MMIO type. -/
 def mmioAllocator (self : SystemAllocator) (mmio_type : MmioType) : AddressAllocator :=
   self.mmio_address_spaces.val[(mmioIndex mmio_type).val]'(by simpa using mmioIndex_lt mmio_type)
+
+private theorem mmio_address_spaces_eq (self : SystemAllocator) :
+    self.mmio_address_spaces.val = [mmioAllocator self .Low, mmioAllocator self .High] := by
+  obtain ⟨low, high, h⟩ := List.length_eq_two.mp self.mmio_address_spaces.property
+  simp [mmioAllocator, mmioIndex, h]
+
+/-- All configured MMIO pools, in allocator order and then in each allocator's
+    pool order. Empty pool lists and repeated or empty ranges are preserved. -/
+def mmioPoolList (self : SystemAllocator) : List AddressRange :=
+  self.mmio_address_spaces.val.flatMap (fun allocator => allocator.pools.val)
+
+theorem mmioPoolList_eq (self : SystemAllocator) :
+    mmioPoolList self =
+      (mmioAllocator self .Low).pools.val ++ (mmioAllocator self .High).pools.val := by
+  simp [mmioPoolList, mmio_address_spaces_eq]
+
+private abbrev poolIterator :=
+  core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorSliceIter AddressAllocator)
+    (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter AddressRange)
+    mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+
+private def remainingPools (inner : Option (core.slice.iter.Iter AddressRange)) : List AddressRange :=
+  match inner with
+  | none => []
+  | some it => it.slice.val.drop it.i
+
+private theorem slice_next_eq {T : Type} (it : core.slice.iter.Iter T) :
+    core.slice.iter.IteratorSliceIter.next it =
+      if h : it.i < it.slice.val.length then
+        ok (some it.slice.val[it.i], { it with i := it.i + 1 })
+      else ok (none, it) := by
+  simp only [core.slice.iter.IteratorSliceIter.next, Slice.len_val, Slice.length]
+  rfl
+
+private theorem collect_mmio_pools (spaces : Slice AddressAllocator) (i : Nat)
+    (inner : Option (core.slice.iter.Iter AddressRange)) (acc : List AddressRange) :
+    alloc.vec.FromIteratorVec.iterToList poolIterator ⟨some ⟨spaces, i⟩, (), inner⟩ acc =
+      ok (acc.reverse ++ remainingPools inner ++
+        (spaces.val.drop i).flatMap (fun allocator => allocator.pools.val)) := by
+  rw [alloc.vec.FromIteratorVec.iterToList.eq_def]
+  simp only [poolIterator]
+  rw [_root_.core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next.eq_def]
+  cases inner with
+  | some it =>
+    simp only [slice_next_eq]
+    split
+    · rename_i hnext
+      simp only [bind_tc_eq, uncurry, bind_ok]
+      rw [collect_mmio_pools spaces i (some { it with i := it.i + 1 }) (it.slice.val[it.i] :: acc)]
+      simp only [remainingPools, List.reverse_cons, List.append_assoc, List.singleton_append]
+      rw [List.drop_eq_getElem_cons hnext]
+    · rename_i hdone
+      simp only [bind_tc_eq, uncurry, bind_ok]
+      have ih := collect_mmio_pools spaces i none acc
+      rw [alloc.vec.FromIteratorVec.iterToList.eq_def] at ih
+      simpa only [poolIterator, remainingPools, uncurry, bind_tc_eq,
+        List.drop_eq_nil_of_le (by omega : it.slice.val.length ≤ it.i), List.append_nil] using ih
+  | none =>
+    simp only [slice_next_eq]
+    split
+    · rename_i hnext
+      simp only [bind_tc_eq, uncurry, bind_ok,
+        mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut,
+        AddressAllocator.impl.pools, alloc.vec.Vec.deref,
+        SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter]
+      have ih := collect_mmio_pools spaces (i + 1) (some ⟨alloc.vec.Vec.deref spaces.val[i].pools, 0⟩) acc
+      rw [alloc.vec.FromIteratorVec.iterToList.eq_def] at ih
+      rw [List.drop_eq_getElem_cons hnext]
+      simpa only [poolIterator, remainingPools, uncurry, bind_tc_eq, List.drop_zero, List.flatMap_cons,
+        List.append_nil, List.append_assoc, alloc.vec.Vec.deref, Slice.from_val] using ih
+    · rename_i hdone
+      simp [remainingPools, List.drop_eq_nil_of_le (by omega : spaces.val.length ≤ i)]
+termination_by (spaces.val.length - i,
+  match inner with | none => 0 | some it => it.slice.val.length - it.i + 1)
+decreasing_by all_goals simp_wf <;> omega
+
+/-- The accessor returns the configured pools in low-then-high order. The bound
+    ensures that the concatenated list fits the vector model. -/
+@[step]
+theorem mmio_pools_spec (self : SystemAllocator) (hsize : (mmioPoolList self).length ≤ Usize.max) :
+    mmio_pools self ⦃ pools => pools.val = mmioPoolList self ⦄ := by
+  unfold mmio_pools
+  simp only [Array.to_slice, lift, core.slice.Slice.iter,
+    _root_.core.iter.traits.iterator.Iterator.flat_map.default,
+    core.iter.traits.iterator.Iterator.collect.default, alloc.vec.FromIteratorVec.from_iter,
+    core.iter.traits.collect.IntoIterator.Blanket.into_iter,
+    bind_tc_eq, bind_ok]
+  rw [collect_mmio_pools]
+  simp [remainingPools, mmioPoolList] at hsize ⊢
+  simp [hsize]
+
+/-- Borrow the low and high MMIO allocators, in that order, preserving their
+    complete states. Returning any two-component set writes its components back
+    in the same order and preserves every other system field. The length condition
+    expresses the fixed extent of the Rust slice borrowed from the MMIO array. -/
+def MmioAllocatorSetBorrow (self : SystemAllocator) (allocators : AddressAllocatorSet)
+    (back : AddressAllocatorSet → SystemAllocator) : Prop :=
+  allocators.allocators.val = [mmioAllocator self .Low, mmioAllocator self .High] ∧
+  ∀ (updated : AddressAllocatorSet) (hlen : updated.allocators.val.length = 2),
+    back updated =
+      { self with mmio_address_spaces := Array.from updated.allocators.val (by simpa using hlen) }
+
+theorem MmioAllocatorSetBorrow.length {self allocators back}
+    (h : MmioAllocatorSetBorrow self allocators back) : allocators.allocators.val.length = 2 := by
+  simp [h.1]
+
+/-- Borrowing and returning the original set leaves the entire system unchanged. -/
+theorem MmioAllocatorSetBorrow.unchanged {self allocators back}
+    (h : MmioAllocatorSetBorrow self allocators back) : back allocators = self := by
+  rw [h.2 allocators h.length]
+  have heq : Array.from allocators.allocators.val (by simpa using h.length) =
+      self.mmio_address_spaces := by
+    apply Aeneas.Std.Array.ext
+    simpa only [Array.from_val, mmio_address_spaces_eq] using h.1
+  simp only [heq]
+
+/-- System well-formedness supplies exactly the component assumptions needed by
+    the existing allocator-set operation specifications. -/
+theorem MmioAllocatorSetBorrow.wellFormed {self allocators back}
+    (h : MmioAllocatorSetBorrow self allocators back) (hwf : WellFormed self) :
+    AddressAllocatorSet.WellFormed allocators := by
+  have heq : allocators.allocators.val = self.mmio_address_spaces.val :=
+    h.1.trans (mmio_address_spaces_eq self).symm
+  intro allocator hmem
+  exact hwf.2.1 allocator (heq ▸ hmem)
+
+/-- Writing back two well-formed components preserves system well-formedness. -/
+theorem MmioAllocatorSetBorrow.wellFormed_back {self allocators back}
+    (h : MmioAllocatorSetBorrow self allocators back) (hwf : WellFormed self)
+    (updated : AddressAllocatorSet) (hlen : updated.allocators.val.length = 2)
+    (hupdated : AddressAllocatorSet.WellFormed updated) : WellFormed (back updated) := by
+  rw [h.2 updated hlen]
+  refine ⟨hwf.1, ?_, hwf.2.2⟩
+  simpa only [AddressAllocatorSet.WellFormed, Array.from_val] using hupdated
+
+/-- The accessor always succeeds, with the low-before-high order used by set
+    operations and exact mutable write-back. No well-formedness assumption is needed. -/
+@[step]
+theorem mmio_allocator_any_spec (self : SystemAllocator) :
+    mmio_allocator_any self ⦃ allocators back => MmioAllocatorSetBorrow self allocators back ⦄ := by
+  unfold mmio_allocator_any
+  step with Array.to_slice_mut_spec self.mmio_address_spaces
+    as ⟨slice, arrayBack, hslice, harrayBack⟩
+  step with AddressAllocatorSet.new_spec slice as ⟨allocators, setBack, hset, hsetBack⟩
+  refine ⟨?_, ?_⟩
+  · rw [hset, hslice, mmio_address_spaces_eq]
+  · intro updated hlen
+    simp only [hsetBack, harrayBack]
+    simp [Array.from_slice, hlen]
 
 /-- Replace the address space selected by the MMIO type. -/
 def setMmioAllocator (self : SystemAllocator) (mmio_type : MmioType)

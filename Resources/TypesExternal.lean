@@ -14,6 +14,15 @@ structure core.iter.adapters.filter.Filter (I P : Type) where
   iter : I
   predicate : P
 
+/-- Forward-only state for Rust's lazy `FlatMap`: the outer iterator is fused
+    after exhaustion, and the current inner iterator is drained before advancing
+    the outer one. Reverse iteration is not modeled. -/
+@[rust_type "core::iter::adapters::flatten::FlatMap"]
+structure core.iter.adapters.flatten.FlatMap (I U F Item IntoIter : Type) where
+  outer : Option I
+  f : F
+  inner : Option IntoIter
+
 /-- Finite map contents. Entry lookup uses Rust's comparator; ordered traversal
     is not modeled. Reachable maps have at most one key per comparator equivalence class. -/
 @[rust_type "alloc::collections::btree::map::BTreeMap"]

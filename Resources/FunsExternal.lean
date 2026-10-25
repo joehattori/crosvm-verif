@@ -608,3 +608,42 @@ def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
   | some x =>
     let (y, f) ← fInst.call_mut self.f x
     ok (some y, ⟨iter, f⟩)
+
+/-- Construct the lazy flat-map adapter without evaluating the closure. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::flat_map"]
+def core.iter.traits.iterator.Iterator.flat_map.default {I U F T B J : Type}
+    (_iter : core.iter.traits.iterator.Iterator I T)
+    (_into : core.iter.traits.collect.IntoIterator U B J)
+    (_f : core.ops.function.FnMut F T U) (iter : I) (f : F) :
+    Result (core.iter.adapters.flatten.FlatMap I U F B J) := ok ⟨some iter, f, none⟩
+
+/-- Forward `FlatMap::next`, following `FlattenCompat::next`: drain the current
+    inner iterator, skip empty inners, and fuse the outer iterator at its first
+    `None`. Preserve closure state and propagate failures. This models standard
+    library behavior; it is not a verification of the Rust iterator internals. -/
+@[rust_fun
+  "core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @B, @J>, @B>}::next"]
+def core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
+    {I U F T B J : Type} (iter : core.iter.traits.iterator.Iterator I T)
+    (into : core.iter.traits.collect.IntoIterator U B J)
+    (f : core.ops.function.FnMut F T U)
+    (self : core.iter.adapters.flatten.FlatMap I U F B J) :
+    Result (Option B × core.iter.adapters.flatten.FlatMap I U F B J) := do
+  match self.inner with
+  | some inner =>
+    let (item, inner) ← into.iteratorInst.next inner
+    match item with
+    | some value => ok (some value, { self with inner := some inner })
+    | none => next iter into f { self with inner := none }
+  | none =>
+    match self.outer with
+    | none => ok (none, self)
+    | some outer =>
+      let (item, outer) ← iter.next outer
+      match item with
+      | none => ok (none, { self with outer := none })
+      | some value =>
+        let (items, f') ← f.call_mut self.f value
+        let inner ← into.into_iter items
+        next iter into f ⟨some outer, f', some inner⟩
+partial_fixpoint

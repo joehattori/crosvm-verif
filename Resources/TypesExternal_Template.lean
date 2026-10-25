@@ -25,6 +25,14 @@ set_option maxRecDepth 2048
 @[rust_type "core::iter::adapters::filter::Filter"]
 axiom core.iter.adapters.filter.Filter (I : Type) (P : Type) : Type
 
+/-- [core::iter::adapters::flatten::FlatMap]
+    Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 17:0-17:41
+    Name pattern: [core::iter::adapters::flatten::FlatMap]
+    Visibility: public -/
+@[rust_type "core::iter::adapters::flatten::FlatMap"]
+axiom core.iter.adapters.flatten.FlatMap (I : Type) (U : Type) (F : Type)
+  (Clause0_Item : Type) (Clause0_IntoIter : Type) : Type
+
 /-- [core::mem::maybe_uninit::MaybeUninit]
     Source: '/rustc/library/core/src/mem/maybe_uninit.rs', lines 355:0-355:24
     Name pattern: [core::mem::maybe_uninit::MaybeUninit]

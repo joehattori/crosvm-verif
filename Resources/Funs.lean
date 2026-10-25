@@ -86,6 +86,27 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
     traitsiteratorIteratorInst opsfunctionFnMutPTupleSharedClause0_ItemBoolInst
 }
 
+/-- Trait implementation: [core::iter::adapters::flatten::{impl core::iter::traits::iterator::Iterator<Clause1_Item> for core::iter::adapters::flatten::FlatMap<I, U, F, Clause1_Item, Clause1_IntoIter>}]
+    Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 56:0-58:27
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>"]
+impl_def
+  core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator {I :
+  Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item : Type}
+  {Clause1_IntoIter : Type} (traitsiteratorIteratorInst :
+  core.iter.traits.iterator.Iterator I Clause0_Item)
+  (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
+  Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
+  core.ops.function.FnMut F Clause0_Item U) :
+  core.iter.traits.iterator.Iterator (core.iter.adapters.flatten.FlatMap I U F
+  Clause1_Item Clause1_IntoIter) Clause1_Item := {
+  next :=
+    core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst traitscollectIntoIteratorInst
+    opsfunctionFnMutFTupleClause0_ItemUInst
+}
+
 /-- Trait implementation: [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}]
     Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 99:0-101:27
     Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>] -/
@@ -513,6 +534,15 @@ def address_allocator.AddressAllocator.new
   address_allocator.AddressAllocator.new_from_list
     (core.iter.traits.collect.IntoIteratorVec address_range.AddressRange) ret
     min_align preferred_align
+
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::pools]:
+    Source: 'resources/src/address_allocator.rs', lines 95:4-97:5
+    Visibility: public -/
+def address_allocator.AddressAllocator.impl.pools
+  (self : address_allocator.AddressAllocator) :
+  Result (Slice address_range.AddressRange)
+  := do
+  ok (alloc.vec.Vec.deref self.pools)
 
 /-- [resources::{impl core::hash::Hash for resources::Alloc}::hash]:
     Source: 'resources/src/lib.rs', lines 26:31-26:35
@@ -3362,5 +3392,100 @@ def system_allocator.SystemAllocator.allocate_mmio
           alloc1 tag opts system_allocator.MmioType.Low
       else ok (res1, self2)
     else ok (res, self1)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_allocator_any]:
+    Source: 'resources/src/system_allocator.rs', lines 436:4-438:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.mmio_allocator_any
+  (self : system_allocator.SystemAllocator) :
+  Result (address_allocator.AddressAllocatorSet ×
+    (address_allocator.AddressAllocatorSet →
+    system_allocator.SystemAllocator))
+  := do
+  let (s, to_slice_mut_back) ←
+    lift (Array.to_slice_mut self.mmio_address_spaces)
+  let (aas, new_back) ← address_allocator.AddressAllocatorSet.new s
+  let back :=
+    fun aas1 =>
+      let s1 := new_back aas1
+      let a := to_slice_mut_back s1
+      { self with mmio_address_spaces := a }
+  ok (aas, back)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}::call_mut]:
+    Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
+def
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
+  (c : system_allocator.SystemAllocator.mmio_pools.closure)
+  (tupled_args : address_allocator.AddressAllocator) :
+  Result ((Slice address_range.AddressRange) ×
+    system_allocator.SystemAllocator.mmio_pools.closure)
+  := do
+  let s ← address_allocator.AddressAllocator.impl.pools tupled_args
+  ok (s, c)
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}::call_once]:
+    Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
+def
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange.call_once
+  (c : system_allocator.SystemAllocator.mmio_pools.closure)
+  (aa : address_allocator.AddressAllocator) :
+  Result (Slice address_range.AddressRange)
+  := do
+  let (s, _) ←
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
+      c aa
+  ok s
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange
+  : core.ops.function.FnOnce
+  system_allocator.SystemAllocator.mmio_pools.closure
+  address_allocator.AddressAllocator (Slice address_range.AddressRange) := {
+  call_once :=
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange.call_once
+}
+
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}]
+    Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
+@[reducible]
+def
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+  : core.ops.function.FnMut system_allocator.SystemAllocator.mmio_pools.closure
+  address_allocator.AddressAllocator (Slice address_range.AddressRange) := {
+  FnOnceInst :=
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange
+  call_mut :=
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
+}
+
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools]:
+    Source: 'resources/src/system_allocator.rs', lines 441:4-446:5
+    Visibility: public -/
+def system_allocator.SystemAllocator.mmio_pools
+  (self : system_allocator.SystemAllocator) :
+  Result (alloc.vec.Vec address_range.AddressRange)
+  := do
+  let s ← lift (Array.to_slice self.mmio_address_spaces)
+  let i ← core.slice.Slice.iter s
+  let fm ←
+    core.iter.traits.iterator.Iterator.flat_map.default
+      (core.iter.traits.iterator.IteratorSliceIter
+      address_allocator.AddressAllocator)
+      (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter
+      address_range.AddressRange)
+      system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+      i ()
+  core.iter.traits.iterator.Iterator.collect.default
+    (core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorSliceIter
+    address_allocator.AddressAllocator)
+    (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter
+    address_range.AddressRange)
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange)
+    (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) fm
 
 end resources
