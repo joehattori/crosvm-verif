@@ -24,6 +24,43 @@ noncomputable section
 
 namespace vm_memory
 
+/-- [core::option::{core::option::Option<T>}::unwrap_or_else]:
+    Source: '/rustc/library/core/src/option.rs', lines 1061:4-1063:52
+    Name pattern: [core::option::{core::option::Option<@T>}::unwrap_or_else]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::unwrap_or_else"]
+def core.option.Option.unwrap_or_else
+  {T : Type} {F : Type} (opsfunctionFnOnceFTupleTInst :
+  core.ops.function.FnOnce F Unit T) (self : Option T) (f : F) :
+  Result T
+  := do
+  let (t, b) ←
+    match self with
+    | none =>
+      do
+      let x ← opsfunctionFnOnceFTupleTInst.call_once f ()
+      ok (x, false)
+    | some x => ok (x, true)
+  if b
+  then ok t
+  else ok t
+
+/-- [core::result::{impl core::ops::try_trait::Try<T, core::result::Result<!, E>> for core::result::Result<T, E>}::branch]:
+    Source: '/rustc/library/core/src/result.rs', lines 2175:4-2175:64
+    Name pattern: [core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch]
+    Visibility: public -/
+@[rust_fun
+  "core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch"]
+def core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+  {T : Type} {E : Type} (self : core.result.Result T E) :
+  Result (core.ops.control_flow.ControlFlow (core.result.Result Never E) T)
+  := do
+  match self with
+  | core.result.Result.Ok v =>
+    ok (core.ops.control_flow.ControlFlow.Continue v)
+  | core.result.Result.Err e =>
+    ok (core.ops.control_flow.ControlFlow.Break (core.result.Result.Err e))
+
 /-- [base::descriptor::{impl base::descriptor::AsRawDescriptor for base::descriptor::SafeDescriptor}::as_raw_descriptor]:
     Source: 'base/src/descriptor.rs', lines 64:4-64:48
     Name pattern: [base::descriptor::{base::descriptor::AsRawDescriptor<base::descriptor::SafeDescriptor>}::as_raw_descriptor]
@@ -34,6 +71,36 @@ def
   base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
   (self : base.descriptor.SafeDescriptor) : Result Std.I32 := do
   ok self.descriptor
+
+/-- [base::mmap::{base::mmap::Protection}::read_write]:
+    Source: 'base/src/mmap.rs', lines 120:4-120:37
+    Name pattern: [base::mmap::{base::mmap::Protection}::read_write]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::Protection}::read_write"]
+def base.mmap.Protection.read_write : Result base.mmap.Protection := do
+  ok { read := true, write := true }
+
+/-- [base::mmap::{base::mmap::Protection}::{impl core::ops::function::FnOnce<(), base::mmap::Protection> for base::mmap::{base::mmap::Protection}::read_write}::call_once]:
+    Source: 'base/src/mmap.rs', lines 120:4-120:37
+    Name pattern: [base::mmap::{base::mmap::Protection}::{core::ops::function::FnOnce<@, (), base::mmap::Protection>}::call_once]
+    Visibility: public -/
+@[rust_fun
+  "base::mmap::{base::mmap::Protection}::{core::ops::function::FnOnce<@, (), base::mmap::Protection>}::call_once"]
+def P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
+  (state : Result base.mmap.Protection) (_ : Unit) :
+  Result base.mmap.Protection
+  := do
+  base.mmap.Protection.read_write
+
+/-- Trait implementation: [base::mmap::{base::mmap::Protection}::{impl core::ops::function::FnOnce<(), base::mmap::Protection> for base::mmap::{base::mmap::Protection}::read_write}]
+    Source: 'base/src/mmap.rs', lines 120:4-120:37
+    Name pattern: [core::ops::function::FnOnce<@, (), base::mmap::Protection>] -/
+@[reducible, rust_trait_impl
+  "core::ops::function::FnOnce<@, (), base::mmap::Protection>"]
+def P.Insts.CoreOpsFunctionFnOnceTupleProtection : core.ops.function.FnOnce
+  (Result base.mmap.Protection) Unit base.mmap.Protection := {
+  call_once := P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
+}
 
 /-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]:
     Source: 'base/src/mmap.rs', lines 444:4-444:55
@@ -122,6 +189,115 @@ def base.mmap.MemoryMappingBuilder.impl.offset
   Result base.mmap.MemoryMappingBuilder
   := do
   ok { self with offset := (some offset) }
+
+/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}::call_once]:
+    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once] -/
+@[rust_fun
+  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once"]
+def
+  base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (c : base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure)
+  (tupled_args : core.io.error.Error) :
+  Result base.mmap.Error
+  := do
+  let e ← base.errno.Error.last
+  ok (base.mmap.Error.SystemCallFailed e)
+
+/-- Trait implementation: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}]
+    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Name pattern: [core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>] -/
+@[reducible, rust_trait_impl
+  "core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>"]
+def
+  base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce
+  base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure core.io.error.Error
+  base.mmap.Error := {
+  call_once :=
+    base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
+/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap]:
+    Source: 'base/src/sys/linux/mmap.rs', lines 960:4-963:35
+    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap] -/
+@[rust_fun
+  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap"]
+def base.sys.linux.mmap.MemoryMappingBuilder.wrap
+  (mapping : base.sys.linux.mmap.MemoryMapping)
+  (file_descriptor : Option (Dyn (fun _dyn => base.descriptor.AsRawDescriptor
+  _dyn))) :
+  Result (core.result.Result base.mmap.MemoryMapping base.mmap.Error)
+  := do
+  match file_descriptor with
+  | none => ok (core.result.Result.Ok { mapping, _file_descriptor := none })
+  | some descriptor =>
+    let r ←
+      base.descriptor.SafeDescriptor.Insts.CoreConvertTryFromShared0PError.try_from
+        descriptor
+    let r1 ←
+      core.result.Result.map_err
+        base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError
+        r ()
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      ok (core.result.Result.Ok { mapping, _file_descriptor := (some val) })
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        base.mmap.MemoryMapping (core.convert.FromSame base.mmap.Error)
+        residual
+
+/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::build]:
+    Source: 'base/src/sys/linux/mmap.rs', lines 930:4-930:52
+    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::build]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::build"]
+def base.sys.linux.mmap.MemoryMappingBuilder.build
+  (self : base.mmap.MemoryMappingBuilder) :
+  Result (core.result.Result base.mmap.MemoryMapping base.mmap.Error)
+  := do
+  match self.descriptor with
+  | none =>
+    if self.populate
+    then ok (core.result.Result.Err base.mmap.Error.InvalidArgument)
+    else
+      let p ←
+        core.option.Option.unwrap_or_else
+          P.Insts.CoreOpsFunctionFnOnceTupleProtection self.protection
+          (base.mmap.Protection.read_write)
+      let r ←
+        base.sys.linux.mmap.MemoryMapping.new_protection self.size self.align p
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        base.sys.linux.mmap.MemoryMappingBuilder.wrap val none
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+          base.mmap.MemoryMapping (core.convert.FromSame base.mmap.Error)
+          residual
+  | some descriptor =>
+    let i ← lift (core.option.Option.unwrap_or self.offset 0#u64)
+    let i1 ← lift (core.option.Option.unwrap_or self.align 0#u64)
+    let p ←
+      core.option.Option.unwrap_or_else
+        P.Insts.CoreOpsFunctionFnOnceTupleProtection self.protection
+        (base.mmap.Protection.read_write)
+    let r ←
+      base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
+        descriptor self.size i i1 p self.populate
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      base.sys.linux.mmap.MemoryMappingBuilder.wrap val none
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        base.mmap.MemoryMapping (core.convert.FromSame base.mmap.Error)
+        residual
 
 /-- [vm_memory::guest_address::{impl core::clone::Clone for vm_memory::guest_address::GuestAddress}::clone]:
     Source: 'vm_memory/src/guest_address.rs', lines 23:9-23:14

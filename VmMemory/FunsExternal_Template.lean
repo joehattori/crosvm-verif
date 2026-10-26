@@ -20,6 +20,25 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [base::descriptor::{impl core::convert::TryFrom<&'_0 (dyn base::descriptor::AsRawDescriptor + '_0), core::io::error::Error> for base::descriptor::SafeDescriptor}::try_from]:
+    Source: 'base/src/descriptor.rs', lines 114:4-114:83
+    Name pattern: [base::descriptor::{core::convert::TryFrom<base::descriptor::SafeDescriptor, &'0 @, core::io::error::Error>}::try_from]
+    Visibility: public -/
+@[rust_fun
+  "base::descriptor::{core::convert::TryFrom<base::descriptor::SafeDescriptor, &'0 @, core::io::error::Error>}::try_from"]
+axiom
+  base.descriptor.SafeDescriptor.Insts.CoreConvertTryFromShared0PError.try_from
+  :
+  Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Result
+    (core.result.Result base.descriptor.SafeDescriptor core.io.error.Error)
+
+/-- [base::errno::{base::errno::Error}::last]:
+    Source: 'base/src/errno.rs', lines 38:4-38:26
+    Name pattern: [base::errno::{base::errno::Error}::last]
+    Visibility: public -/
+@[rust_fun "base::errno::{base::errno::Error}::last"]
+axiom base.errno.Error.last : Result base.errno.Error
+
 /-- [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}::as_raw_descriptor]:
     Source: 'base/src/sys/unix/descriptor.rs', lines 190:12-190:56
     Name pattern: [base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor]
@@ -37,4 +56,27 @@ axiom std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
   "base::mmap::{base::mmap::MappedRegion<base::mmap::MemoryMapping>}::size"]
 axiom base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size
   : base.mmap.MemoryMapping → Result Std.Usize
+
+/-- [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection]:
+    Source: 'base/src/sys/linux/mmap.rs', lines 137:4-141:30
+    Name pattern: [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection"]
+axiom base.sys.linux.mmap.MemoryMapping.new_protection
+  :
+  Std.Usize → Option Std.U64 → base.mmap.Protection → Result
+    (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
+
+/-- [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate]:
+    Source: 'base/src/sys/linux/mmap.rs', lines 190:4-197:30
+    Name pattern: [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate"]
+axiom base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
+  :
+  Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Std.Usize →
+    Std.U64 → Std.U64 → base.mmap.Protection → Bool → Result
+    (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
 

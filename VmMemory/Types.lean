@@ -45,6 +45,26 @@ structure base.descriptor.SafeDescriptor where
 structure base.descriptor.AsRawDescriptor (Self : Type) where
   as_raw_descriptor : Self → Result Std.I32
 
+/-- [base::mmap::Error]
+    Source: 'base/src/mmap.rs', lines 80:0-80:14
+    Name pattern: [base::mmap::Error]
+    Visibility: public -/
+@[discriminant isize, rust_type "base::mmap::Error"]
+inductive base.mmap.Error where
+| AddFdMappingIsUnsupported : base.mmap.Error
+| InvalidAddress : base.mmap.Error
+| InvalidAlignment : base.mmap.Error
+| InvalidArgument : base.mmap.Error
+| InvalidOffset : base.mmap.Error
+| InvalidRange : Std.Usize → Std.Usize → Std.Usize → base.mmap.Error
+| NotImplemented : Str → base.mmap.Error
+| NotPageAligned : base.mmap.Error
+| ReadToMemory : core.io.error.Error → base.mmap.Error
+| RemoveMappingIsUnsupported : base.mmap.Error
+| StdSyscallFailed : core.io.error.Error → base.mmap.Error
+| SystemCallFailed : base.errno.Error → base.mmap.Error
+| WriteFromMemory : core.io.error.Error → base.mmap.Error
+
 /-- [base::mmap::Protection]
     Source: 'base/src/mmap.rs', lines 112:0-112:21
     Name pattern: [base::mmap::Protection]
@@ -53,6 +73,15 @@ structure base.descriptor.AsRawDescriptor (Self : Type) where
 structure base.mmap.Protection where
   read : Bool
   write : Bool
+
+/-- [base::mmap::MemoryMapping]
+    Source: 'base/src/mmap.rs', lines 170:0-170:24
+    Name pattern: [base::mmap::MemoryMapping]
+    Visibility: public -/
+@[rust_type "base::mmap::MemoryMapping"]
+structure base.mmap.MemoryMapping where
+  mapping : base.sys.linux.mmap.MemoryMapping
+  _file_descriptor : Option base.descriptor.SafeDescriptor
 
 /-- [base::mmap::MemoryMappingBuilder]
     Source: 'base/src/mmap.rs', lines 428:0-428:35
@@ -76,6 +105,13 @@ structure base.mmap.MemoryMappingBuilder where
 structure base.shm.SharedMemory where
   descriptor : base.descriptor.SafeDescriptor
   size : Std.U64
+
+/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}]
+    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure] -/
+@[reducible, rust_type
+  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure"]
+def base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure := Unit
 
 /-- [vm_memory::guest_address::GuestAddress]
     Source: 'vm_memory/src/guest_address.rs', lines 24:0-24:33

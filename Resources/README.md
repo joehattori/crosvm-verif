@@ -8,7 +8,7 @@ Verification covers selected operations on
 the exact coverage, guarantees, and preconditions.
 
 The default build also checks `GuestAddress` operations, `MemoryRegion`'s
-four interval queries, and its builder configuration helpers; see
+four interval queries, and selected builder methods; see
 [VmMemory](../VmMemory/README.md) for coverage, preconditions, and extraction details.
 
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).

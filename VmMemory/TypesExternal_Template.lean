@@ -18,6 +18,13 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
+/-- [core::io::error::Error]
+    Source: '/rustc/library/core/src/io/error.rs', lines 87:0-87:16
+    Name pattern: [core::io::error::Error]
+    Visibility: public -/
+@[rust_type "core::io::error::Error"]
+axiom core.io.error.Error : Type
+
 /-- [std::fs::File]
     Source: '/rustc/library/std/src/fs.rs', lines 135:0-135:15
     Name pattern: [std::fs::File]
@@ -25,12 +32,19 @@ set_option maxRecDepth 2048
 @[rust_type "std::fs::File"]
 axiom std.fs.File : Type
 
-/-- [base::mmap::MemoryMapping]
-    Source: 'base/src/mmap.rs', lines 170:0-170:24
-    Name pattern: [base::mmap::MemoryMapping]
+/-- [base::errno::Error]
+    Source: 'base/src/errno.rs', lines 23:0-23:16
+    Name pattern: [base::errno::Error]
     Visibility: public -/
-@[rust_type "base::mmap::MemoryMapping"]
-axiom base.mmap.MemoryMapping : Type
+@[rust_type "base::errno::Error"]
+axiom base.errno.Error : Type
+
+/-- [base::sys::linux::mmap::MemoryMapping]
+    Source: 'base/src/sys/linux/mmap.rs', lines 108:0-108:24
+    Name pattern: [base::sys::linux::mmap::MemoryMapping]
+    Visibility: public -/
+@[rust_type "base::sys::linux::mmap::MemoryMapping"]
+axiom base.sys.linux.mmap.MemoryMapping : Type
 
 /-- [vm_memory::guest_memory::BackingObject]
     Source: 'vm_memory/src/guest_memory.rs', lines 94:0-97:1

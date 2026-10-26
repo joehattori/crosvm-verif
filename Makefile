@@ -89,14 +89,13 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 		$(LLBC_DIR)/resources.llbc
 
 # GuestAddress operations, MemoryRegion's four interval queries, and the
-# MemoryMappingBuilder configuration methods used by region constructors.
-# Only the mapping length is observed; mapping internals and unused region
-# metadata are opaque. Formatting and serde remain outside this slice.
+# MemoryMappingBuilder configuration, build, and wrap methods. The platform
+# mapping operations remain external. Do not specialize mutable references in
+# this slice: it has no such calls, and that pass rejects wrap's trait objects.
 $(LLBC_DIR)/vm_memory.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
 		--preset=aeneas \
-		--monomorphize-mut=except-types \
 		--remove-adt-clauses \
 		--lift-associated-types '*' \
 		--dest-file $(LLBC_DIR)/vm_memory.llbc \
@@ -109,6 +108,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \
 		--start-from 'base::mmap::MemoryMappingBuilder::offset' \
+		--start-from 'base::mmap::MemoryMappingBuilder::build' \
 		--include 'base::mmap::MemoryMappingBuilder' \
 		--include 'base::mmap::_::new' \
 		--include 'base::mmap::_::from_file' \
@@ -119,10 +119,21 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--include 'base::descriptor::SafeDescriptor' \
 		--include 'base::descriptor::{impl base::descriptor::AsRawDescriptor for _}::as_raw_descriptor' \
 		--include 'base::shm::{impl base::descriptor::AsRawDescriptor for _}::as_raw_descriptor' \
-		--opaque 'base::mmap::MemoryMapping' \
+		--include 'base::mmap::MemoryMapping' \
 		--opaque 'base::mmap::{impl base::mmap::MappedRegion for _}::size' \
+		--include 'base::sys::linux::mmap::_::build' \
+		--include 'base::sys::linux::mmap::_::wrap' \
+		--include 'base::mmap::_::read_write' \
+		--include 'base::mmap::_::_::call_once' \
+		--include 'core::option::_::unwrap_or_else' \
+		--include 'core::result::_::branch' \
+		--opaque 'base::sys::linux::mmap::MemoryMapping' \
+		--opaque 'base::sys::linux::mmap::_::new_protection' \
+		--opaque 'base::sys::linux::mmap::_::from_fd_offset_protection_populate' \
 		--opaque 'crate::guest_memory::BackingObject' \
 		--opaque 'crate::guest_memory::MemoryRegionOptions' \
+		--exclude 'core::ops::try_trait::Residual' \
+		--exclude '{impl core::ops::try_trait::Residual}' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::guest_address::{impl core::fmt::Display for _}' \
