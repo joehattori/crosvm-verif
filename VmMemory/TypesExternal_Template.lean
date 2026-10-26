@@ -18,6 +18,13 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
+/-- [std::fs::File]
+    Source: '/rustc/library/std/src/fs.rs', lines 135:0-135:15
+    Name pattern: [std::fs::File]
+    Visibility: public -/
+@[rust_type "std::fs::File"]
+axiom std.fs.File : Type
+
 /-- [base::mmap::MemoryMapping]
     Source: 'base/src/mmap.rs', lines 170:0-170:24
     Name pattern: [base::mmap::MemoryMapping]

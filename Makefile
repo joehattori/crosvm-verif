@@ -88,7 +88,8 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 		-dest $(CURDIR)/Resources \
 		$(LLBC_DIR)/resources.llbc
 
-# GuestAddress operations and MemoryRegion's four interval queries.
+# GuestAddress operations, MemoryRegion's four interval queries, and the
+# MemoryMappingBuilder configuration methods used by region constructors.
 # Only the mapping length is observed; mapping internals and unused region
 # metadata are opaque. Formatting and serde remain outside this slice.
 $(LLBC_DIR)/vm_memory.llbc:
@@ -104,6 +105,20 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::MemoryRegion::end' \
 		--start-from 'crate::guest_memory::MemoryRegion::contains' \
 		--start-from 'crate::guest_memory::MemoryRegion::contains_range' \
+		--start-from 'base::mmap::MemoryMappingBuilder::new' \
+		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
+		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \
+		--start-from 'base::mmap::MemoryMappingBuilder::offset' \
+		--include 'base::mmap::MemoryMappingBuilder' \
+		--include 'base::mmap::_::new' \
+		--include 'base::mmap::_::from_file' \
+		--include 'base::mmap::_::from_shared_memory' \
+		--include 'base::mmap::_::offset' \
+		--include 'base::mmap::Protection' \
+		--include 'base::descriptor::AsRawDescriptor' \
+		--include 'base::descriptor::SafeDescriptor' \
+		--include 'base::descriptor::{impl base::descriptor::AsRawDescriptor for _}::as_raw_descriptor' \
+		--include 'base::shm::{impl base::descriptor::AsRawDescriptor for _}::as_raw_descriptor' \
 		--opaque 'base::mmap::MemoryMapping' \
 		--opaque 'base::mmap::{impl base::mmap::MappedRegion for _}::size' \
 		--opaque 'crate::guest_memory::BackingObject' \

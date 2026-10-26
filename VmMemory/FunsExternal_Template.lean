@@ -20,6 +20,15 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}::as_raw_descriptor]:
+    Source: 'base/src/sys/unix/descriptor.rs', lines 190:12-190:56
+    Name pattern: [base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]
+axiom std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+  : std.fs.File → Result Std.I32
+
 /-- [base::mmap::{impl base::mmap::MappedRegion for base::mmap::MemoryMapping}::size]:
     Source: 'base/src/mmap.rs', lines 580:4-580:27
     Name pattern: [base::mmap::{base::mmap::MappedRegion<base::mmap::MemoryMapping>}::size]

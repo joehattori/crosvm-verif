@@ -24,6 +24,105 @@ noncomputable section
 
 namespace vm_memory
 
+/-- [base::descriptor::{impl base::descriptor::AsRawDescriptor for base::descriptor::SafeDescriptor}::as_raw_descriptor]:
+    Source: 'base/src/descriptor.rs', lines 64:4-64:48
+    Name pattern: [base::descriptor::{base::descriptor::AsRawDescriptor<base::descriptor::SafeDescriptor>}::as_raw_descriptor]
+    Visibility: public -/
+@[rust_fun
+  "base::descriptor::{base::descriptor::AsRawDescriptor<base::descriptor::SafeDescriptor>}::as_raw_descriptor"]
+def
+  base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+  (self : base.descriptor.SafeDescriptor) : Result Std.I32 := do
+  ok self.descriptor
+
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]:
+    Source: 'base/src/mmap.rs', lines 444:4-444:55
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new"]
+def base.mmap.MemoryMappingBuilder.new
+  (size : Std.Usize) : Result base.mmap.MemoryMappingBuilder := do
+  ok
+    {
+      descriptor := none,
+      is_file_descriptor := false,
+      size,
+      offset := none,
+      align := none,
+      protection := none,
+      populate := false
+    }
+
+/-- Trait implementation: [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}]
+    Source: 'base/src/sys/unix/descriptor.rs', lines 189:8-189:38
+    Name pattern: [base::descriptor::AsRawDescriptor<std::fs::File>] -/
+@[reducible, rust_trait_impl
+  "base::descriptor::AsRawDescriptor<std::fs::File>"]
+def std.fs.File.Insts.BaseDescriptorAsRawDescriptor :
+  base.descriptor.AsRawDescriptor std.fs.File := {
+  as_raw_descriptor :=
+    std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+}
+
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_file]:
+    Source: 'base/src/mmap.rs', lines 463:4-463:74
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_file]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_file"]
+def base.mmap.MemoryMappingBuilder.from_file
+  (self : base.mmap.MemoryMappingBuilder) (file : std.fs.File) :
+  Result base.mmap.MemoryMappingBuilder
+  := do
+  let file1 := Dyn.mk _ std.fs.File.Insts.BaseDescriptorAsRawDescriptor file
+  ok { self with descriptor := (some file1), is_file_descriptor := true }
+
+/-- [base::shm::{impl base::descriptor::AsRawDescriptor for base::shm::SharedMemory}::as_raw_descriptor]:
+    Source: 'base/src/shm.rs', lines 70:4-70:48
+    Name pattern: [base::shm::{base::descriptor::AsRawDescriptor<base::shm::SharedMemory>}::as_raw_descriptor]
+    Visibility: public -/
+@[rust_fun
+  "base::shm::{base::descriptor::AsRawDescriptor<base::shm::SharedMemory>}::as_raw_descriptor"]
+def base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+  (self : base.shm.SharedMemory) : Result Std.I32 := do
+  base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+    self.descriptor
+
+/-- Trait implementation: [base::shm::{impl base::descriptor::AsRawDescriptor for base::shm::SharedMemory}]
+    Source: 'base/src/shm.rs', lines 69:0-69:37
+    Name pattern: [base::descriptor::AsRawDescriptor<base::shm::SharedMemory>] -/
+@[reducible, rust_trait_impl
+  "base::descriptor::AsRawDescriptor<base::shm::SharedMemory>"]
+def base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor :
+  base.descriptor.AsRawDescriptor base.shm.SharedMemory := {
+  as_raw_descriptor :=
+    base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+}
+
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_shared_memory]:
+    Source: 'base/src/mmap.rs', lines 474:4-474:90
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_shared_memory]
+    Visibility: public -/
+@[rust_fun
+  "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::from_shared_memory"]
+def base.mmap.MemoryMappingBuilder.from_shared_memory
+  (self : base.mmap.MemoryMappingBuilder) (shm : base.shm.SharedMemory) :
+  Result base.mmap.MemoryMappingBuilder
+  := do
+  let shm1 :=
+    Dyn.mk _ base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor shm
+  ok { self with descriptor := (some shm1) }
+
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::offset]:
+    Source: 'base/src/mmap.rs', lines 482:4-482:68
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::offset]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::offset"]
+def base.mmap.MemoryMappingBuilder.impl.offset
+  (self : base.mmap.MemoryMappingBuilder) (offset : Std.U64) :
+  Result base.mmap.MemoryMappingBuilder
+  := do
+  ok { self with offset := (some offset) }
+
 /-- [vm_memory::guest_address::{impl core::clone::Clone for vm_memory::guest_address::GuestAddress}::clone]:
     Source: 'vm_memory/src/guest_address.rs', lines 23:9-23:14
     Visibility: public -/

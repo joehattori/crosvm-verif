@@ -29,6 +29,54 @@ structure core.ops.bit.BitOr (Self : Type) (Rhs : Type) (Self_Output : Type)
   where
   bitor : Self → Rhs → Result Self_Output
 
+/-- [base::descriptor::SafeDescriptor]
+    Source: 'base/src/descriptor.rs', lines 20:0-20:25
+    Name pattern: [base::descriptor::SafeDescriptor]
+    Visibility: public -/
+@[rust_type "base::descriptor::SafeDescriptor"]
+structure base.descriptor.SafeDescriptor where
+  descriptor : Std.I32
+
+/-- Trait declaration: [base::descriptor::AsRawDescriptor]
+    Source: 'base/src/descriptor.rs', lines 32:0-32:25
+    Name pattern: [base::descriptor::AsRawDescriptor]
+    Visibility: public -/
+@[rust_trait "base::descriptor::AsRawDescriptor"]
+structure base.descriptor.AsRawDescriptor (Self : Type) where
+  as_raw_descriptor : Self → Result Std.I32
+
+/-- [base::mmap::Protection]
+    Source: 'base/src/mmap.rs', lines 112:0-112:21
+    Name pattern: [base::mmap::Protection]
+    Visibility: public -/
+@[rust_type "base::mmap::Protection"]
+structure base.mmap.Protection where
+  read : Bool
+  write : Bool
+
+/-- [base::mmap::MemoryMappingBuilder]
+    Source: 'base/src/mmap.rs', lines 428:0-428:35
+    Name pattern: [base::mmap::MemoryMappingBuilder]
+    Visibility: public -/
+@[rust_type "base::mmap::MemoryMappingBuilder"]
+structure base.mmap.MemoryMappingBuilder where
+  descriptor : Option (Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  is_file_descriptor : Bool
+  size : Std.Usize
+  offset : Option Std.U64
+  align : Option Std.U64
+  protection : Option base.mmap.Protection
+  populate : Bool
+
+/-- [base::shm::SharedMemory]
+    Source: 'base/src/shm.rs', lines 20:0-20:23
+    Name pattern: [base::shm::SharedMemory]
+    Visibility: public -/
+@[rust_type "base::shm::SharedMemory"]
+structure base.shm.SharedMemory where
+  descriptor : base.descriptor.SafeDescriptor
+  size : Std.U64
+
 /-- [vm_memory::guest_address::GuestAddress]
     Source: 'vm_memory/src/guest_address.rs', lines 24:0-24:33
     Visibility: public -/
