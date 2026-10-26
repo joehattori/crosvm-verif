@@ -5,8 +5,9 @@ TOOLCHAIN_DIR := $(shell $(CHARON) toolchain-path 2>/dev/null)
 
 LLBC_DIR := $(CURDIR)/llbc
 RESOURCES_MANIFEST := $(CURDIR)/crosvm/resources/Cargo.toml
+VM_MEMORY_MANIFEST := $(CURDIR)/crosvm/vm_memory/Cargo.toml
 
-.PHONY: all extract verify aeneas-bin
+.PHONY: all extract extract-resources extract-vm-memory verify aeneas-bin
 
 all: verify
 
@@ -75,7 +76,9 @@ $(LLBC_DIR)/resources.llbc:
 		--exclude 'crate::address_range::_::{impl serde_core::de::Deserialize for _}' \
 		-- --manifest-path $(RESOURCES_MANIFEST)
 
-extract: $(LLBC_DIR)/resources.llbc
+extract: extract-resources extract-vm-memory
+
+extract-resources: $(LLBC_DIR)/resources.llbc
 	mkdir -p $(CURDIR)/Resources
 	# Iterator methods absent from the pinned backend are supplied by FunsExternal.
 	$(AENEAS) \
@@ -84,6 +87,34 @@ extract: $(LLBC_DIR)/resources.llbc
 		-filter-trait-methods \
 		-dest $(CURDIR)/Resources \
 		$(LLBC_DIR)/resources.llbc
+
+# GuestAddress's arithmetic, comparison, bitwise, and Clone implementations.
+# Formatting and serde require separate external models and are outside this slice.
+$(LLBC_DIR)/vm_memory.llbc:
+	mkdir -p $(LLBC_DIR)
+	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
+		--preset=aeneas \
+		--monomorphize-mut=except-types \
+		--remove-adt-clauses \
+		--lift-associated-types '*' \
+		--dest-file $(LLBC_DIR)/vm_memory.llbc \
+		--start-from 'crate::guest_address' \
+		--exclude 'serde_core' \
+		--exclude 'serde' \
+		--exclude 'crate::guest_address::{impl core::fmt::Display for _}' \
+		--exclude 'crate::guest_address::{impl core::fmt::Debug for _}' \
+		--exclude 'crate::guest_address::_::{impl serde_core::ser::Serialize for _}' \
+		--exclude 'crate::guest_address::_::{impl serde_core::de::Deserialize for _}' \
+		-- --locked --manifest-path $(VM_MEMORY_MANIFEST)
+
+extract-vm-memory: $(LLBC_DIR)/vm_memory.llbc
+	mkdir -p $(CURDIR)/VmMemory
+	$(AENEAS) \
+		-backend lean \
+		-split-files \
+		-filter-trait-methods \
+		-dest $(CURDIR)/VmMemory \
+		$(LLBC_DIR)/vm_memory.llbc
 
 verify:
 	lake build

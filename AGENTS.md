@@ -16,7 +16,8 @@ duplicating them here.
 | [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
 | [Resources/AddressRange/Spec.lean](Resources/AddressRange/Spec.lean) | Mathematical predicates and proofs for address ranges. |
 | [Resources/AddressAllocator/Collections.lean](Resources/AddressAllocator/Collections.lean) | Free-region invariant, key equality, and collection operation proofs. |
-| [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including alignment arithmetic and ordered search. |
+| [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including aligned fits and ordered search. |
+| [Utils/Alignment.lean](Utils/Alignment.lean) | Shared alignment definitions and arithmetic lemmas. |
 | [Resources/SystemAllocator/Spec.lean](Resources/SystemAllocator/Spec.lean) | System allocator method proofs. |
 | [Resources/README.md](Resources/README.md) | Verification outline, model assumptions, and extraction prerequisites. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
@@ -99,6 +100,10 @@ consistency checks, not a toolchain rebuild.
 Report the properties proved, files changed, commands run and their outcomes,
 and any remaining assumptions or unverified steps. Distinguish checking the
 committed Lean translation from validating a freshly regenerated translation.
+
+When a repository's documentation and its existing code disagree, follow the
+conventions used in the existing code, and in your final reply point out each
+inconsistency you found between the documentation and the code
 
 # Local references
 

@@ -4,8 +4,8 @@ Verify core components of crosvm using Aeneas and Lean.
 
 ## Build and extraction
 
-Run commands from the repository root. Initialize the pinned source submodules
-after cloning:
+Develop on Ubuntu or use the Docker workflow below. Run commands from the
+repository root. Initialize the pinned source submodules after cloning:
 
 ```sh
 git submodule update --init crosvm aeneas
@@ -36,9 +36,8 @@ builds both from the pinned Aeneas submodule using Nix:
 make aeneas-bin
 ```
 
-Before extracting, consult the [extraction prerequisites and platform
-notes](Resources/README.md#extraction-and-checks), including the nested minijail
-submodule and the current macOS build workaround.
+Before extracting, consult the [extraction prerequisites](Resources/README.md#extraction-and-checks),
+including the nested minijail submodule.
 
 ```sh
 # Extract Rust to LLBC, then generate Lean.
@@ -48,9 +47,28 @@ make extract
 make -B extract
 ```
 
-The LLBC target currently has no Rust source prerequisites, so ordinary
-`make extract` reuses `llbc/resources.llbc` if it exists. Forced extraction is
-needed when the Rust input, toolchain, or extraction options change.
+The extraction targets are `extract-resources` and `extract-vm-memory`;
+`extract` runs both. GuestAddress is extracted from the real `vm_memory` crate.
+To run extraction in crosvm's pinned Docker development environment:
+
+```sh
+# Start Docker first. Download the pinned crosvm image and build pinned Charon.
+scripts/charon-devcontainer setup
+# Compile Rust in the container, then translate LLBC with the host Aeneas binary.
+make -B extract-vm-memory CHARON="$PWD/scripts/charon-devcontainer"
+make verify
+```
+
+The wrapper mounts this checkout at the same path inside the container and keeps
+Rust toolchains and build caches in the container. Run `setup` again after a
+Charon pin change. Charon is built from a clean archive of `aeneas/charon-pin`,
+leaving local toolchain edits untouched. It does not modify either source
+submodule. The host still needs the pinned Aeneas binary and Lean dependencies.
+
+The LLBC targets currently have no Rust source prerequisites, so ordinary
+`make extract` reuses existing `llbc/resources.llbc` and `llbc/vm_memory.llbc`.
+Forced extraction is needed when the Rust input, toolchain, or extraction
+options change.
 
 The default binaries are `aeneas-bin/bin/charon` and `aeneas-bin/bin/aeneas`.
 The Makefile supports `AENEAS_BIN`, `CHARON`, and `AENEAS` overrides and obtains

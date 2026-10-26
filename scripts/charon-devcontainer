@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Run pinned Charon in crosvm's Linux development environment. Aeneas and Lean
+# can still run on the host: the LLBC file is shared through the workspace mount.
+set -euo pipefail
+
+task_root=$(cd -- "$(dirname -- "$0")/.." && pwd)
+task_container="crosvm-verif-charon-$(printf '%s' "$task_root" | cksum | cut -d ' ' -f 1)"
+task_binary=/scratch/charon-target/debug/charon
+
+if [[ ${1:-} == setup ]]; then
+    task_version=$(cat "$task_root/crosvm/tools/impl/dev_container/version")
+    task_image="gcr.io/crosvm-infra/crosvm_dev:$task_version"
+    if ! docker container inspect "$task_container" >/dev/null 2>&1; then
+        docker run --detach --platform linux/amd64 --name "$task_container" \
+            --mount "type=bind,source=$task_root,target=$task_root" \
+            --workdir "$task_root" "$task_image" sleep infinity
+    else
+        task_actual_image=$(docker inspect --format '{{.Config.Image}}' "$task_container")
+        if [[ $task_actual_image != "$task_image" ]]; then
+            echo "Container $task_container uses $task_actual_image; expected $task_image." >&2
+            echo 'Use a new container after changing the crosvm image pin.' >&2
+            exit 1
+        fi
+        docker start "$task_container" >/dev/null
+    fi
+    task_commit=$(sed -n '/^[0-9a-f]\{40\}$/p' "$task_root/aeneas/charon-pin")
+    [[ -n $task_commit ]] || { echo 'Missing Charon pin' >&2; exit 1; }
+    task_source="/scratch/charon-source-$task_commit"
+    docker exec "$task_container" mkdir -p "$task_source"
+    git -C "$task_root/aeneas/charon" archive "$task_commit" | \
+        docker exec --interactive "$task_container" tar -x -C "$task_source"
+    task_toolchain=$(git -C "$task_root/aeneas/charon" \
+        show "$task_commit:charon/rust-toolchain" | \
+        sed -n 's/^channel = "\([^"]*\)"/\1/p')
+    # The image's default CARGO_HOME is a CI cache initialized by other tooling;
+    # rustup itself is installed in /usr/local/cargo.
+    docker exec --env CARGO_HOME=/usr/local/cargo "$task_container" \
+        rustup toolchain install "$task_toolchain" \
+        --profile minimal --component rustc-dev --component llvm-tools \
+        --component rust-src --component miri
+    docker exec --workdir "$task_root" \
+        --env "RUSTUP_TOOLCHAIN=$task_toolchain" \
+        --env "CHARON_GIT_COMMIT=$task_commit" \
+        --env CARGO_TARGET_DIR=/scratch/charon-target \
+        --env CARGO_HOME=/usr/local/cargo \
+        --env CARGO_PROFILE_DEV_DEBUG=0 \
+        --env CARGO_BUILD_JOBS=2 \
+        "$task_container" cargo build --locked \
+        --manifest-path "$task_source/charon/Cargo.toml" \
+        --bin charon --bin charon-driver
+else
+    exec docker exec --workdir "$task_root" \
+        --env CARGO_TARGET_DIR=/scratch/guest-address-target \
+        --env CARGO_HOME=/usr/local/cargo \
+        "$task_container" "$task_binary" "$@"
+fi

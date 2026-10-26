@@ -7,6 +7,10 @@ Verification covers selected operations on
 [SystemAllocator](SystemAllocator/Spec.lean). These specification modules define
 the exact coverage, guarantees, and preconditions.
 
+The default build also checks all inherent `GuestAddress` methods and its
+explicit non-formatting trait methods; see [VmMemory](../VmMemory/README.md)
+for coverage, assumptions, and extraction details.
+
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
 
 # Assumptions and limitations
@@ -25,8 +29,3 @@ See the [top-level README](../README.md#build-and-extraction) for commands.
   included there.
 - Initialize crosvm's nested dependency with
   `git -C crosvm submodule update --init third_party/minijail`.
-- On macOS, the current crosvm pin needs a build workaround:
-  `PlatformSyslog::new` in `base/src/sys/macos/mod.rs` must return
-  `&'static syslog::Error`. Apply this only in a temporary copy and pass its
-  `resources/Cargo.toml` through `RESOURCES_MANIFEST` when extracting. Checking
-  the existing Lean translation does not need this workaround.

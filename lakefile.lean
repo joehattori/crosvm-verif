@@ -8,3 +8,7 @@ package «crosvm-verif» where
 
 @[default_target]
 lean_lib «Resources» where
+
+lean_lib «VmMemory» where
+
+lean_lib «Utils» where

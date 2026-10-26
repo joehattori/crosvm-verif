@@ -1,10 +1,12 @@
 module
 public import Resources.AddressAllocator.Collections
+public import Utils.Alignment
 -- The pinned library does not export the unfolding equation for iterToList.
 import all Aeneas.Std.VecIter
 import all Init.Data.Nat.Power2.Basic
 @[expose] public section
 open Aeneas Aeneas.Std Result
+open Utils.Alignment
 open resources.address_range resources.address_allocator
 
 namespace resources.address_allocator.AddressAllocator
@@ -537,98 +539,7 @@ theorem internal_allocate_from_slot_spec (self : AddressAllocator)
   simpa [AddressRange.containsModel] using
     covers_split self.regions rs2 slot range before after hv hslot hsub hc hm
 
-/-! ### Alignment arithmetic and fit predicates -/
-
-/-- Round down to an alignment boundary, using unbounded arithmetic. -/
-def alignDown (addr alignment : Nat) : Nat := addr - addr % alignment
-
-/-- Round up to an alignment boundary, using unbounded arithmetic. -/
-def alignUp (addr alignment : Nat) : Nat :=
-  if addr % alignment = 0 then addr else addr + (alignment - addr % alignment)
-
-theorem alignDown_eq (x a : Nat) : alignDown x a = a * (x / a) := by
-  have := Nat.mod_add_div x a
-  unfold alignDown
-  omega
-
-theorem alignDown_le (x a : Nat) : alignDown x a ≤ x := Nat.sub_le _ _
-
-theorem alignDown_mod (x a : Nat) : alignDown x a % a = 0 := by
-  rw [alignDown_eq]
-  simp
-
-theorem le_alignDown {x a y : Nat} (hy : y % a = 0) (h : y ≤ x) :
-    y ≤ alignDown x a := by
-  rw [alignDown_eq]
-  have hdiv := Nat.div_le_div_right h (c := a)
-  have hmul := Nat.mul_le_mul_left a hdiv
-  have := Nat.mod_add_div y a
-  omega
-
-theorem alignUp_eq {x a : Nat} (ha : 0 < a) (h : x % a ≠ 0) :
-    alignUp x a = a * (x / a + 1) := by
-  have hr := Nat.mod_le x a
-  have := Nat.mod_add_div x a
-  have := Nat.mod_lt x ha
-  simp only [alignUp, h, ↓reduceIte, Nat.mul_add, Nat.mul_one]
-  omega
-
-theorem le_alignUp (x a : Nat) : x ≤ alignUp x a := by
-  unfold alignUp
-  split <;> omega
-
-theorem alignUp_mod (x a : Nat) (ha : 0 < a) : alignUp x a % a = 0 := by
-  by_cases h : x % a = 0
-  · simp [alignUp, h]
-  · rw [alignUp_eq ha h]
-    simp
-
-theorem alignUp_le {x a y : Nat} (ha : 0 < a) (hy : y % a = 0) (h : x ≤ y) :
-    alignUp x a ≤ y := by
-  by_cases hr : x % a = 0
-  · simpa [alignUp, hr] using h
-  rw [alignUp_eq ha hr]
-  have hx := Nat.mod_add_div x a
-  have hyy := Nat.mod_add_div y a
-  have hq : x / a + 1 ≤ y / a := by
-    by_contra hn
-    have hm := Nat.mul_le_mul_left a (show y / a ≤ x / a by omega)
-    omega
-  have hm := Nat.mul_le_mul_left a hq
-  omega
-
-/-- Clearing the low bits of a power-of-two alignment is mathematical rounding down. -/
-theorem mask_alignDown (x alignment mask : U64)
-    (ha : alignment.val.isPowerOfTwo) (hm : mask.val = alignment.val - 1) :
-    (x &&& (~~~mask)).val = alignDown x.val alignment.val := by
-  have hapos : 0 < alignment.val := Nat.pos_of_isPowerOfTwo ha
-  unfold Nat.isPowerOfTwo at ha
-  obtain ⟨k, hk⟩ := ha
-  have halign : alignment.bv = 2#64 ^ k := by
-    apply BitVec.eq_of_toNat_eq
-    simp only [BitVec.toNat_pow, BitVec.toNat_ofNat]
-    change alignment.val = (2 % 2^64) ^ k % 2^64
-    norm_num
-    rw [← hk]
-    exact (Nat.mod_eq_of_lt alignment.hBounds).symm
-  have hmask : mask.bv = alignment.bv - 1#64 := by
-    apply BitVec.eq_of_toNat_eq
-    rw [BitVec.toNat_sub_of_le (by change 1 ≤ alignment.val; omega)]
-    exact hm
-  have hlow : (x.bv &&& mask.bv).toNat = x.val % alignment.val := by
-    rw [hmask, halign, BitVec.and_two_pow_sub_one_eq_mod, ← halign]
-    rfl
-  have hsplit : x.bv &&& ~~~mask.bv = x.bv - (x.bv &&& mask.bv) := by
-    apply BitVec.eq_sub_iff_add_eq.mpr
-    rw [BitVec.add_eq_or_of_and_eq_zero]
-    · simp [← BitVec.and_or_distrib_left]
-    · ext i
-      simp [Bool.and_assoc, Bool.and_left_comm, Bool.and_comm]
-  change (x.bv &&& ~~~mask.bv).toNat = _
-  rw [hsplit, BitVec.toNat_sub_of_le]
-  · exact congrArg (x.val - ·) hlow
-  · simp only [BitVec.le_def, hlow]
-    exact Nat.mod_le _ _
+/-! ### Fit predicates -/
 
 /-- There is an aligned start whose entire requested range lies in this slot. -/
 def Fits (slot : AddressRange) (size alignment : Nat) : Prop :=
