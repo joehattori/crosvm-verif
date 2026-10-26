@@ -3,6 +3,7 @@
 module
 public import Aeneas
 public import VmMemory.Types
+public import VmMemory.FunsExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
@@ -17,6 +18,9 @@ set_option maxHeartbeats 1000000
 
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
+
+/- You can remove the following line by using the CLI option `-all-computable`: -/
+noncomputable section
 
 namespace vm_memory
 
@@ -78,10 +82,10 @@ def P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress :
     Source: 'vm_memory/src/guest_address.rs', lines 43:4-45:5
     Visibility: public -/
 def guest_address.GuestAddress.offset_from
-  (self : guest_address.GuestAddress) (base : guest_address.GuestAddress) :
+  (self : guest_address.GuestAddress) (base1 : guest_address.GuestAddress) :
   Result Std.U64
   := do
-  self - base
+  self - base1
 
 /-- [vm_memory::guest_address::{vm_memory::guest_address::GuestAddress}::offset]:
     Source: 'vm_memory/src/guest_address.rs', lines 49:4-51:5
@@ -275,13 +279,19 @@ def guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress.partial_cmp
 /-- Trait implementation: [vm_memory::guest_address::{impl core::cmp::PartialOrd<vm_memory::guest_address::GuestAddress> for vm_memory::guest_address::GuestAddress}]
     Source: 'vm_memory/src/guest_address.rs', lines 127:0-131:1 -/
 @[reducible]
-def guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress :
+impl_def guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress :
   core.cmp.PartialOrd guest_address.GuestAddress guest_address.GuestAddress
   := {
   partialEqInst :=
     guest_address.GuestAddress.Insts.CoreCmpPartialEqGuestAddress
   partial_cmp :=
     guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress.partial_cmp
+  lt := core.cmp.PartialOrd.lt.trait_default
+    guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
+  le := core.cmp.PartialOrd.le.trait_default
+    guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
+  ge := core.cmp.PartialOrd.ge.trait_default
+    guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
 }
 
 /-- Trait implementation: [vm_memory::guest_address::{impl core::cmp::Ord for vm_memory::guest_address::GuestAddress}]
@@ -294,5 +304,60 @@ def guest_address.GuestAddress.Insts.CoreCmpOrd : core.cmp.Ord
     guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
   cmp := guest_address.GuestAddress.Insts.CoreCmpOrd.cmp
 }
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::start]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 263:4-265:5 -/
+def guest_memory.MemoryRegion.start
+  (self : guest_memory.MemoryRegion) : Result guest_address.GuestAddress := do
+  ok self.guest_base
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::end]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 267:4-270:5 -/
+def guest_memory.MemoryRegion.end
+  (self : guest_memory.MemoryRegion) : Result guest_address.GuestAddress := do
+  let i ←
+    base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size self.mapping
+  let i1 ← lift (UScalar.cast .U64 i)
+  guest_address.GuestAddress.unchecked_add self.guest_base i1
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::contains]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 272:4-274:5 -/
+def guest_memory.MemoryRegion.contains
+  (self : guest_memory.MemoryRegion) (addr : guest_address.GuestAddress) :
+  Result Bool
+  := do
+  let b ←
+    core.cmp.PartialOrd.ge.trait_default
+      guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress addr
+      self.guest_base
+  if b
+  then
+    let ga ← guest_memory.MemoryRegion.end self
+    core.cmp.PartialOrd.lt.trait_default
+      guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress addr ga
+  else ok false
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::contains_range]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 277:4-282:5 -/
+def guest_memory.MemoryRegion.contains_range
+  (self : guest_memory.MemoryRegion) (addr : guest_address.GuestAddress)
+  (size : Std.U64) :
+  Result Bool
+  := do
+  let o ← guest_address.GuestAddress.checked_add addr size
+  match o with
+  | none => ok false
+  | some end_addr =>
+    let b ←
+      core.cmp.PartialOrd.ge.trait_default
+        guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress addr
+        self.guest_base
+    if b
+    then
+      let ga ← guest_memory.MemoryRegion.end self
+      core.cmp.PartialOrd.le.trait_default
+        guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress end_addr
+        ga
+    else ok false
 
 end vm_memory

@@ -7,3 +7,4 @@ public import Resources.AddressAllocator.Spec
 public import Resources.AddressAllocatorSet.Spec
 public import Resources.SystemAllocator.Spec
 public import VmMemory.GuestAddress.Spec
+public import VmMemory.MemoryRegion.Spec

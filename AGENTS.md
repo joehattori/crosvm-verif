@@ -1,9 +1,9 @@
 # Agent instructions
 
-Read [README.md](README.md) for project context and build commands. See
-[Resources/README.md](Resources/README.md) for the verified scope and model
-assumptions. Keep those descriptions in their respective READMEs rather than
-duplicating them here.
+Read [README.md](README.md) for project context, the trust boundary, and build
+commands. See [Resources/README.md](Resources/README.md) and
+[VmMemory/README.md](VmMemory/README.md) for the verified scope. Keep those
+descriptions in their respective READMEs rather than duplicating them here.
 
 # Repository map
 
@@ -19,7 +19,7 @@ duplicating them here.
 | [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including aligned fits and ordered search. |
 | [Utils/Alignment.lean](Utils/Alignment.lean) | Shared alignment definitions and arithmetic lemmas. |
 | [Resources/SystemAllocator/Spec.lean](Resources/SystemAllocator/Spec.lean) | System allocator method proofs. |
-| [Resources/README.md](Resources/README.md) | Verification outline, model assumptions, and extraction prerequisites. |
+| [Resources/README.md](Resources/README.md) | Verification outline and extraction prerequisites. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
 | [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 

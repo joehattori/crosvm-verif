@@ -88,8 +88,9 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 		-dest $(CURDIR)/Resources \
 		$(LLBC_DIR)/resources.llbc
 
-# GuestAddress's arithmetic, comparison, bitwise, and Clone implementations.
-# Formatting and serde require separate external models and are outside this slice.
+# GuestAddress operations and MemoryRegion's four interval queries.
+# Only the mapping length is observed; mapping internals and unused region
+# metadata are opaque. Formatting and serde remain outside this slice.
 $(LLBC_DIR)/vm_memory.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -99,6 +100,14 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--lift-associated-types '*' \
 		--dest-file $(LLBC_DIR)/vm_memory.llbc \
 		--start-from 'crate::guest_address' \
+		--start-from 'crate::guest_memory::MemoryRegion::start' \
+		--start-from 'crate::guest_memory::MemoryRegion::end' \
+		--start-from 'crate::guest_memory::MemoryRegion::contains' \
+		--start-from 'crate::guest_memory::MemoryRegion::contains_range' \
+		--opaque 'base::mmap::MemoryMapping' \
+		--opaque 'base::mmap::{impl base::mmap::MappedRegion for _}::size' \
+		--opaque 'crate::guest_memory::BackingObject' \
+		--opaque 'crate::guest_memory::MemoryRegionOptions' \
 		--exclude 'serde_core' \
 		--exclude 'serde' \
 		--exclude 'crate::guest_address::{impl core::fmt::Display for _}' \

@@ -176,6 +176,42 @@ theorem partial_cmp_spec (self other : GuestAddress) :
   step as ⟨o, ho⟩
   exact ⟨o, rfl, ho⟩
 
+/-- The inherited comparisons used by MemoryRegion agree with address order. -/
+@[step]
+theorem lt_spec (self other : GuestAddress) :
+    core.cmp.PartialOrd.lt.trait_default Insts.CoreCmpPartialOrdGuestAddress self other
+      ⦃ b => b = true ↔ self.val < other.val ⦄ := by
+  unfold core.cmp.PartialOrd.lt.trait_default core.cmp.PartialOrd.lt.default
+    core.cmp.PartialOrd.lt_body
+  step as ⟨o, h⟩
+  obtain ⟨order, ho, horder⟩ := h
+  simp [ho, CmpOutcome] at horder ⊢
+  exact horder.1
+
+@[step]
+theorem le_spec (self other : GuestAddress) :
+    core.cmp.PartialOrd.le.trait_default Insts.CoreCmpPartialOrdGuestAddress self other
+      ⦃ b => b = true ↔ self.val ≤ other.val ⦄ := by
+  unfold core.cmp.PartialOrd.le.trait_default core.cmp.PartialOrd.le.default
+    core.cmp.PartialOrd.le_body
+  step as ⟨o, h⟩
+  obtain ⟨order, ho, horder⟩ := h
+  simp [ho, CmpOutcome] at horder ⊢
+  rw [horder.1, horder.2.1]
+  omega
+
+@[step]
+theorem ge_spec (self other : GuestAddress) :
+    core.cmp.PartialOrd.ge.trait_default Insts.CoreCmpPartialOrdGuestAddress self other
+      ⦃ b => b = true ↔ other.val ≤ self.val ⦄ := by
+  unfold core.cmp.PartialOrd.ge.trait_default core.cmp.PartialOrd.ge.default
+    core.cmp.PartialOrd.ge_body
+  step as ⟨o, h⟩
+  obtain ⟨order, ho, horder⟩ := h
+  simp [ho, CmpOutcome] at horder ⊢
+  rw [horder.2.2, horder.2.1]
+  omega
+
 /-- Exact bitwise behavior, including the identity branch for zero and one. -/
 @[step]
 theorem align_down_spec (self : GuestAddress) (alignment : U64) :

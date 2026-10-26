@@ -2,6 +2,22 @@
 
 Verify core components of crosvm using Aeneas and Lean.
 
+## Trust boundary
+
+Lean checks proofs about the translated models. Applying those results to Rust
+relies on Rust compilation, Charon/Aeneas translation, and the correspondence of
+Aeneas's standard-library models and this project's handwritten external models
+to their Rust implementations. Exact coverage and preconditions are defined in
+the specification modules linked from [Resources](Resources/README.md) and
+[VmMemory](VmMemory/README.md).
+
+The handwritten `TypesExternal.lean` and `FunsExternal.lean` files are part of
+the trust boundary: [Resources types](Resources/TypesExternal.lean),
+[Resources functions](Resources/FunsExternal.lean),
+[VmMemory types](VmMemory/TypesExternal.lean), and
+[VmMemory functions](VmMemory/FunsExternal.lean). See those files for their
+models and assumptions.
+
 ## Build and extraction
 
 Develop on Ubuntu or use the Docker workflow below. Run commands from the
@@ -48,7 +64,8 @@ make -B extract
 ```
 
 The extraction targets are `extract-resources` and `extract-vm-memory`;
-`extract` runs both. GuestAddress is extracted from the real `vm_memory` crate.
+`extract` runs both. GuestAddress and the selected MemoryRegion methods are
+extracted from the real `vm_memory` crate.
 To run extraction in crosvm's pinned Docker development environment:
 
 ```sh

@@ -2,6 +2,7 @@
 -- [vm_memory]: type definitions
 module
 public import Aeneas
+public import VmMemory.TypesExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
@@ -38,5 +39,15 @@ def guest_address.GuestAddress := Std.U64
     Source: 'vm_memory/src/guest_address.rs', lines 83:40-83:60 -/
 @[reducible]
 def guest_address.GuestAddress.align.closure := Std.U64
+
+/-- [vm_memory::guest_memory::MemoryRegion]
+    Source: 'vm_memory/src/guest_memory.rs', lines 208:0-216:1
+    Visibility: public -/
+structure guest_memory.MemoryRegion where
+  mapping : base.mmap.MemoryMapping
+  guest_base : guest_address.GuestAddress
+  shared_obj : guest_memory.BackingObject
+  obj_offset : Std.U64
+  options : guest_memory.MemoryRegionOptions
 
 end vm_memory
