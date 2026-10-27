@@ -64,8 +64,10 @@ make -B extract
 ```
 
 The extraction targets are `extract-resources` and `extract-vm-memory`;
-`extract` runs both. GuestAddress, the selected MemoryRegion methods, and the
-MemoryMappingBuilder configuration, `build`, and `wrap` methods are
+`extract` runs both. GuestAddress, the selected MemoryRegion methods, the
+Linux `MemoryMapping` mapping constructors (`new_protection`,
+`from_fd_offset_protection_populate`, `try_mmap`, and `try_mmap_populate`),
+and the MemoryMappingBuilder configuration, `build`, and `wrap` methods are
 extracted from the real `vm_memory` crate and its `base` dependency.
 To run extraction in crosvm's pinned Docker development environment:
 

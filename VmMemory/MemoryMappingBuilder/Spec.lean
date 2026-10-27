@@ -2,7 +2,7 @@ module
 public import VmMemory.MemoryMapping.Spec
 @[expose] public section
 open Aeneas Aeneas.Std Result
-open _root_.base.sys.linux.mmap (MappingBacking)
+open Syscalls.Mmap
 open _root_.base.sys.linux.mmap.MemoryMapping
 
 namespace vm_memory.base.mmap.MemoryMappingBuilder
@@ -42,80 +42,85 @@ def OffsetOutcome (self : MemoryMappingBuilder) (offset : U64)
 def effectiveProtection (self : MemoryMappingBuilder) : Protection :=
   self.protection.getD { read := true, write := true }
 
-/-- Linux selects provenance from the descriptor, independently of the file flag.
-    An offset is used only for descriptor-backed mappings. -/
-def expectedBacking (self : MemoryMappingBuilder) : MappingBacking :=
-  match self.descriptor with
-  | none => .anonymous
-  | some descriptor => .descriptor (descriptor_backing descriptor) (self.offset.getD 0#u64)
-
-/-- The observed response of the selected lower operation, with exactly the
-    arguments supplied by build. Early rejection requires no external response. -/
-def BuildResponse (self : MemoryMappingBuilder) (status : core.result.Result Unit Error) : Prop :=
-  match self.descriptor with
-  | none =>
-    if self.populate then status = .Err .InvalidArgument
-    else new_protection_status self.size self.align self.effectiveProtection = ok status
-  | some descriptor =>
-    from_fd_offset_protection_populate_status descriptor self.size
-      (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate = ok status
-
 /-- The wrap(_, None) operation used on both successful build paths preserves
     the platform mapping and does not retain a cloned descriptor. -/
-def WrapOutcome (mapping : _root_.base.sys.linux.mmap.MemoryMapping)
+def WrapOutcome (mapping : PlatformMemoryMapping)
     (result : core.result.Result MemoryMapping Error) : Prop :=
   result = .Ok { mapping := mapping, _file_descriptor := none }
 
-/-- Compose the creation metadata/error contract with wrapping or unchanged
-    error propagation. Early rejection is represented by its Rust error. -/
-def BuildOutcome (self : MemoryMappingBuilder) (status : core.result.Result Unit Error)
+/-- Outcome of `MemoryMappingBuilder::build`, dispatching to `NewProtectionOutcome`
+    for anonymous mappings and `FromFdOutcome` for descriptor-backed mappings, and
+    wrapping any created `PlatformMemoryMapping` with `WrapOutcome`. Anonymous
+    population is rejected before any system call. -/
+def BuildOutcome (self : MemoryMappingBuilder) (pageSize : Usize)
     (result : core.result.Result MemoryMapping Error) : Prop :=
-  ∃ created, CreationOutcome self.size self.expectedBacking self.effectiveProtection status created ∧
-    match created with
-    | .Ok mapping => WrapOutcome mapping result
-    | .Err error => result = .Err error
+  match self.descriptor with
+  | none =>
+    if self.populate then result = .Err .InvalidArgument
+    else
+      ∃ created,
+        NewProtectionOutcome pageSize self.size self.align self.effectiveProtection created ∧
+        match created with
+        | .Ok mapping => WrapOutcome mapping result
+        | .Err error => result = .Err error
+  | some descriptor =>
+    ∃ created,
+      FromFdOutcome pageSize descriptor self.size
+        (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate created ∧
+      match created with
+      | .Ok mapping => WrapOutcome mapping result
+      | .Err error => result = .Err error
 
-/-- Successful builds retain all creation metadata through the Rust wrapper. -/
-theorem BuildOutcome.success {self : MemoryMappingBuilder}
-    {status : core.result.Result Unit Error} {mapping : MemoryMapping}
-    (h : BuildOutcome self status (.Ok mapping)) :
-    mapping.length = self.size ∧ mapping.mapping.backing = self.expectedBacking ∧
-      mapping.mapping.readable = self.effectiveProtection.read ∧
-      mapping.mapping.writable = self.effectiveProtection.write ∧
-      mapping._file_descriptor = none := by
-  obtain ⟨created, hc, hw⟩ := h
-  cases created with
-  | Err error => simp at hw
-  | Ok inner =>
-    have heq : mapping = { mapping := inner, _file_descriptor := none } := by
-      simpa [WrapOutcome] using hw
-    subst mapping
-    obtain ⟨hl, hb, hr, hw⟩ := hc.success
-    exact ⟨hl, hb, hr, hw, rfl⟩
-
-/-- Every successful build has the requested length, regardless of its status witness. -/
-theorem BuildOutcome.length_eq {self : MemoryMappingBuilder}
-    {status : core.result.Result Unit Error} {mapping : MemoryMapping}
-    (h : BuildOutcome self status (.Ok mapping)) :
-    mapping.length = self.size := h.success.1
-
-theorem BuildOutcome.backing_eq {self : MemoryMappingBuilder}
-    {status : core.result.Result Unit Error} {mapping : MemoryMapping}
-    (h : BuildOutcome self status (.Ok mapping)) :
-    mapping.mapping.backing = self.expectedBacking := h.success.2.1
-
-theorem BuildOutcome.error {self : MemoryMappingBuilder} {error : Error}
-    {result : core.result.Result MemoryMapping Error}
-    (h : BuildOutcome self (.Err error) result) : result = .Err error := by
-  obtain ⟨created, hc, hw⟩ := h
-  rwa [hc.error] at hw
-
-theorem BuildOutcome.ok {self : MemoryMappingBuilder}
-    {result : core.result.Result MemoryMapping Error}
-    (h : BuildOutcome self (.Ok ()) result) : ∃ mapping, result = .Ok mapping := by
-  obtain ⟨created, hc, hw⟩ := h
-  obtain ⟨mapping, rfl, _⟩ := hc
-  exact ⟨_, hw⟩
+/-- Properties guaranteed by `BuildOutcome` whenever a build succeeds with `.Ok mapping`:
+    the mapping has the requested length and `_file_descriptor = none`, the mapped
+    address is not `MAP_FAILED`, the mapped region `[addr, addr + size)` fits in the
+    user address space without wrapping, and the address satisfies the requested or
+    page alignment. -/
+theorem BuildOutcome.mapped_properties {self : MemoryMappingBuilder}
+    {pageSize : Usize} {mapping : MemoryMapping}
+    (hOut : BuildOutcome self pageSize (.Ok mapping)) :
+    mapping.length = self.size ∧
+    mapping._file_descriptor = none ∧
+    mapping.mapping.addr.addr ≠ core.num.Usize.MAX ∧
+    mapping.mapping.addr.addr.val + self.size.val ≤ Usize.max ∧
+    (self.descriptor = none → self.align = none →
+      mapping.mapping.addr.addr.val % pageSize.val = 0) ∧
+    (∀ a, 0 < a.val →
+      (self.descriptor = none ∧ self.align = some a ∨
+        self.descriptor.isSome ∧ self.align.getD 0#u64 = a) →
+      mapping.mapping.addr.addr.val % a.val = 0) := by
+  cases hd : self.descriptor with
+  | none =>
+    simp only [BuildOutcome, hd] at hOut
+    split at hOut
+    · simp at hOut
+    · obtain ⟨created, hc, hw⟩ := hOut
+      cases created with
+      | Err error => simp at hw
+      | Ok inner =>
+        have heq : mapping = { mapping := inner, _file_descriptor := none } := by
+          simpa [WrapOutcome] using hw
+        subst mapping
+        obtain ⟨hsize, hne, hfit, _, hpage, halign⟩ := hc.mapped_properties
+        refine ⟨hsize, rfl, hne, hfit, fun _ ha => hpage rfl ha, ?_⟩
+        rintro a hpos (⟨_, ha⟩ | ⟨hsome, _⟩)
+        · exact halign a rfl ha hpos
+        · simp at hsome
+  | some descriptor =>
+    simp only [BuildOutcome, hd] at hOut
+    obtain ⟨created, hc, hw⟩ := hOut
+    cases created with
+    | Err error => simp at hw
+    | Ok inner =>
+      have heq : mapping = { mapping := inner, _file_descriptor := none } := by
+        simpa [WrapOutcome] using hw
+      subst mapping
+      obtain ⟨hsize, hne, hfit, _, _, halign⟩ := hc.mapped_properties
+      refine ⟨hsize, rfl, hne, hfit, by simp, ?_⟩
+      rintro a hpos (⟨hnone, _⟩ | ⟨_, ha⟩)
+      · simp at hnone
+      · subst ha
+        exact halign (self.align.getD 0#u64) rfl rfl hpos
 
 @[step]
 theorem new_spec (size : Usize) :
@@ -138,7 +143,7 @@ theorem offset_spec (self : MemoryMappingBuilder) (offset : U64) :
   simp [impl.offset, OffsetOutcome]
 
 @[step]
-theorem wrap_none_spec (mapping : _root_.base.sys.linux.mmap.MemoryMapping) :
+theorem wrap_none_spec (mapping : PlatformMemoryMapping) :
     base.sys.linux.mmap.MemoryMappingBuilder.wrap mapping none ⦃ result =>
       WrapOutcome mapping result ⦄ := by
   simp [base.sys.linux.mmap.MemoryMappingBuilder.wrap, WrapOutcome]
@@ -154,61 +159,57 @@ private theorem unwrap_or_eq_getD {T : Type} (value : Option T) (fallback : T) :
     core.option.Option.unwrap_or value fallback = value.getD fallback := by
   cases value <;> rfl
 
-/-- Verify Rust's dispatch, defaults, wrapping, and error propagation using the
-    selected lower operation's external creation contract. -/
+/-- Verify `MemoryMappingBuilder::build`: assuming `MmapSpec pageSize`, `build`
+    satisfies `BuildOutcome`. -/
 @[step]
-theorem build_spec (self : MemoryMappingBuilder) (status : core.result.Result Unit Error)
-    (hResponse : BuildResponse self status) :
+theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
+    (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hAlign : AlignSizeFits pageSize self.size self.align)
+    (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
+    (hMmap : MmapSpec pageSize) :
     base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result =>
-      BuildOutcome self status result ⦄ := by
+      BuildOutcome self pageSize result ⦄ := by
   unfold base.sys.linux.mmap.MemoryMappingBuilder.build
   cases hd : self.descriptor with
   | none =>
     cases hp : self.populate with
     | true =>
-      have hs : status = .Err .InvalidArgument := by
-        simpa [BuildResponse, hd, hp] using hResponse
-      subst status
-      simp only [↓reduceIte, WP.spec_ok]
-      exact ⟨.Err .InvalidArgument, rfl, rfl⟩
+      simp [BuildOutcome, hd, hp]
     | false =>
-      have hs : new_protection_status self.size self.align self.effectiveProtection = ok status := by
-        simpa [BuildResponse, hd, hp] using hResponse
       simp only [Bool.false_eq_true, ↓reduceIte]
       simp only [effective_protection_eq, bind_ok]
-      step with new_protection_spec self.size self.align self.effectiveProtection status hs as ⟨created, hc⟩
-      have hc' : CreationOutcome self.size self.expectedBacking self.effectiveProtection status created := by
-        simpa [expectedBacking, hd] using hc
+      step with new_protection_spec pageSize self.size self.align self.effectiveProtection
+        hPage hAlign hMmap as ⟨created, hc⟩
       cases created with
       | Ok mapping =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
         step with wrap_none_spec mapping as ⟨result, hr⟩
-        exact ⟨.Ok mapping, hc', hr⟩
+        simp only [BuildOutcome, hd, hp, Bool.false_eq_true, ↓reduceIte]
+        exact ⟨.Ok mapping, hc, hr⟩
       | Err error =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
         step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec
           MemoryMapping (core.convert.FromSame Error) error error rfl as ⟨result, hr⟩
-        exact ⟨.Err error, hc', hr⟩
+        simp only [BuildOutcome, hd, hp, Bool.false_eq_true, ↓reduceIte]
+        exact ⟨.Err error, hc, hr⟩
   | some descriptor =>
-    have hs := hResponse
-    simp only [BuildResponse, hd] at hs
     simp only [unwrap_or_eq_getD, lift, bind_ok]
     simp only [effective_protection_eq, bind_ok]
-    step with from_fd_offset_protection_populate_spec descriptor self.size
+    step with from_fd_offset_protection_populate_spec pageSize descriptor self.size
       (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate
-      status hs as ⟨created, hc⟩
-    have hc' : CreationOutcome self.size self.expectedBacking self.effectiveProtection status created := by
-      simpa [expectedBacking, hd] using hc
+      hPage hAlign.of_getD_zero (hFd descriptor hd) hMmap as ⟨created, hc⟩
     cases created with
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
       step with wrap_none_spec mapping as ⟨result, hr⟩
-      exact ⟨.Ok mapping, hc', hr⟩
+      simp only [BuildOutcome, hd]
+      exact ⟨.Ok mapping, hc, hr⟩
     | Err error =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
       step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec
         MemoryMapping (core.convert.FromSame Error) error error rfl as ⟨result, hr⟩
-      exact ⟨.Err error, hc', hr⟩
+      simp only [BuildOutcome, hd]
+      exact ⟨.Err error, hc, hr⟩
 
 /-- Anonymous population is rejected before any external operation is called. -/
 theorem build_populate_invalid_spec (self : MemoryMappingBuilder)
@@ -216,33 +217,5 @@ theorem build_populate_invalid_spec (self : MemoryMappingBuilder)
     base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result =>
       result = .Err .InvalidArgument ⦄ := by
   simp [base.sys.linux.mmap.MemoryMappingBuilder.build, hDescriptor, hPopulate]
-
-/-- A returned Rust error stays a normal return with the same error value. -/
-theorem build_error_spec (self : MemoryMappingBuilder) (error : Error)
-    (hResponse : BuildResponse self (.Err error)) :
-    base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result => result = .Err error ⦄ := by
-  step with build_spec self (.Err error) hResponse as ⟨result, hr⟩
-  exact hr.error
-
-/-- A failure of the selected anonymous creation operation propagates through build. -/
-theorem build_anonymous_failure (self : MemoryMappingBuilder) (error : Aeneas.Std.Error)
-    (hDescriptor : self.descriptor = none) (hPopulate : self.populate = false)
-    (hStatus : new_protection_status self.size self.align self.effectiveProtection = fail error) :
-    base.sys.linux.mmap.MemoryMappingBuilder.build self = fail error := by
-  have hf := new_protection_failure self.size self.align self.effectiveProtection error hStatus
-  simp [base.sys.linux.mmap.MemoryMappingBuilder.build, hDescriptor, hPopulate,
-    effective_protection_eq, hf]
-
-/-- A failure of the selected descriptor-backed creation operation also propagates. -/
-theorem build_descriptor_failure (self : MemoryMappingBuilder)
-    (descriptor : Dyn base.descriptor.AsRawDescriptor) (error : Aeneas.Std.Error)
-    (hDescriptor : self.descriptor = some descriptor)
-    (hStatus : from_fd_offset_protection_populate_status descriptor self.size
-      (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate = fail error) :
-    base.sys.linux.mmap.MemoryMappingBuilder.build self = fail error := by
-  have hf := from_fd_offset_protection_populate_failure descriptor self.size
-    (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate error hStatus
-  simp [base.sys.linux.mmap.MemoryMappingBuilder.build, hDescriptor, unwrap_or_eq_getD,
-    effective_protection_eq, lift, hf]
 
 end vm_memory.base.mmap.MemoryMappingBuilder

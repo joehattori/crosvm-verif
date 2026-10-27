@@ -22,28 +22,6 @@ structure std.fs.File where
   identity : Nat
   descriptor : I32
 
-namespace base.sys.linux.mmap
-
-/-- Logical provenance at creation. A descriptor-backed mapping records the
-    backing object's identity, not a reusable numeric file descriptor. Files and
-    shared memory both use this variant; it does not imply MAP_SHARED semantics. -/
-inductive MappingBacking where
-  | anonymous
-  | descriptor (objectId : Nat) (offset : U64)
-
-/-- External platform mapping with logical metadata. Its length corresponds to
-    Rust's stored size; backing and protection are ghost fields supplied by the
-    external creation contracts. Their correspondence to the OS is trusted.
-    This does not model contents, pointers, access safety, ownership, or lifetime. -/
-@[rust_type "base::sys::linux::mmap::MemoryMapping"]
-structure MemoryMapping where
-  length : Usize
-  backing : MappingBacking
-  readable : Bool
-  writable : Bool
-
-end base.sys.linux.mmap
-
 /-- Unobserved by the verified queries; equality and operations are not modeled. -/
 def guest_memory.BackingObject := Unit
 

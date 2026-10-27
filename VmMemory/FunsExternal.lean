@@ -2,9 +2,25 @@ module
 public import VmMemory.Types
 @[expose] public section
 open Aeneas Aeneas.Std Result
+open vm_memory
 
-/-- Descriptor accessor stored in the file's trait instance. The builder
-    configuration methods package this instance but do not call the accessor. -/
+/-- Null mutable raw pointer at address 0. -/
+@[reducible, rust_fun "core::ptr::null_mut"]
+def core.ptr.null_mut (T : Type) : Result (MutRawPtr T) :=
+  ok { addr := 0#usize }
+
+/-- Whether a mutable raw pointer's address is 0. -/
+@[reducible, rust_fun "core::ptr::mut_ptr::{*mut @T}::is_null"]
+def core.ptr.mut_ptr.RawPtrMutT.is_null {T : Type} (self : MutRawPtr T) : Result Bool :=
+  ok (self.addr == 0#usize)
+
+/-- Byte-offset wrapping pointer addition (used on `*mut c_void`, where pointee size is 1). -/
+@[reducible, rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
+def core.ptr.mut_ptr.RawPtrMutT.wrapping_add {T : Type}
+    (self : MutRawPtr T) (count : Std.Usize) : Result (MutRawPtr T) :=
+  ok { addr := core.num.Usize.wrapping_add self.addr count }
+
+/-- Descriptor accessor stored in the file's trait instance. -/
 @[rust_fun
   "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]
 def std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
@@ -13,7 +29,7 @@ def std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
 
 /-- Logical length of the platform mapping carried by the translated wrapper. -/
 abbrev vm_memory.base.mmap.MemoryMapping.length
-    (self : vm_memory.base.mmap.MemoryMapping) : Usize := self.mapping.length
+    (self : vm_memory.base.mmap.MemoryMapping) : Usize := self.mapping.size
 
 /-- Model the stable length returned by MappedRegion::size. -/
 @[rust_fun "base::mmap::{base::mmap::MappedRegion<base::mmap::MemoryMapping>}::size"]
@@ -30,63 +46,95 @@ opaque base.descriptor.SafeDescriptor.Insts.CoreConvertTryFromShared0PError.try_
     Result (core.result.Result vm_memory.base.descriptor.SafeDescriptor core.io.error.Error) :=
   fail .panic
 
-/-- Host error lookup, only reached by wrap's descriptor-cloning branch. -/
+/-- Opaque host errno value returned by `base::errno::Error::last`. -/
+opaque base.errno.Error.last_errno : base.errno.Error := { errno := 0#i32 }
+
+/-- Host errno lookup after a failed system call. -/
 @[rust_fun "base::errno::{base::errno::Error}::last"]
-opaque base.errno.Error.last : Result base.errno.Error := fail .panic
+def base.errno.Error.last : Result base.errno.Error :=
+  ok base.errno.Error.last_errno
 
-namespace base.sys.linux.mmap.MemoryMapping
+/-- Opaque host page size. Proofs assume an explicit successful return and do
+    not rely on the witness value. -/
+@[rust_fun "base::sys::unix::system_info::pagesize"]
+opaque vm_memory.base.sys.unix.system_info.pagesize : Result Std.Usize := ok 4096#usize
 
-/-- Ghost identity of the OS object designated by this descriptor during a
-    creation invocation. Correspondence with the live object is trusted; the
-    opaque witness supplies no facts about identity, validity, or descriptor
-    reuse. In particular this is not the numeric file descriptor. -/
-opaque descriptor_backing (descriptor : Dyn vm_memory.base.descriptor.AsRawDescriptor) : Nat := 0
+@[reducible, rust_const "libc#1::unix::linux_like::PROT_READ"]
+def libc_1.unix.linux_like.PROT_READ : Result Std.I32 := ok 0x0001#i32
 
-/-- External response of anonymous mapping creation, including validation and OS
-    errors. The opaque witness only inhabits the model: proofs assume an observed
-    response and cannot infer allocation success or normal termination. -/
-opaque new_protection_status (size : Usize) (align : Option U64)
-    (protection : vm_memory.base.mmap.Protection) :
-    Result (core.result.Result Unit vm_memory.base.mmap.Error) :=
+@[reducible, rust_const "libc#1::unix::linux_like::PROT_WRITE"]
+def libc_1.unix.linux_like.PROT_WRITE : Result Std.I32 := ok 0x0002#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::MAP_SHARED"]
+def libc_1.unix.linux_like.MAP_SHARED : Result Std.I32 := ok 0x0001#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::MAP_PRIVATE"]
+def libc_1.unix.linux_like.MAP_PRIVATE : Result Std.I32 := ok 0x0002#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::MAP_FIXED"]
+def libc_1.unix.linux_like.MAP_FIXED : Result Std.I32 := ok 0x0010#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_ANONYMOUS"]
+def libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS : Result Std.I32 := ok 0x0020#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_NORESERVE"]
+def libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_NORESERVE : Result Std.I32 := ok 0x4000#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_POPULATE"]
+def libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_POPULATE : Result Std.I32 := ok 0x8000#i32
+
+/-- Sentinel returned by `mmap64` on failure (`!0usize as *mut c_void`). -/
+@[reducible, rust_const "libc#1::unix::linux_like::MAP_FAILED"]
+def libc_1.unix.linux_like.MAP_FAILED : Result (MutRawPtr core.ffi.c_void) :=
+  ok { addr := core.num.Usize.MAX }
+
+@[reducible, rust_const "libc#1::unix::linux_like::F_GET_SEALS"]
+def libc_1.unix.linux_like.F_GET_SEALS : Result Std.I32 := ok 1034#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::F_SEAL_WRITE"]
+def libc_1.unix.linux_like.F_SEAL_WRITE : Result Std.I32 := ok 0x0008#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::MADV_MERGEABLE"]
+def libc_1.unix.linux_like.MADV_MERGEABLE : Result Std.I32 := ok 12#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::MADV_DONTDUMP"]
+def libc_1.unix.linux_like.MADV_DONTDUMP : Result Std.I32 := ok 16#i32
+
+/-- Opaque external model of `libc::mmap64`. Specifications constrain the
+    returned pointer on success and `MAP_FAILED` on failure. -/
+@[rust_fun "libc#1::unix::linux_like::mmap64"]
+opaque libc_1.unix.linux_like.mmap64
+    (addr : MutRawPtr core.ffi.c_void) (size : Std.Usize)
+    (prot flags fd : Std.I32) (offset : Std.I64) :
+    Result (MutRawPtr core.ffi.c_void) :=
   fail .panic
 
-/-- External response for one descriptor-backed mapping invocation. All arguments
-    are retained, including defaults selected by the translated builder. These
-    oracles do not model changing OS state or repeated allocation histories. -/
-opaque from_fd_offset_protection_populate_status
-    (descriptor : Dyn vm_memory.base.descriptor.AsRawDescriptor)
-    (size : Usize) (offset align : U64) (protection : vm_memory.base.mmap.Protection)
-    (populate : Bool) : Result (core.result.Result Unit vm_memory.base.mmap.Error) :=
-  fail .panic
+/-- Opaque return code of `libc::munmap`. -/
+opaque libc_1.unix.munmap_status
+    (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) : Std.I32 := 0#i32
 
-/-- Materialize the metadata promised by a successful external mapping operation.
-    Length, provenance, and protection correspondence are trusted. This asserts
-    no memory contents, ownership, access safety, or mapping lifetime. -/
-def creation_result (size : Usize) (backing : MappingBacking)
-    (protection : vm_memory.base.mmap.Protection)
-    (status : core.result.Result Unit vm_memory.base.mmap.Error) :
-    core.result.Result MemoryMapping vm_memory.base.mmap.Error :=
-  match status with
-  | .Ok _ => .Ok {
-      length := size, backing := backing,
-      readable := protection.read, writable := protection.write }
-  | .Err error => .Err error
+/-- External model of `libc::munmap` returning the opaque C status code. -/
+@[reducible, rust_fun "libc#1::unix::munmap"]
+def libc_1.unix.munmap
+    (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) : Result Std.I32 :=
+  ok (libc_1.unix.munmap_status addr len)
 
-@[rust_fun
-  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection"]
-def new_protection (size : Usize) (align : Option U64)
-    (protection : vm_memory.base.mmap.Protection) :
-    Result (core.result.Result MemoryMapping vm_memory.base.mmap.Error) := do
-  let status ← new_protection_status size align protection
-  ok (creation_result size .anonymous protection status)
+/-- Opaque return value of `libc::fcntl`. -/
+opaque libc_1.unix.fcntl_status (fd cmd : Std.I32) : Std.I32 := (-1)#i32
 
-@[rust_fun
-  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate"]
-def from_fd_offset_protection_populate
-    (descriptor : Dyn vm_memory.base.descriptor.AsRawDescriptor)
-    (size : Usize) (offset align : U64) (protection : vm_memory.base.mmap.Protection)
-    (populate : Bool) : Result (core.result.Result MemoryMapping vm_memory.base.mmap.Error) := do
-  let status ← from_fd_offset_protection_populate_status descriptor size offset align protection populate
-  ok (creation_result size (.descriptor (descriptor_backing descriptor) offset) protection status)
+/-- External model of `libc::fcntl` returning the opaque C status/seals value. -/
+@[reducible, rust_fun "libc#1::unix::fcntl"]
+def libc_1.unix.fcntl (fd cmd : Std.I32) : Result Std.I32 :=
+  ok (libc_1.unix.fcntl_status fd cmd)
 
-end base.sys.linux.mmap.MemoryMapping
+/-- Opaque return code of `libc::madvise`. -/
+opaque libc_1.unix.linux_like.linux_l4re_shared.madvise_status
+    (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) (advice : Std.I32) :
+    Std.I32 := 0#i32
+
+/-- External model of `libc::madvise` returning the opaque C status code. -/
+@[reducible, rust_fun "libc#1::unix::linux_like::linux_l4re_shared::madvise"]
+def libc_1.unix.linux_like.linux_l4re_shared.madvise
+    (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) (advice : Std.I32) :
+    Result Std.I32 :=
+  ok (libc_1.unix.linux_like.linux_l4re_shared.madvise_status addr len advice)

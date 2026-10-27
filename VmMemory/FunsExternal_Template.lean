@@ -20,6 +20,29 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [core::ptr::null_mut]:
+    Source: '/rustc/library/core/src/ptr/mod.rs', lines 902:0-902:57
+    Name pattern: [core::ptr::null_mut]
+    Visibility: public -/
+@[rust_fun "core::ptr::null_mut"]
+axiom core.ptr.null_mut (T : Type) : Result (MutRawPtr T)
+
+/-- [core::ptr::mut_ptr::{*mut T}::is_null]:
+    Source: '/rustc/library/core/src/ptr/mut_ptr.rs', lines 22:4-22:38
+    Name pattern: [core::ptr::mut_ptr::{*mut @T}::is_null]
+    Visibility: public -/
+@[rust_fun "core::ptr::mut_ptr::{*mut @T}::is_null"]
+axiom core.ptr.mut_ptr.RawPtrMutT.is_null
+  {T : Type} : MutRawPtr T → Result Bool
+
+/-- [core::ptr::mut_ptr::{*mut T}::wrapping_add]:
+    Source: '/rustc/library/core/src/ptr/mut_ptr.rs', lines 1132:4-1134:17
+    Name pattern: [core::ptr::mut_ptr::{*mut @T}::wrapping_add]
+    Visibility: public -/
+@[rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
+axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
+  {T : Type} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
+
 /-- [base::descriptor::{impl core::convert::TryFrom<&'_0 (dyn base::descriptor::AsRawDescriptor + '_0), core::io::error::Error> for base::descriptor::SafeDescriptor}::try_from]:
     Source: 'base/src/descriptor.rs', lines 114:4-114:83
     Name pattern: [base::descriptor::{core::convert::TryFrom<base::descriptor::SafeDescriptor, &'0 @, core::io::error::Error>}::try_from]
@@ -57,26 +80,138 @@ axiom std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
 axiom base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size
   : base.mmap.MemoryMapping → Result Std.Usize
 
-/-- [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection]:
-    Source: 'base/src/sys/linux/mmap.rs', lines 137:4-141:30
-    Name pattern: [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection]
+/-- [libc#1::unix::linux_like::PROT_WRITE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 490:0-490:27
+    Name pattern: [libc#1::unix::linux_like::PROT_WRITE]
     Visibility: public -/
-@[rust_fun
-  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::new_protection"]
-axiom base.sys.linux.mmap.MemoryMapping.new_protection
-  :
-  Std.Usize → Option Std.U64 → base.mmap.Protection → Result
-    (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
+@[rust_const "libc#1::unix::linux_like::PROT_WRITE"]
+axiom libc_1.unix.linux_like.PROT_WRITE : Result Std.I32
 
-/-- [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate]:
-    Source: 'base/src/sys/linux/mmap.rs', lines 190:4-197:30
-    Name pattern: [base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate]
+/-- [libc#1::unix::linux_like::PROT_READ]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 489:0-489:26
+    Name pattern: [libc#1::unix::linux_like::PROT_READ]
     Visibility: public -/
-@[rust_fun
-  "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate"]
-axiom base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
+@[rust_const "libc#1::unix::linux_like::PROT_READ"]
+axiom libc_1.unix.linux_like.PROT_READ : Result Std.I32
+
+/-- [libc#1::unix::munmap]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/mod.rs', lines 1239:4-1239:59
+    Name pattern: [libc#1::unix::munmap]
+    Visibility: public -/
+@[rust_fun "libc#1::unix::munmap"]
+axiom libc_1.unix.munmap
+  : MutRawPtr core.ffi.c_void → Std.Usize → Result Std.I32
+
+/-- [libc#1::unix::fcntl]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/mod.rs', lines 972:4-972:54
+    Name pattern: [libc#1::unix::fcntl]
+    Visibility: public -/
+@[rust_fun "libc#1::unix::fcntl"]
+axiom libc_1.unix.fcntl : Std.I32 → Std.I32 → Result Std.I32
+
+/-- [libc#1::unix::linux_like::mmap64]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 2112:12-2119:29
+    Name pattern: [libc#1::unix::linux_like::mmap64]
+    Visibility: public -/
+@[rust_fun "libc#1::unix::linux_like::mmap64"]
+axiom libc_1.unix.linux_like.mmap64
   :
-  Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Std.Usize →
-    Std.U64 → Std.U64 → base.mmap.Protection → Bool → Result
-    (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
+  MutRawPtr core.ffi.c_void → Std.Usize → Std.I32 → Std.I32 → Std.I32
+    → Std.I64 → Result (MutRawPtr core.ffi.c_void)
+
+/-- [libc#1::unix::linux_like::MADV_DONTDUMP]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 604:0-604:30
+    Name pattern: [libc#1::unix::linux_like::MADV_DONTDUMP]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MADV_DONTDUMP"]
+axiom libc_1.unix.linux_like.MADV_DONTDUMP : Result Std.I32
+
+/-- [libc#1::unix::linux_like::MADV_MERGEABLE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 600:0-600:31
+    Name pattern: [libc#1::unix::linux_like::MADV_MERGEABLE]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MADV_MERGEABLE"]
+axiom libc_1.unix.linux_like.MADV_MERGEABLE : Result Std.I32
+
+/-- [libc#1::unix::linux_like::MAP_FAILED]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 545:0-545:33
+    Name pattern: [libc#1::unix::linux_like::MAP_FAILED]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MAP_FAILED"]
+axiom libc_1.unix.linux_like.MAP_FAILED : Result (MutRawPtr core.ffi.c_void)
+
+/-- [libc#1::unix::linux_like::MAP_FIXED]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 543:0-543:26
+    Name pattern: [libc#1::unix::linux_like::MAP_FIXED]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MAP_FIXED"]
+axiom libc_1.unix.linux_like.MAP_FIXED : Result Std.I32
+
+/-- [libc#1::unix::linux_like::MAP_PRIVATE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 542:0-542:28
+    Name pattern: [libc#1::unix::linux_like::MAP_PRIVATE]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MAP_PRIVATE"]
+axiom libc_1.unix.linux_like.MAP_PRIVATE : Result Std.I32
+
+/-- [libc#1::unix::linux_like::MAP_SHARED]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 541:0-541:27
+    Name pattern: [libc#1::unix::linux_like::MAP_SHARED]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::MAP_SHARED"]
+axiom libc_1.unix.linux_like.MAP_SHARED : Result Std.I32
+
+/-- [libc#1::unix::linux_like::F_SEAL_WRITE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 422:0-422:29
+    Name pattern: [libc#1::unix::linux_like::F_SEAL_WRITE]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_SEAL_WRITE"]
+axiom libc_1.unix.linux_like.F_SEAL_WRITE : Result Std.I32
+
+/-- [libc#1::unix::linux_like::F_GET_SEALS]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 417:0-417:28
+    Name pattern: [libc#1::unix::linux_like::F_GET_SEALS]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_GET_SEALS"]
+axiom libc_1.unix.linux_like.F_GET_SEALS : Result Std.I32
+
+/-- [libc#1::unix::linux_like::linux_l4re_shared::madvise]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux_l4re_shared.rs', lines 1755:4-1755:75
+    Name pattern: [libc#1::unix::linux_like::linux_l4re_shared::madvise]
+    Visibility: public -/
+@[rust_fun "libc#1::unix::linux_like::linux_l4re_shared::madvise"]
+axiom libc_1.unix.linux_like.linux_l4re_shared.madvise
+  : MutRawPtr core.ffi.c_void → Std.Usize → Std.I32 → Result Std.I32
+
+/-- [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_POPULATE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux/gnu/b64/x86_64/mod.rs', lines 537:0-537:29
+    Name pattern: [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_POPULATE]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_POPULATE"]
+axiom libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_POPULATE : Result Std.I32
+
+/-- [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_ANONYMOUS]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux/gnu/b64/x86_64/mod.rs', lines 534:0-534:30
+    Name pattern: [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_ANONYMOUS]
+    Visibility: public -/
+@[rust_const
+  "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_ANONYMOUS"]
+axiom libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS
+  : Result Std.I32
+
+/-- [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_NORESERVE]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux/gnu/b64/x86_64/mod.rs', lines 531:0-531:30
+    Name pattern: [libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_NORESERVE]
+    Visibility: public -/
+@[rust_const
+  "libc#1::unix::linux_like::linux::gnu::b64::x86_64::MAP_NORESERVE"]
+axiom libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_NORESERVE
+  : Result Std.I32
+
+/-- [base::sys::unix::system_info::pagesize]:
+    Source: 'base/src/sys/unix/system_info.rs', lines 32:0-32:26
+    Name pattern: [base::sys::unix::system_info::pagesize]
+    Visibility: public -/
+@[rust_fun "base::sys::unix::system_info::pagesize"]
+axiom base.sys.unix.system_info.pagesize : Result Std.Usize
 

@@ -39,13 +39,6 @@ axiom std.fs.File : Type
 @[rust_type "base::errno::Error"]
 axiom base.errno.Error : Type
 
-/-- [base::sys::linux::mmap::MemoryMapping]
-    Source: 'base/src/sys/linux/mmap.rs', lines 108:0-108:24
-    Name pattern: [base::sys::linux::mmap::MemoryMapping]
-    Visibility: public -/
-@[rust_type "base::sys::linux::mmap::MemoryMapping"]
-axiom base.sys.linux.mmap.MemoryMapping : Type
-
 /-- [vm_memory::guest_memory::BackingObject]
     Source: 'vm_memory/src/guest_memory.rs', lines 94:0-97:1
     Visibility: public -/

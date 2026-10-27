@@ -20,6 +20,15 @@ set_option maxRecDepth 2048
 
 namespace vm_memory
 
+/-- [core::ffi::c_void]
+    Source: '/rustc/library/core/src/ffi/mod.rs', lines 51:0-51:15
+    Name pattern: [core::ffi::c_void]
+    Visibility: public -/
+@[discriminant u8, rust_type "core::ffi::c_void"]
+inductive core.ffi.c_void where
+| __variant1 : core.ffi.c_void
+| __variant2 : core.ffi.c_void
+
 /-- Trait declaration: [core::ops::bit::BitOr]
     Source: '/rustc/library/core/src/ops/bit.rs', lines 254:0-254:33
     Name pattern: [core::ops::bit::BitOr]
@@ -73,6 +82,15 @@ inductive base.mmap.Error where
 structure base.mmap.Protection where
   read : Bool
   write : Bool
+
+/-- [base::sys::linux::mmap::MemoryMapping]
+    Source: 'base/src/sys/linux/mmap.rs', lines 108:0-108:24
+    Name pattern: [base::sys::linux::mmap::MemoryMapping]
+    Visibility: public -/
+@[rust_type "base::sys::linux::mmap::MemoryMapping"]
+structure base.sys.linux.mmap.MemoryMapping where
+  addr : MutRawPtr Std.U8
+  size : Std.Usize
 
 /-- [base::mmap::MemoryMapping]
     Source: 'base/src/mmap.rs', lines 170:0-170:24
