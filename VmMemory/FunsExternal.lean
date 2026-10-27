@@ -109,15 +109,12 @@ opaque libc_1.unix.linux_like.mmap64
     Result (MutRawPtr core.ffi.c_void) :=
   fail .panic
 
-/-- Opaque return code of `libc::munmap`. -/
-opaque libc_1.unix.munmap_status
-    (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) : Std.I32 := 0#i32
-
-/-- External model of `libc::munmap` returning the opaque C status code. -/
-@[reducible, rust_fun "libc#1::unix::munmap"]
-def libc_1.unix.munmap
+/-- Opaque external model of `libc::munmap`. Specifications constrain the
+    permitted unmap regions and their outcomes. -/
+@[rust_fun "libc#1::unix::munmap"]
+opaque libc_1.unix.munmap
     (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) : Result Std.I32 :=
-  ok (libc_1.unix.munmap_status addr len)
+  fail .panic
 
 /-- Opaque return value of `libc::fcntl`. -/
 opaque libc_1.unix.fcntl_status (fd cmd : Std.I32) : Std.I32 := (-1)#i32

@@ -159,14 +159,17 @@ private theorem unwrap_or_eq_getD {T : Type} (value : Option T) (fallback : T) :
     core.option.Option.unwrap_or value fallback = value.getD fallback := by
   cases value <;> rfl
 
-/-- Verify `MemoryMappingBuilder::build`: assuming `MmapSpec pageSize`, `build`
-    satisfies `BuildOutcome`. -/
+/-- Verify `MemoryMappingBuilder::build`: assuming `MmapSpec pageSize` and
+    `MunmapSpec`, `build` satisfies `BuildOutcome`. -/
 @[step]
 theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hAlign : AlignSizeFits pageSize self.size self.align)
     (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
-    (hMmap : MmapSpec pageSize) :
+    (hMmap : MmapSpec pageSize)
+    (hMunmap : MunmapSpec
+      (TryMmapTrimAllowed pageSize self.size self.align
+        (protectionFlags self.effectiveProtection))) :
     base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result =>
       BuildOutcome self pageSize result ⦄ := by
   unfold base.sys.linux.mmap.MemoryMappingBuilder.build
@@ -179,7 +182,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
       simp only [Bool.false_eq_true, ↓reduceIte]
       simp only [effective_protection_eq, bind_ok]
       step with new_protection_spec pageSize self.size self.align self.effectiveProtection
-        hPage hAlign hMmap as ⟨created, hc⟩
+        hPage hAlign hMmap hMunmap as ⟨created, hc⟩
       cases created with
       | Ok mapping =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
@@ -197,7 +200,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
     simp only [effective_protection_eq, bind_ok]
     step with from_fd_offset_protection_populate_spec pageSize descriptor self.size
       (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate
-      hPage hAlign.of_getD_zero (hFd descriptor hd) hMmap as ⟨created, hc⟩
+      hPage hAlign.of_getD_zero (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
     cases created with
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]

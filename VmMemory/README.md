@@ -10,7 +10,7 @@ The default build checks these specification modules:
 - [MemoryMapping/Spec.lean](MemoryMapping/Spec.lean): `i32::from(Protection)`
   and Linux `MemoryMapping` (`new_protection`,
   `from_fd_offset_protection_populate`, `try_mmap`, and `try_mmap_populate`),
-  verified against the `mmap(2)` specification in
+  verified against the `mmap(2)` and `munmap(2)` specifications in
   [Syscalls/Mmap.lean](../Syscalls/Mmap.lean) and auxiliary syscall contracts.
 - [MemoryMappingBuilder/Spec.lean](MemoryMappingBuilder/Spec.lean): `new`,
   `from_file`, `from_shared_memory`, `offset`, `build`, and the `wrap(_, None)`

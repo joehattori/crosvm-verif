@@ -63,4 +63,30 @@ def MmapSpec (pageSize : Usize) : Prop :=
   ∀ reqAddr size prot flags fd offset,
     ∃ ret, MmapCallSpec pageSize reqAddr size prot flags fd offset ret
 
+/-- `[unmapAddr, unmapAddr + unmapLen)` is a non-empty subrange of an
+    over-allocated reservation `[origAddr, origAddr + origSize)` that is
+    strictly disjoint from the kept mapping `[mappedAddr, mappedAddr + size)`. -/
+def IsTrimmedSubrange (origAddr : VoidPtr) (origSize : Usize)
+    (mappedAddr : VoidPtr) (size : Usize)
+    (unmapAddr : VoidPtr) (unmapLen : Usize) : Prop :=
+  0 < unmapLen.val ∧
+  origAddr.addr.val ≤ unmapAddr.addr.val ∧
+  unmapAddr.addr.val + unmapLen.val ≤ origAddr.addr.val + origSize.val ∧
+  (unmapAddr.addr.val + unmapLen.val ≤ mappedAddr.addr.val ∨
+    mappedAddr.addr.val + size.val ≤ unmapAddr.addr.val)
+
+/-- Outcome of a single `munmap(2)` system call on a non-empty, non-wrapping
+    range `[addr, addr + len)`. -/
+def MunmapCallSpec (addr : VoidPtr) (len : Usize) (ret : I32) : Prop :=
+  _root_.libc_1.unix.munmap addr len = ok ret ∧
+  0 < len.val ∧
+  addr.addr.val + len.val ≤ Usize.max
+
+/-- Guarded specification of `libc::munmap`: `munmap(addr, len)` is guaranteed
+    to succeed only on address ranges permitted by `allowed`. -/
+def MunmapSpec (allowed : VoidPtr → Usize → Prop) : Prop :=
+  ∀ addr len,
+    allowed addr len →
+    ∃ ret, _root_.libc_1.unix.munmap addr len = ok ret
+
 end Syscalls.Mmap
