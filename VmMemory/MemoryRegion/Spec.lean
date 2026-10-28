@@ -1,8 +1,27 @@
 module
 public import VmMemory.GuestAddress.Spec
+public import VmMemory.MemoryMappingBuilder.Spec
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open vm_memory.guest_address
+open Syscalls.Mmap
+open _root_.base.sys.linux.mmap.MemoryMapping
+
+namespace vm_memory.guest_memory.MemoryRegionOptions
+
+/-- The derived default: general-purpose guest memory, no alignment, and no
+    file-backed mapping parameters. -/
+def defaultOptions : MemoryRegionOptions :=
+  { purpose := .GuestMemoryRegion, align := 0#u64, file_backed := none }
+
+@[step]
+theorem default_spec :
+    MemoryRegionOptions.Insts.CoreDefaultDefault.default ⦃ o => o = defaultOptions ⦄ := by
+  simp [MemoryRegionOptions.Insts.CoreDefaultDefault.default,
+    MemoryRegionPurpose.Insts.CoreDefaultDefault.default, defaultOptions]
+  rfl
+
+end vm_memory.guest_memory.MemoryRegionOptions
 
 namespace vm_memory.guest_memory.MemoryRegion
 
@@ -163,5 +182,117 @@ theorem contains_range_overflow_spec (self : MemoryRegion) (addr : GuestAddress)
   | some endAddr =>
     simp only [ho] at hAdd
     omega
+
+/-- Outcome of `MemoryRegion::new_from_shm`: configure a builder for `size as usize`
+    bytes of the shared memory at `offset` and build it. On success, store the
+    mapping with the guest base, the `Arc` backing object, the offset, and default
+    options; on failure, wrap the mapping error in `MemoryMappingFailed`. -/
+def NewFromShmOutcome (pageSize : Usize) (size : U64) (guest_base : GuestAddress)
+    (offset : U64) (shm : alloc.sync.Arc base.shm.SharedMemory)
+    (result : core.result.Result MemoryRegion guest_memory.Error) : Prop :=
+  ∃ builder configured withOffset built,
+    base.mmap.MemoryMappingBuilder.NewOutcome (UScalar.cast .Usize size) builder ∧
+    builder.FromSharedMemoryOutcome shm.val configured ∧
+    configured.OffsetOutcome offset withOffset ∧
+    withOffset.BuildOutcome pageSize built ∧
+    match built with
+    | .Ok mapping =>
+      result = .Ok {
+        mapping := mapping
+        guest_base := guest_base
+        shared_obj := .Shm shm
+        obj_offset := offset
+        options := MemoryRegionOptions.defaultOptions }
+    | .Err error => result = .Err (.MemoryMappingFailed error)
+
+/-- Verify `MemoryRegion::new_from_shm`: assuming the host page size and
+    `MmapSpec`, the result satisfies `NewFromShmOutcome`. No alignment is
+    requested, so no trimming `munmap` call is permitted and `MunmapSpec` holds
+    vacuously. -/
+@[step]
+theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64)
+    (shm : alloc.sync.Arc base.shm.SharedMemory) (pageSize : Usize)
+    (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hMmap : MmapSpec pageSize) :
+    new_from_shm size guest_base offset shm ⦃ result =>
+      NewFromShmOutcome pageSize size guest_base offset shm result ⦄ := by
+  unfold new_from_shm
+  simp only [lift, bind_ok, alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref]
+  step as ⟨builder, hNew⟩
+  step as ⟨configured, hConf⟩
+  step as ⟨withOffset, hOff⟩
+  have hDesc : withOffset.descriptor =
+      some (Dyn.mk _ base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor shm.val) := by
+    rw [show withOffset = _ from hOff, show configured = _ from hConf]
+  have hNone : withOffset.align = none := by
+    rw [show withOffset = _ from hOff, show configured = _ from hConf,
+      show builder = _ from hNew]
+  step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage
+    (hNone ▸ AlignSizeFits.of_none _ _)
+    (by rw [hDesc]; rintro d ⟨⟩; exact ⟨_, rfl⟩) hMmap (hNone ▸ MunmapSpec.of_none _ _ _)
+    as ⟨built, hBuilt⟩
+  cases built with
+  | Ok mapping =>
+    simp only [core.result.Result.map_err_ok, bind_ok,
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch]
+    step as ⟨options, hOpt⟩
+    exact ⟨builder, configured, withOffset, _, hNew, hConf, hOff, hBuilt, by simp [hOpt]⟩
+  | Err error =>
+    simp only [core.result.Result.map_err_err,
+      P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
+      guest_memory.Error.MemoryMappingFailed.constructor,
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch]
+    step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec
+      MemoryRegion (core.convert.FromSame guest_memory.Error) _ _ rfl as ⟨result, hr⟩
+    exact ⟨builder, configured, withOffset, _, hNew, hConf, hOff, hBuilt, hr⟩
+
+/-- Properties of a region created by `new_from_shm`: it stores the requested
+    guest base, backing object, offset, and default options; its mapping has
+    length `size as usize`, retains no duplicated descriptor, and fits in the
+    address space without wrapping. -/
+theorem NewFromShmOutcome.ok_properties {pageSize : Usize} {size : U64}
+    {guest_base : GuestAddress} {offset : U64} {shm : alloc.sync.Arc base.shm.SharedMemory}
+    {region : MemoryRegion}
+    (h : NewFromShmOutcome pageSize size guest_base offset shm (.Ok region)) :
+    region.guest_base = guest_base ∧
+    region.shared_obj = .Shm shm ∧
+    region.obj_offset = offset ∧
+    region.options = MemoryRegionOptions.defaultOptions ∧
+    region.mapping.length = UScalar.cast .Usize size ∧
+    region.mapping._file_descriptor = none ∧
+    region.mapping.mapping.addr.addr.val + region.mapping.length.val ≤ Usize.max := by
+  obtain ⟨builder, configured, withOffset, built, hNew, hConf, hOff, hBuilt, hr⟩ := h
+  subst hNew hConf hOff
+  cases built with
+  | Err error => simp at hr
+  | Ok mapping =>
+    simp only [core.result.Result.Ok.injEq] at hr
+    subst hr
+    obtain ⟨hlen, hfd, _, hfit, _⟩ := hBuilt.mapped_properties
+    simp only at hlen hfit
+    exact ⟨rfl, rfl, rfl, rfl, hlen, hfd, hlen ▸ hfit⟩
+
+/-- When `size` fits in `usize` (always on 64-bit targets), the mapping length
+    equals the requested size. -/
+theorem NewFromShmOutcome.length_val {pageSize : Usize} {size : U64}
+    {guest_base : GuestAddress} {offset : U64} {shm : alloc.sync.Arc base.shm.SharedMemory}
+    {region : MemoryRegion}
+    (h : NewFromShmOutcome pageSize size guest_base offset shm (.Ok region))
+    (hSize : size.val ≤ Usize.max) :
+    region.mapping.length.val = size.val := by
+  rw [h.ok_properties.2.2.2.2.1, UScalar.cast_val_eq]
+  apply Nat.mod_eq_of_lt
+  scalar_tac
+
+/-- Every failure of `new_from_shm` is a `MemoryMappingFailed` error. -/
+theorem NewFromShmOutcome.err {pageSize : Usize} {size : U64}
+    {guest_base : GuestAddress} {offset : U64} {shm : alloc.sync.Arc base.shm.SharedMemory}
+    {error : guest_memory.Error}
+    (h : NewFromShmOutcome pageSize size guest_base offset shm (.Err error)) :
+    ∃ mmapError, error = .MemoryMappingFailed mmapError := by
+  obtain ⟨_, _, _, built, _, _, _, _, hr⟩ := h
+  cases built with
+  | Ok mapping => simp at hr
+  | Err mmapError => exact ⟨mmapError, by simpa using hr⟩
 
 end vm_memory.guest_memory.MemoryRegion

@@ -82,6 +82,13 @@ theorem AlignSizeFits.of_getD_zero {pageSize size : Usize} {align : Option U64}
     simp only [Option.getD_none, Option.getD_some, ite_self, Option.some.injEq] at hn
     exact False.elim (ha0 hn.symm)
 
+/-- Without a requested alignment, no reservation size needs to fit. -/
+theorem AlignSizeFits.of_none (pageSize size : Usize) : AlignSizeFits pageSize size none := by
+  intro a hn ha0 _
+  split at hn
+  · exact absurd (Option.some.inj hn).symm ha0
+  · simp at hn
+
 /-- An unmap range `(unmapAddr, unmapLen)` is permitted during
     `try_mmap_populate` iff a non-zero power-of-two alignment distinct from
     `pageSize` was requested, the reservation `mmap64` call succeeded with
@@ -110,6 +117,15 @@ theorem MunmapSpec.of_getD_zero {pageSize size : Usize} {align : Option U64} {pr
     rcases htrim with ⟨a, _, _, hn, ha0, _⟩
     simp only [Option.getD_none, Option.getD_some, ite_self, Option.some.injEq] at hn
     exact False.elim (ha0 hn.symm)
+
+/-- Without a requested alignment, no trimming `munmap` range is permitted, so
+    the guarded specification holds vacuously. -/
+theorem MunmapSpec.of_none (pageSize size : Usize) (prot : I32) :
+    MunmapSpec (TryMmapTrimAllowed pageSize size none prot) := by
+  rintro addr len ⟨a, _, _, hn, ha0, _⟩
+  split at hn
+  · exact False.elim (ha0 (Option.some.inj hn).symm)
+  · simp at hn
 
 open Classical in
 /-- Outcome of `MemoryMapping::try_mmap_populate`, following its sequential
