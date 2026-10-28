@@ -32,20 +32,24 @@ axiom core.io.error.Error : Type
 @[rust_type "std::fs::File"]
 axiom std.fs.File : Type
 
+/-- [std::path::PathBuf]
+    Source: '/rustc/library/std/src/path.rs', lines 1214:0-1214:18
+    Name pattern: [std::path::PathBuf]
+    Visibility: public -/
+@[rust_type "std::path::PathBuf"]
+axiom std.path.PathBuf : Type
+
+/-- [alloc::sync::Arc]
+    Source: '/rustc/library/alloc/src/sync.rs', lines 274:0-277:1
+    Name pattern: [alloc::sync::Arc]
+    Visibility: public -/
+@[rust_type "alloc::sync::Arc"]
+axiom alloc.sync.Arc (T : Type) : Type
+
 /-- [base::errno::Error]
     Source: 'base/src/errno.rs', lines 23:0-23:16
     Name pattern: [base::errno::Error]
     Visibility: public -/
 @[rust_type "base::errno::Error"]
 axiom base.errno.Error : Type
-
-/-- [vm_memory::guest_memory::BackingObject]
-    Source: 'vm_memory/src/guest_memory.rs', lines 94:0-97:1
-    Visibility: public -/
-axiom guest_memory.BackingObject : Type
-
-/-- [vm_memory::guest_memory::MemoryRegionOptions]
-    Source: 'vm_memory/src/guest_memory.rs', lines 170:0-181:1
-    Visibility: public -/
-axiom guest_memory.MemoryRegionOptions : Type
 

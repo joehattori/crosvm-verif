@@ -20,6 +20,15 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [core::option::{impl core::default::Default for core::option::Option<T>}::default]:
+    Source: '/rustc/library/core/src/option.rs', lines 2314:4-2314:29
+    Name pattern: [core::option::{core::default::Default<core::option::Option<@T>>}::default]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::default::Default<core::option::Option<@T>>}::default"]
+axiom core.option.Option.Insts.CoreDefaultDefault.default
+  (T : Type) : Result (Option T)
+
 /-- [core::ptr::null_mut]:
     Source: '/rustc/library/core/src/ptr/mod.rs', lines 902:0-902:57
     Name pattern: [core::ptr::null_mut]
@@ -42,6 +51,15 @@ axiom core.ptr.mut_ptr.RawPtrMutT.is_null
 @[rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
 axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
   {T : Type} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
+
+/-- [alloc::sync::{impl core::convert::AsRef<T> for alloc::sync::Arc<T>}::as_ref]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 4383:4-4383:26
+    Name pattern: [alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref]
+    Visibility: public -/
+@[rust_fun
+  "alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref"]
+axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
+  {T : Type} (A : Type) : alloc.sync.Arc T → Result T
 
 /-- [base::descriptor::{impl core::convert::TryFrom<&'_0 (dyn base::descriptor::AsRawDescriptor + '_0), core::io::error::Error> for base::descriptor::SafeDescriptor}::try_from]:
     Source: 'base/src/descriptor.rs', lines 114:4-114:83

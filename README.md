@@ -18,6 +18,13 @@ the trust boundary: [Resources types](Resources/TypesExternal.lean),
 [VmMemory functions](VmMemory/FunsExternal.lean). See those files for their
 models and assumptions.
 
+The specifications describe the values returned by the translated functions.
+Aeneas does not translate `Drop` implementations, so implicit drops, such as
+`munmap` in `MemoryMapping::drop`, are not modeled; explicit system calls in
+function bodies are. `Arc<T>` is modeled by its contents, without reference
+counts, allocation identity, or drop timing. Resource lifetimes and leaks are
+outside the verified scope.
+
 ## Build and extraction
 
 Develop on Ubuntu or use the Docker workflow below. Run commands from the

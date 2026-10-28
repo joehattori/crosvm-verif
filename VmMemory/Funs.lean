@@ -1262,6 +1262,89 @@ def guest_address.GuestAddress.Insts.CoreCmpOrd : core.cmp.Ord
   cmp := guest_address.GuestAddress.Insts.CoreCmpOrd.cmp
 }
 
+/-- [vm_memory::guest_memory::Error::MemoryMappingFailed]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
+def guest_memory.Error.MemoryMappingFailed.constructor
+  (e : base.mmap.Error) : Result guest_memory.Error := do
+  ok (guest_memory.Error.MemoryMappingFailed e)
+
+/-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryMappingFailed}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
+def P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (state : base.mmap.Error → Result guest_memory.Error)
+  (args : base.mmap.Error) :
+  Result guest_memory.Error
+  := do
+  guest_memory.Error.MemoryMappingFailed.constructor args
+
+/-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryMappingFailed}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
+@[reducible]
+def P.Insts.CoreOpsFunctionFnOnceTupleErrorError : core.ops.function.FnOnce
+  (base.mmap.Error → Result guest_memory.Error) base.mmap.Error
+  guest_memory.Error := {
+  call_once := P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
+/-- [vm_memory::guest_memory::{impl core::default::Default for vm_memory::guest_memory::MemoryRegionPurpose}::default]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 129:29-129:36
+    Visibility: public -/
+def guest_memory.MemoryRegionPurpose.Insts.CoreDefaultDefault.default
+  : Result guest_memory.MemoryRegionPurpose := do
+  ok guest_memory.MemoryRegionPurpose.GuestMemoryRegion
+
+/-- [vm_memory::guest_memory::{impl core::default::Default for vm_memory::guest_memory::MemoryRegionOptions}::default]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 169:23-169:30
+    Visibility: public -/
+def guest_memory.MemoryRegionOptions.Insts.CoreDefaultDefault.default
+  : Result guest_memory.MemoryRegionOptions := do
+  let mrp ← guest_memory.MemoryRegionPurpose.Insts.CoreDefaultDefault.default
+  let o ←
+    core.option.Option.Insts.CoreDefaultDefault.default
+      guest_memory.FileBackedMappingParameters
+  ok
+    {
+      purpose := mrp,
+      align := (core.default.DefaultU64.default),
+      file_backed := o
+    }
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::new_from_shm]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 221:4-239:5
+    Visibility: public -/
+def guest_memory.MemoryRegion.new_from_shm
+  (size : Std.U64) (guest_base : guest_address.GuestAddress) (offset : Std.U64)
+  (shm : alloc.sync.Arc base.shm.SharedMemory) :
+  Result (core.result.Result guest_memory.MemoryRegion guest_memory.Error)
+  := do
+  let i ← lift (UScalar.cast .Usize size)
+  let mmb ← base.mmap.MemoryMappingBuilder.new i
+  let sm ← alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref Global shm
+  let mmb1 ← base.mmap.MemoryMappingBuilder.from_shared_memory mmb sm
+  let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
+  let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
+  let r1 ←
+    core.result.Result.map_err P.Insts.CoreOpsFunctionFnOnceTupleErrorError r
+      (guest_memory.Error.MemoryMappingFailed.constructor)
+  let cf ←
+    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let mro ←
+      guest_memory.MemoryRegionOptions.Insts.CoreDefaultDefault.default
+    ok (core.result.Result.Ok
+      {
+        mapping := val,
+        guest_base,
+        shared_obj := (guest_memory.BackingObject.Shm shm),
+        obj_offset := offset,
+        options := mro
+      })
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+      guest_memory.MemoryRegion (core.convert.FromSame guest_memory.Error)
+      residual
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::start]:
     Source: 'vm_memory/src/guest_memory.rs', lines 263:4-265:5 -/
 def guest_memory.MemoryRegion.start

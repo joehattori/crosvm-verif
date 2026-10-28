@@ -88,13 +88,8 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 		-dest $(CURDIR)/Resources \
 		$(LLBC_DIR)/resources.llbc
 
-# GuestAddress operations, MemoryRegion's four interval queries, the
-# MemoryMappingBuilder configuration, build, and wrap methods, and the Linux
-# MemoryMapping creation paths (new_protection,
-# from_fd_offset_protection_populate, try_mmap, try_mmap_populate, and
-# i32::from(Protection)). Raw OS/libc calls remain external. Do not specialize
-# mutable references in this slice: it has no such calls, and that pass rejects
-# wrap's trait objects.
+# Unlike the resources slice, do not specialize mutable references: this slice
+# has no such calls, and that pass rejects wrap's trait objects.
 $(LLBC_DIR)/vm_memory.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -107,6 +102,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::MemoryRegion::end' \
 		--start-from 'crate::guest_memory::MemoryRegion::contains' \
 		--start-from 'crate::guest_memory::MemoryRegion::contains_range' \
+		--start-from 'crate::guest_memory::MemoryRegion::new_from_shm' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \
@@ -136,8 +132,6 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--include 'base::sys::linux::mmap::_::try_mmap' \
 		--include 'base::sys::linux::mmap::_::try_mmap_populate' \
 		--include 'base::sys::linux::mmap::{impl core::convert::From<base::mmap::Protection> for i32}::from' \
-		--opaque 'crate::guest_memory::BackingObject' \
-		--opaque 'crate::guest_memory::MemoryRegionOptions' \
 		--exclude 'core::ops::try_trait::Residual' \
 		--exclude '{impl core::ops::try_trait::Residual}' \
 		--exclude 'serde_core' \

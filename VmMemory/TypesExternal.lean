@@ -22,7 +22,17 @@ structure std.fs.File where
   identity : Nat
   descriptor : I32
 
-/-- Unobserved by the verified queries; equality and operations are not modeled. -/
-def guest_memory.BackingObject := Unit
+/-- Abstract path identity. Path contents, encoding, and operations are not
+    modeled; the verified constructors only store the default `None` parameters. -/
+@[rust_type "std::path::PathBuf"]
+structure std.path.PathBuf where
+  identity : Nat
 
-def guest_memory.MemoryRegionOptions := Unit
+/-- `Arc<T>` modeled by its contents. Valid only for `T` without interior
+    mutability, accessed through shared references (`AsRef`, `Deref`, `Clone`).
+    Reference counts, allocation identity (`Arc::ptr_eq`), uniqueness queries
+    (`get_mut`, `try_unwrap`, `strong_count`), and drop timing are not modeled;
+    model such operations explicitly before relying on them. -/
+@[rust_type "alloc::sync::Arc"]
+structure alloc.sync.Arc (T : Type) where
+  val : T

@@ -131,6 +131,18 @@ structure base.shm.SharedMemory where
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure"]
 def base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure := Unit
 
+/-- [base::volatile_memory::VolatileMemoryError]
+    Source: 'base/src/volatile_memory.rs', lines 41:0-41:28
+    Name pattern: [base::volatile_memory::VolatileMemoryError]
+    Visibility: public -/
+@[discriminant isize, rust_type "base::volatile_memory::VolatileMemoryError"]
+inductive base.volatile_memory.VolatileMemoryError where
+| OutOfBounds : Std.Usize → base.volatile_memory.VolatileMemoryError
+| Overflow :
+  Std.Usize →
+  Std.Usize →
+  base.volatile_memory.VolatileMemoryError
+
 /-- [vm_memory::guest_address::GuestAddress]
     Source: 'vm_memory/src/guest_address.rs', lines 24:0-24:33
     Visibility: public -/
@@ -141,6 +153,80 @@ def guest_address.GuestAddress := Std.U64
     Source: 'vm_memory/src/guest_address.rs', lines 83:40-83:60 -/
 @[reducible]
 def guest_address.GuestAddress.align.closure := Std.U64
+
+/-- [vm_memory::guest_memory::Error]
+    Source: 'vm_memory/src/guest_memory.rs', lines 51:0-88:1
+    Visibility: public -/
+@[discriminant isize]
+inductive guest_memory.Error where
+| FiledBackedMemoryMappingFailed : base.mmap.Error → guest_memory.Error
+| FiledBackedOpenFailed : core.io.error.Error → guest_memory.Error
+| InvalidGuestAddress : guest_address.GuestAddress → guest_memory.Error
+| InvalidGuestRange :
+  guest_address.GuestAddress →
+  Std.U64 →
+  guest_memory.Error
+| InvalidOffset : Std.U64 → guest_memory.Error
+| InvalidSize : Std.Usize → guest_memory.Error
+| MemoryAccess :
+  guest_address.GuestAddress →
+  base.mmap.Error →
+  guest_memory.Error
+| MemoryAddSealsFailed : base.errno.Error → guest_memory.Error
+| MemoryCreationFailed : base.errno.Error → guest_memory.Error
+| MemoryMappingFailed : base.mmap.Error → guest_memory.Error
+| MemoryNotAligned :
+  guest_address.GuestAddress →
+  Std.U64 →
+  guest_memory.Error
+| MemoryRegionOverlap : guest_memory.Error
+| MemoryRegionTooLarge : Std.U128 → guest_memory.Error
+| PunchHole : base.errno.Error → guest_memory.Error
+| ShortRead : Std.Usize → Std.Usize → guest_memory.Error
+| ShortWrite : Std.Usize → Std.Usize → guest_memory.Error
+| SplitOutOfBounds : Std.Usize → guest_memory.Error
+| VolatileMemoryAccess :
+  base.volatile_memory.VolatileMemoryError →
+  guest_memory.Error
+
+/-- [vm_memory::guest_memory::BackingObject]
+    Source: 'vm_memory/src/guest_memory.rs', lines 94:0-97:1
+    Visibility: public -/
+@[discriminant isize]
+inductive guest_memory.BackingObject where
+| Shm : alloc.sync.Arc base.shm.SharedMemory → guest_memory.BackingObject
+| File : alloc.sync.Arc std.fs.File → guest_memory.BackingObject
+
+/-- [vm_memory::guest_memory::MemoryRegionPurpose]
+    Source: 'vm_memory/src/guest_memory.rs', lines 130:0-147:1
+    Visibility: public -/
+@[discriminant isize]
+inductive guest_memory.MemoryRegionPurpose where
+| Bios : guest_memory.MemoryRegionPurpose
+| GuestMemoryRegion : guest_memory.MemoryRegionPurpose
+| ProtectedFirmwareRegion : guest_memory.MemoryRegionPurpose
+| ReservedMemory : guest_memory.MemoryRegionPurpose
+
+/-- [vm_memory::guest_memory::FileBackedMappingParameters]
+    Source: 'vm_memory/src/guest_memory.rs', lines 151:0-167:1
+    Visibility: public -/
+structure guest_memory.FileBackedMappingParameters where
+  path : std.path.PathBuf
+  address : Std.U64
+  size : Std.U64
+  offset : Std.U64
+  writable : Bool
+  sync : Bool
+  align : Bool
+  ram : Bool
+
+/-- [vm_memory::guest_memory::MemoryRegionOptions]
+    Source: 'vm_memory/src/guest_memory.rs', lines 170:0-181:1
+    Visibility: public -/
+structure guest_memory.MemoryRegionOptions where
+  purpose : guest_memory.MemoryRegionPurpose
+  align : Std.U64
+  file_backed : Option guest_memory.FileBackedMappingParameters
 
 /-- [vm_memory::guest_memory::MemoryRegion]
     Source: 'vm_memory/src/guest_memory.rs', lines 208:0-216:1

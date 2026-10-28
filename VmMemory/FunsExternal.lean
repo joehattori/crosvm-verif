@@ -20,6 +20,19 @@ def core.ptr.mut_ptr.RawPtrMutT.wrapping_add {T : Type}
     (self : MutRawPtr T) (count : Std.Usize) : Result (MutRawPtr T) :=
   ok { addr := core.num.Usize.wrapping_add self.addr count }
 
+/-- `Option::default` returns `None`. -/
+@[reducible, rust_fun
+  "core::option::{core::default::Default<core::option::Option<@T>>}::default"]
+def core.option.Option.Insts.CoreDefaultDefault.default (T : Type) : Result (Option T) :=
+  ok none
+
+/-- Shared access to the `Arc` contents; the allocator parameter is ignored. -/
+@[reducible, rust_fun
+  "alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref"]
+def alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref {T : Type} (_A : Type)
+    (self : alloc.sync.Arc T) : Result T :=
+  ok self.val
+
 /-- Descriptor accessor stored in the file's trait instance. -/
 @[rust_fun
   "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]
