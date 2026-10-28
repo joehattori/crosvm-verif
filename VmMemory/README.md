@@ -21,8 +21,8 @@ The default build checks these specification modules:
   invariant (representable ends; each region ends before every later one starts)
   and its consequences: sorted bases, at most one region per address, and a total
   length that fits in `u64`. Verified methods: `locked`, `use_punchhole_locked`,
-  `num_regions`, and `address_in_range`, with its mathematical form under
-  `WellFormed`.
+  `num_regions`, `address_in_range`, `range_overlap`, `is_valid_range`, and
+  `checked_offset`, each with its mathematical form under `WellFormed`.
 
 The specifications define the exact contracts and preconditions. The
 non-overflow corollaries require `ValidBounds`. The remaining MemoryRegion

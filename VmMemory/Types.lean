@@ -252,4 +252,19 @@ structure guest_memory.GuestMemory where
 def guest_memory.GuestMemory.address_in_range.closure :=
   guest_address.GuestAddress
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 495:17-495:70 -/
+def guest_memory.GuestMemory.range_overlap.closure :=
+  guest_address.GuestAddress × guest_address.GuestAddress
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::checked_offset::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 503:42-509:9 -/
+@[reducible]
+def guest_memory.GuestMemory.checked_offset.closure := guest_memory.GuestMemory
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 527:17-527:71 -/
+def guest_memory.GuestMemory.is_valid_range.closure :=
+  guest_address.GuestAddress × guest_address.GuestAddress
+
 end vm_memory

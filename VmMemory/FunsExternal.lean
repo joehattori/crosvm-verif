@@ -1,5 +1,6 @@
 module
 public import VmMemory.Types
+public import Utils.CoreExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open vm_memory

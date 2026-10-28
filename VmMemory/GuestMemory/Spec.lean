@@ -178,4 +178,220 @@ theorem WellFormed.addressInRange_iff {self : GuestMemory} (h : self.WellFormed)
     rw [he.val_eq_of_valid (h.validBounds hr)]
     exact hc
 
+/-! ### `range_overlap` -/
+
+/-- Some region starts before `end` and its endpoint, as computed by
+    `MemoryRegion::end`, lies after `start`. -/
+def RangeOverlapOutcome (self : GuestMemory) (start «end» : GuestAddress) (b : Bool) : Prop :=
+  b = true ↔ ∃ r ∈ self.regionList, r.guest_base.val < «end».val ∧
+    ∃ regionEnd, r.EndOutcome regionEnd ∧ start.val < regionEnd.val
+
+@[step]
+theorem range_overlap_spec (self : GuestMemory) (start «end» : GuestAddress) :
+    self.range_overlap start «end» ⦃ b => self.RangeOverlapOutcome start «end» b ⦄ := by
+  unfold range_overlap
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+  have hf : ∀ r,
+      range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+        («end», start) r ⦃ p => p.2 = («end», start) ∧
+          (p.1 = true ↔ r.guest_base.val < «end».val ∧
+            ∃ regionEnd, r.EndOutcome regionEnd ∧ start.val < regionEnd.val) ⦄ := by
+    intro r
+    unfold range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    step as ⟨s, hs⟩
+    step as ⟨b, hb⟩
+    subst hs
+    split
+    · step as ⟨regionEnd, he⟩
+      step as ⟨b1, hb1⟩
+      rw [hb1]
+      constructor
+      · intro hlt
+        exact ⟨hb.mp (by assumption), regionEnd, he, hlt⟩
+      · rintro ⟨_, regionEnd', he', hlt⟩
+        rwa [he'.trans he.symm] at hlt
+    · simp_all
+  apply WP.spec_bind (core.slice.iter.Iter.any_spec _ _ («end», start) hf _)
+  rintro ⟨b, _⟩ hb
+  simpa [RangeOverlapOutcome] using hb
+
+/-- For well-formed memory, `range_overlap` holds exactly when `[start, end)`
+    intersects the mathematical half-open interval of some region. -/
+theorem WellFormed.rangeOverlap_iff {self : GuestMemory} (h : self.WellFormed)
+    {start «end» : GuestAddress} {b : Bool} (hOut : self.RangeOverlapOutcome start «end» b) :
+    b = true ↔ ∃ r ∈ self.regionList, r.guest_base.val < «end».val ∧
+      start.val < r.guest_base.val + r.mapping.length.val := by
+  rw [show (b = true ↔ _) from hOut]
+  apply exists_congr
+  intro r
+  constructor
+  · rintro ⟨hr, hlt, regionEnd, he, hs⟩
+    exact ⟨hr, hlt, by rwa [he.val_eq_of_valid (h.validBounds hr)] at hs⟩
+  · rintro ⟨hr, hlt, hs⟩
+    obtain ⟨regionEnd, he⟩ := MemoryRegion.EndOutcome.exists r
+    exact ⟨hr, hlt, regionEnd, he, by rwa [he.val_eq_of_valid (h.validBounds hr)]⟩
+
+/-! ### `is_valid_range` -/
+
+/-- Empty requests are rejected. Otherwise the last byte `start + (length - 1)`
+    is computed with `checked_add`: overflow is rejected, and an in-range last
+    byte is accepted exactly when some region starts at or before `start` and
+    its endpoint, as computed by `MemoryRegion::end`, lies after the last byte. -/
+def IsValidRangeOutcome (self : GuestMemory) (start : GuestAddress) (length : U64)
+    (b : Bool) : Prop :=
+  if length = 0#u64 then b = false
+  else ∃ last : U64, last.val = length.val - 1 ∧
+    match U64.checked_add start last with
+    | none => b = false
+    | some lastAddr => b = true ↔ ∃ r ∈ self.regionList, r.guest_base.val ≤ start.val ∧
+      ∃ regionEnd, r.EndOutcome regionEnd ∧ lastAddr.val < regionEnd.val
+
+@[step]
+theorem is_valid_range_spec (self : GuestMemory) (start : GuestAddress) (length : U64) :
+    self.is_valid_range start length ⦃ b => self.IsValidRangeOutcome start length b ⦄ := by
+  unfold is_valid_range
+  by_cases h0 : length = 0#u64
+  · simp [h0, IsValidRangeOutcome]
+  · simp only [h0, ↓reduceIte, IsValidRangeOutcome]
+    step as ⟨last, hlast⟩
+    step as ⟨o, ho⟩
+    subst ho
+    refine WP.spec_mono (P₀ := fun b => match U64.checked_add start last with
+      | none => b = false
+      | some lastAddr => b = true ↔ ∃ r ∈ self.regionList, r.guest_base.val ≤ start.val ∧
+        ∃ regionEnd, r.EndOutcome regionEnd ∧ lastAddr.val < regionEnd.val) ?_
+      (fun b hb => ⟨last, hlast, hb⟩)
+    cases U64.checked_add start last with
+    | none => simp
+    | some lastAddr =>
+      have hf : ∀ r,
+          is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+            (start, lastAddr) r ⦃ p => p.2 = (start, lastAddr) ∧
+              (p.1 = true ↔ r.guest_base.val ≤ start.val ∧
+                ∃ regionEnd, r.EndOutcome regionEnd ∧ lastAddr.val < regionEnd.val) ⦄ := by
+        intro r
+        unfold is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+        step as ⟨s, hs⟩
+        step as ⟨b, hb⟩
+        subst hs
+        split
+        · step as ⟨regionEnd, he⟩
+          step as ⟨b1, hb1⟩
+          rw [hb1]
+          constructor
+          · intro hlt
+            exact ⟨hb.mp (by assumption), regionEnd, he, hlt⟩
+          · rintro ⟨_, regionEnd', he', hlt⟩
+            rwa [he'.trans he.symm] at hlt
+        · simp_all
+      simp only [core.slice.Slice.iter, bind_ok]
+      apply WP.spec_bind (core.slice.iter.Iter.any_spec _ _ (start, lastAddr) hf _)
+      rintro ⟨b, _⟩ hb
+      simpa using hb
+
+/-- For well-formed memory, `is_valid_range` holds exactly when the request is
+    non-empty and `[start, start + length)` lies within a single region. -/
+theorem WellFormed.isValidRange_iff {self : GuestMemory} (h : self.WellFormed)
+    {start : GuestAddress} {length : U64} {b : Bool}
+    (hOut : self.IsValidRangeOutcome start length b) :
+    b = true ↔ 0 < length.val ∧ ∃ r ∈ self.regionList, r.guest_base.val ≤ start.val ∧
+      start.val + length.val ≤ r.guest_base.val + r.mapping.length.val := by
+  unfold IsValidRangeOutcome at hOut
+  split at hOut
+  · rename_i h0
+    subst hOut
+    simp [h0]
+  · rename_i h0
+    have hpos : 0 < length.val := by
+      have : length.val ≠ 0 := fun hz => h0 (by scalar_tac)
+      omega
+    obtain ⟨last, hlast, hm⟩ := hOut
+    have hAdd := U64.checked_add_bv_spec start last
+    cases ho : U64.checked_add start last with
+    | none =>
+      simp only [ho] at hm hAdd
+      subst hm
+      simp only [Bool.false_eq_true, false_iff, not_and, not_exists]
+      intro _ r hr hle hfit
+      have := h.validBounds hr
+      unfold MemoryRegion.ValidBounds at this
+      omega
+    | some lastAddr =>
+      simp only [ho] at hm hAdd
+      rw [hm]
+      constructor
+      · rintro ⟨r, hr, hle, regionEnd, he, hlt⟩
+        rw [he.val_eq_of_valid (h.validBounds hr)] at hlt
+        exact ⟨hpos, r, hr, hle, by omega⟩
+      · rintro ⟨-, r, hr, hle, hfit⟩
+        obtain ⟨regionEnd, he⟩ := MemoryRegion.EndOutcome.exists r
+        exact ⟨r, hr, hle, regionEnd, he, by rw [he.val_eq_of_valid (h.validBounds hr)]; omega⟩
+
+/-! ### `checked_offset` -/
+
+/-- Overflow of `addr + offset` yields `None`; otherwise the sum is returned
+    exactly when `address_in_range` accepts it. -/
+def CheckedOffsetOutcome (self : GuestMemory) (addr : GuestAddress) (offset : U64)
+    (result : Option GuestAddress) : Prop :=
+  match U64.checked_add addr offset with
+  | none => result = none
+  | some target =>
+    ∃ inRange, self.AddressInRangeOutcome target inRange ∧
+      result = if inRange then some target else none
+
+@[step]
+theorem checked_offset_spec (self : GuestMemory) (addr : GuestAddress) (offset : U64) :
+    self.checked_offset addr offset ⦃ r => self.CheckedOffsetOutcome addr offset r ⦄ := by
+  unfold checked_offset
+  step as ⟨o, ho⟩
+  simp only [CheckedOffsetOutcome, ← ho]
+  cases o with
+  | none => simp [core.option.Option.and_then]
+  | some target =>
+    simp only [core.option.Option.and_then,
+      checked_offset.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressOptionGuestAddress.call_once]
+    step as ⟨inRange, hin⟩
+    cases inRange <;>
+      simp only [↓reduceIte, Bool.false_eq_true, WP.spec_ok] <;> exact ⟨_, hin, rfl⟩
+
+/-- For well-formed memory, `checked_offset` returns `some target` exactly when
+    `target = addr + offset` lies in the mathematical half-open interval of some
+    region. -/
+theorem WellFormed.checkedOffset_eq_some_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {offset : U64} {result : Option GuestAddress}
+    (hOut : self.CheckedOffsetOutcome addr offset result) (target : GuestAddress) :
+    result = some target ↔ target.val = addr.val + offset.val ∧
+      ∃ r ∈ self.regionList, r.guest_base.val ≤ target.val ∧
+        target.val < r.guest_base.val + r.mapping.length.val := by
+  have hAdd := U64.checked_add_bv_spec addr offset
+  unfold CheckedOffsetOutcome at hOut
+  cases ho : U64.checked_add addr offset with
+  | none =>
+    simp only [ho] at hOut hAdd
+    subst hOut
+    simp only [reduceCtorEq, false_iff, not_and, not_exists]
+    intro hsum r hr _ hlt
+    have := h.validBounds hr
+    unfold MemoryRegion.ValidBounds at this
+    omega
+  | some sum =>
+    simp only [ho] at hOut hAdd
+    obtain ⟨inRange, hin, hr⟩ := hOut
+    have hiff := h.addressInRange_iff hin
+    subst hr
+    cases inRange with
+    | true =>
+      simp only [↓reduceIte, Option.some.injEq]
+      constructor
+      · rintro rfl
+        exact ⟨hAdd.2.1, hiff.mp rfl⟩
+      · rintro ⟨hval, -⟩
+        exact UScalar.eq_of_val_eq (by rw [hval, hAdd.2.1])
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte, reduceCtorEq, false_iff, not_and]
+      intro hval hex
+      have heq : target = sum := UScalar.eq_of_val_eq (by rw [hval, hAdd.2.1])
+      subst heq
+      exact absurd (hiff.mpr hex) (by simp)
+
 end vm_memory.guest_memory.GuestMemory

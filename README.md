@@ -16,7 +16,9 @@ the trust boundary: [Resources types](Resources/TypesExternal.lean),
 [Resources functions](Resources/FunsExternal.lean),
 [VmMemory types](VmMemory/TypesExternal.lean), and
 [VmMemory functions](VmMemory/FunsExternal.lean). See those files for their
-models and assumptions.
+models and assumptions. Models of Rust core items used by both crates, which
+Aeneas names without a crate prefix, are shared in
+[Utils/CoreExternal.lean](Utils/CoreExternal.lean).
 
 The specifications describe the values returned by the translated functions.
 Aeneas does not translate `Drop` implementations, so implicit drops, such as

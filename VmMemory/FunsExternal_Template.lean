@@ -20,6 +20,16 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [core::option::{core::option::Option<T>}::and_then]:
+    Source: '/rustc/library/core/src/option.rs', lines 1539:4-1541:61
+    Name pattern: [core::option::{core::option::Option<@T>}::and_then]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
+axiom core.option.Option.and_then
+  {T : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTOptionInst :
+  core.ops.function.FnOnce F T (Option U)) :
+  Option T → F → Result (Option U)
+
 /-- [core::option::{impl core::default::Default for core::option::Option<T>}::default]:
     Source: '/rustc/library/core/src/option.rs', lines 2314:4-2314:29
     Name pattern: [core::option::{core::default::Default<core::option::Option<@T>>}::default]
