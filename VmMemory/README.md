@@ -6,8 +6,9 @@ The default build checks these specification modules:
   explicit non-formatting trait methods, and the inherited `lt`, `le`, and `ge`
   comparisons used by `MemoryRegion`.
 - [MemoryRegion/Spec.lean](MemoryRegion/Spec.lean): `start`, `end`, `contains`,
-  the Linux/Android `contains_range` method, and the `new_from_shm` constructor,
-  composed from the `MemoryMappingBuilder` specifications.
+  the Linux/Android `contains_range` method, and the `new_from_shm` and
+  `new_from_file` constructors, composed from the `MemoryMappingBuilder`
+  specifications.
 - [MemoryMapping/Spec.lean](MemoryMapping/Spec.lean): `i32::from(Protection)`
   and Linux `MemoryMapping` (`new_protection`,
   `from_fd_offset_protection_populate`, `try_mmap`, and `try_mmap_populate`),

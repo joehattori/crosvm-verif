@@ -1345,6 +1345,42 @@ def guest_memory.MemoryRegion.new_from_shm
       guest_memory.MemoryRegion (core.convert.FromSame guest_memory.Error)
       residual
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::new_from_file]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 243:4-261:5
+    Visibility: public -/
+def guest_memory.MemoryRegion.new_from_file
+  (size : Std.U64) (guest_base : guest_address.GuestAddress) (offset : Std.U64)
+  (file : alloc.sync.Arc std.fs.File) :
+  Result (core.result.Result guest_memory.MemoryRegion guest_memory.Error)
+  := do
+  let i ← lift (UScalar.cast .Usize size)
+  let mmb ← base.mmap.MemoryMappingBuilder.new i
+  let f ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global file
+  let mmb1 ← base.mmap.MemoryMappingBuilder.from_file mmb f
+  let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
+  let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
+  let r1 ←
+    core.result.Result.map_err P.Insts.CoreOpsFunctionFnOnceTupleErrorError r
+      (guest_memory.Error.MemoryMappingFailed.constructor)
+  let cf ←
+    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let mro ←
+      guest_memory.MemoryRegionOptions.Insts.CoreDefaultDefault.default
+    ok (core.result.Result.Ok
+      {
+        mapping := val,
+        guest_base,
+        shared_obj := (guest_memory.BackingObject.File file),
+        obj_offset := offset,
+        options := mro
+      })
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+      guest_memory.MemoryRegion (core.convert.FromSame guest_memory.Error)
+      residual
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::start]:
     Source: 'vm_memory/src/guest_memory.rs', lines 263:4-265:5 -/
 def guest_memory.MemoryRegion.start

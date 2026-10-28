@@ -33,6 +33,13 @@ def alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref {T : Type} (_A : Type)
     (self : alloc.sync.Arc T) : Result T :=
   ok self.val
 
+/-- Shared dereference of the `Arc` contents; the allocator parameter is ignored. -/
+@[reducible, rust_fun
+  "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
+def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type} (_A : Type)
+    (self : alloc.sync.Arc T) : Result T :=
+  ok self.val
+
 /-- Descriptor accessor stored in the file's trait instance. -/
 @[rust_fun
   "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]

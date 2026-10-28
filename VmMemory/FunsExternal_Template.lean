@@ -52,6 +52,15 @@ axiom core.ptr.mut_ptr.RawPtrMutT.is_null
 axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
   {T : Type} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
 
+/-- [alloc::sync::{impl core::ops::deref::Deref<T> for alloc::sync::Arc<T>}::deref]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 2570:4-2570:25
+    Name pattern: [alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref]
+    Visibility: public -/
+@[rust_fun
+  "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
+axiom alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
+  {T : Type} (A : Type) : alloc.sync.Arc T → Result T
+
 /-- [alloc::sync::{impl core::convert::AsRef<T> for alloc::sync::Arc<T>}::as_ref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 4383:4-4383:26
     Name pattern: [alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref]
