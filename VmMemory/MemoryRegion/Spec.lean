@@ -29,6 +29,11 @@ namespace vm_memory.guest_memory.MemoryRegion
 def ValidBounds (self : MemoryRegion) : Prop :=
   self.guest_base.val + self.mapping.length.val ≤ U64.max
 
+/-- Region `self` ends at or before region `other` starts, so their half-open
+    guest ranges are disjoint and `self` starts no later than `other`. -/
+def EndsBefore (self other : MemoryRegion) : Prop :=
+  self.guest_base.val + self.mapping.length.val ≤ other.guest_base.val
+
 /-- The exact endpoint computed by Rust's unchecked_add, including wraparound. -/
 def EndOutcome (self : MemoryRegion) (result : GuestAddress) : Prop :=
   result = U64.wrapping_add self.guest_base (UScalar.cast .U64 self.mapping.length)

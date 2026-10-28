@@ -17,6 +17,10 @@ The default build checks these specification modules:
 - [MemoryMappingBuilder/Spec.lean](MemoryMappingBuilder/Spec.lean): `new`,
   `from_file`, `from_shared_memory`, `offset`, `build`, and the `wrap(_, None)`
   path, extracted through `vm_memory` from its `base` dependency for Linux.
+- [GuestMemory/Spec.lean](GuestMemory/Spec.lean): the `WellFormed` region
+  invariant (representable ends; each region ends before every later one starts)
+  and its consequences: sorted bases, at most one region per address, and a total
+  length that fits in `u64`. No `GuestMemory` methods are verified yet.
 
 The specifications define the exact contracts and preconditions. The
 non-overflow corollaries require `ValidBounds`. The remaining MemoryRegion

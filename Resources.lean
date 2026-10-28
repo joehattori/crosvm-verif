@@ -11,3 +11,4 @@ public import VmMemory.GuestAddress.Spec
 public import VmMemory.MemoryRegion.Spec
 public import VmMemory.MemoryMapping.Spec
 public import VmMemory.MemoryMappingBuilder.Spec
+public import VmMemory.GuestMemory.Spec

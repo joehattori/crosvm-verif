@@ -238,4 +238,12 @@ structure guest_memory.MemoryRegion where
   obj_offset : Std.U64
   options : guest_memory.MemoryRegionOptions
 
+/-- [vm_memory::guest_memory::GuestMemory]
+    Source: 'vm_memory/src/guest_memory.rs', lines 288:0-292:1
+    Visibility: public -/
+structure guest_memory.GuestMemory where
+  regions : alloc.sync.Arc (Slice guest_memory.MemoryRegion)
+  locked : Bool
+  use_punchhole_locked : Bool
+
 end vm_memory

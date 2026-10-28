@@ -104,6 +104,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::MemoryRegion::contains_range' \
 		--start-from 'crate::guest_memory::MemoryRegion::new_from_shm' \
 		--start-from 'crate::guest_memory::MemoryRegion::new_from_file' \
+		--start-from 'crate::guest_memory::GuestMemory' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \
