@@ -112,6 +112,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::GuestMemory::range_overlap' \
 		--start-from 'crate::guest_memory::GuestMemory::checked_offset' \
 		--start-from 'crate::guest_memory::GuestMemory::is_valid_range' \
+		--start-from 'crate::guest_memory::GuestMemory::memory_size' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \

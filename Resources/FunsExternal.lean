@@ -613,25 +613,6 @@ def alloc.collections.btree.map.entry.VacantEntry.insert {K V A : Type}
     Result (V × (V → alloc.collections.btree.map.entry.VacantEntry K V A)) :=
   ok (value, fun value => { self with value := some value })
 
-/-- Rust's default lazy map adapter. -/
-@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
-def core.iter.traits.iterator.Iterator.map.default {I F T B : Type}
-    (_iter : core.iter.traits.iterator.Iterator I T) (_f : core.ops.function.FnMut F T B)
-    (iter : I) (f : F) : Result (core.iter.adapters.map.Map I F) := ok ⟨iter, f⟩
-
-@[rust_fun
-  "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
-def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
-    {B I F T : Type} (iterInst : core.iter.traits.iterator.Iterator I T)
-    (fInst : core.ops.function.FnMut F T B) (self : core.iter.adapters.map.Map I F) :
-    Result (Option B × core.iter.adapters.map.Map I F) := do
-  let (item, iter) ← iterInst.next self.iter
-  match item with
-  | none => ok (none, ⟨iter, self.f⟩)
-  | some x =>
-    let (y, f) ← fInst.call_mut self.f x
-    ok (some y, ⟨iter, f⟩)
-
 /-- Construct the lazy flat-map adapter without evaluating the closure. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::flat_map"]
 def core.iter.traits.iterator.Iterator.flat_map.default {I U F T B J : Type}

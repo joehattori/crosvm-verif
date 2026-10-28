@@ -55,6 +55,35 @@ def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
     else any fnMutInst { it with i := it.i + 1 } call.2
   else ok (false, it)
 termination_by it.slice.val.length - it.i
+
+/-- `Iterator::sum` delegates to the `Sum` implementation of the result type. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
+def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type}
+    (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
+    (accumSumInst : core.iter.traits.accum.Sum S Clause0_Item) (self : Self) : Result S :=
+  accumSumInst.sum IteratorInst self
+
+/-- Add the remaining items to `acc` in order. The standard library inherits the
+    caller's overflow checks for this addition, and crosvm builds with
+    `overflow-checks = true`, so an overflowing partial sum fails. A
+    non-terminating iterator may diverge. -/
+def U64.Insts.CoreIterTraitsAccumSumU64.sumFrom {I : Type}
+    (iteratorInst : core.iter.traits.iterator.Iterator I U64) (acc : U64) (iter : I) :
+    Result U64 := do
+  let step ← iteratorInst.next iter
+  match step.1 with
+  | none => ok acc
+  | some x =>
+    let acc ← acc + x
+    sumFrom iteratorInst acc step.2
+partial_fixpoint
+
+/-- `u64: Sum<u64>` folds the iterator from zero with checked addition. -/
+@[rust_fun "core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum"]
+def U64.Insts.CoreIterTraitsAccumSumU64.sum {I : Type}
+    (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I U64) (iter : I) :
+    Result U64 :=
+  sumFrom iteratorIteratorIU64Inst 0#u64 iter
 @[rust_fun
   "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]
 def std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor

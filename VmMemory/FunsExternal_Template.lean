@@ -20,6 +20,66 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [core::iter::traits::iterator::Iterator::sum]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3689:4-3692:35
+    Name pattern: [core::iter::traits::iterator::Iterator::sum]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
+axiom core.iter.traits.iterator.Iterator.sum.default
+  {Self : Type} {S : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item) (accumSumInst :
+  core.iter.traits.accum.Sum S Clause0_Item) :
+  Self → Result S
+
+/-- [core::iter::traits::iterator::Iterator::any]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2897:4-2900:37
+    Name pattern: [core::iter::traits::iterator::Iterator::any]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::any"]
+axiom core.iter.traits.iterator.Iterator.any.default
+  {Self : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemBoolInst : core.ops.function.FnMut F
+  Clause0_Item Bool) :
+  Self → F → Result (Bool × Self)
+
+/-- [core::iter::traits::iterator::Iterator::map]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 845:4-848:34
+    Name pattern: [core::iter::traits::iterator::Iterator::map]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
+axiom core.iter.traits.iterator.Iterator.map.default
+  {Self : Type} {B : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
+  Clause0_Item B) :
+  Self → F → Result (core.iter.adapters.map.Map Self F)
+
+/-- [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}::next]:
+    Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 106:4-106:35
+    Name pattern: [core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
+axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
+  {B : Type} {I : Type} {F : Type} {Clause0_Item : Type}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
+  core.ops.function.FnMut F Clause0_Item B) :
+  core.iter.adapters.map.Map I F → Result ((Option B) ×
+    (core.iter.adapters.map.Map I F))
+
+/-- [core::iter::traits::accum::{impl core::iter::traits::accum::Sum<u64> for u64}::sum]:
+    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 51:12-51:59
+    Name pattern: [core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum]
+    Visibility: public -/
+@[rust_fun
+  "core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum"]
+axiom U64.Insts.CoreIterTraitsAccumSumU64.sum
+  {I : Type} (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I
+  Std.U64) :
+  I → Result Std.U64
+
 /-- [core::option::{core::option::Option<T>}::and_then]:
     Source: '/rustc/library/core/src/option.rs', lines 1539:4-1541:61
     Name pattern: [core::option::{core::option::Option<@T>}::and_then]

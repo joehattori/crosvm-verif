@@ -22,13 +22,18 @@ The default build checks these specification modules:
   and its consequences: sorted bases, at most one region per address, and a total
   length that fits in `u64`. Verified methods: `locked`, `use_punchhole_locked`,
   `num_regions`, `address_in_range`, `range_overlap`, `is_valid_range`, and
-  `checked_offset`, each with its mathematical form under `WellFormed`.
+  `checked_offset`, each with its mathematical form under `WellFormed`, and
+  `memory_size`, which returns the total length when it fits in `u64` (always
+  under `WellFormed`) and panics on overflow otherwise.
 
 The specifications define the exact contracts and preconditions. The
 non-overflow corollaries require `ValidBounds`. The remaining MemoryRegion
 constructors, the remaining inherited trait defaults, descriptor cloning,
 formatting, serialization, and guest-memory access are outside the verified
-scope.
+scope. The pinned translator cannot extract `GuestMemory::find_region`,
+`offset_from_base`, or `end_addr`: `Iter::find` and the method item passed to
+`map_or` have higher-ranked closure signatures, and the closures returning
+borrows inside regions fail to translate.
 
 See the root README for [build and extraction commands](../README.md#build-and-extraction)
 and the project-wide [trust boundary](../README.md#trust-boundary). The

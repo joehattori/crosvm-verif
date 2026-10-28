@@ -1,5 +1,6 @@
 module
 public import VmMemory.MemoryRegion.Spec
+import all Aeneas.Std.Scalar.Ops.Add
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open vm_memory.guest_address
@@ -393,5 +394,162 @@ theorem WellFormed.checkedOffset_eq_some_iff {self : GuestMemory} (h : self.Well
       have heq : target = sum := UScalar.eq_of_val_eq (by rw [hval, hAdd.2.1])
       subst heq
       exact absurd (hiff.mpr hex) (by simp)
+
+/-! ### `memory_size` -/
+
+/-- Checked summation over a slice iterator mapped through a pure closure
+    returns `acc` plus the sum of the remaining mapped values, provided that
+    total fits in `u64`. -/
+theorem _root_.U64.Insts.CoreIterTraitsAccumSumU64.sumFrom_map_slice_spec {T F : Type}
+    (fInst : core.ops.function.FnMut F T U64) (f : F) (g : T → U64)
+    (hf : ∀ x, fInst.call_mut f x = ok (g x, f)) (s : Slice T) :
+    ∀ (i : Nat) (acc : U64),
+      acc.val + ((s.val.drop i).map fun x => (g x).val).sum ≤ U64.max →
+      U64.Insts.CoreIterTraitsAccumSumU64.sumFrom
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) acc ⟨⟨s, i⟩, f⟩
+        ⦃ r => r.val = acc.val + ((s.val.drop i).map fun x => (g x).val).sum ⦄ := by
+  suffices ∀ n (i : Nat) (acc : U64), s.val.length - i = n →
+      acc.val + ((s.val.drop i).map fun x => (g x).val).sum ≤ U64.max →
+      U64.Insts.CoreIterTraitsAccumSumU64.sumFrom
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) acc ⟨⟨s, i⟩, f⟩
+        ⦃ r => r.val = acc.val + ((s.val.drop i).map fun x => (g x).val).sum ⦄ from
+    fun i acc => this _ i acc rfl
+  intro n
+  induction n with
+  | zero =>
+    intro i acc hn _
+    have hge : s.val.length ≤ i := by omega
+    rw [U64.Insts.CoreIterTraitsAccumSumU64.sumFrom.eq_def]
+    simp [core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next,
+      core.slice.iter.IteratorSliceIter.next, Nat.not_lt.mpr hge,
+      List.drop_eq_nil_of_le hge]
+  | succ n ih =>
+    intro i acc hn hfit
+    have hlt : i < s.val.length := by omega
+    have hdrop : s.val.drop i = s.val[i] :: s.val.drop (i + 1) := List.drop_eq_getElem_cons hlt
+    rw [hdrop, List.map_cons, List.sum_cons] at hfit ⊢
+    rw [U64.Insts.CoreIterTraitsAccumSumU64.sumFrom.eq_def]
+    simp only [core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next,
+      core.slice.iter.IteratorSliceIter.next, Slice.len_val, hlt, ↓reduceDIte, bind_ok, hf]
+    step as ⟨acc', hacc'⟩
+    change acc'.val = acc.val + (g s.val[i]).val at hacc'
+    apply WP.spec_mono (ih (i + 1) acc' (by omega) (by omega))
+    intro r hr
+    omega
+
+private theorem u64_add_overflow (x y : U64) (h : U64.max < x.val + y.val) :
+    x + y = fail .integerOverflow := by
+  have hlt : ¬ (x.val + y.val < 18446744073709551616) := by scalar_tac
+  simp [HAdd.hAdd, UScalar.add, UScalar.tryMk, UScalar.tryMkOpt, Result.ofOption]
+  simp only [Add.add, Nat.add_eq] at *
+  simp [hlt]
+
+private theorem u64_add_ok (x y : U64) (h : x.val + y.val ≤ U64.max) :
+    ∃ z : U64, x + y = ok z ∧ z.val = x.val + y.val := by
+  have hlt : x.val + y.val < 18446744073709551616 := by scalar_tac
+  simp [HAdd.hAdd, UScalar.add, UScalar.tryMk, UScalar.tryMkOpt, Result.ofOption]
+  simp only [Add.add, Nat.add_eq] at *
+  simp [hlt]
+
+private theorem sliceIter_next_of_lt {T : Type} (s : Slice T) (i : Nat)
+    (h : i < s.val.length) :
+    core.slice.iter.IteratorSliceIter.next ⟨s, i⟩ = ok (some s.val[i], ⟨s, i + 1⟩) := by
+  simp [core.slice.iter.IteratorSliceIter.next, h]
+  rfl
+
+/-- If `acc` plus the remaining mapped values exceeds `u64::MAX`, checked
+    summation fails with an integer overflow (a panic in Rust). -/
+theorem _root_.U64.Insts.CoreIterTraitsAccumSumU64.sumFrom_map_slice_overflow {T F : Type}
+    (fInst : core.ops.function.FnMut F T U64) (f : F) (g : T → U64)
+    (hf : ∀ x, fInst.call_mut f x = ok (g x, f)) (s : Slice T) :
+    ∀ (i : Nat) (acc : U64),
+      U64.max < acc.val + ((s.val.drop i).map fun x => (g x).val).sum →
+      U64.Insts.CoreIterTraitsAccumSumU64.sumFrom
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) acc ⟨⟨s, i⟩, f⟩ =
+        fail .integerOverflow := by
+  suffices ∀ n (i : Nat) (acc : U64), s.val.length - i = n →
+      U64.max < acc.val + ((s.val.drop i).map fun x => (g x).val).sum →
+      U64.Insts.CoreIterTraitsAccumSumU64.sumFrom
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) acc ⟨⟨s, i⟩, f⟩ =
+        fail .integerOverflow from
+    fun i acc => this _ i acc rfl
+  intro n
+  induction n with
+  | zero =>
+    intro i acc hn hover
+    have hge : s.val.length ≤ i := by omega
+    simp [List.drop_eq_nil_of_le hge] at hover
+    scalar_tac
+  | succ n ih =>
+    intro i acc hn hover
+    have hlt : i < s.val.length := by omega
+    have hdrop : s.val.drop i = s.val[i] :: s.val.drop (i + 1) := List.drop_eq_getElem_cons hlt
+    rw [hdrop, List.map_cons, List.sum_cons] at hover
+    rw [U64.Insts.CoreIterTraitsAccumSumU64.sumFrom.eq_def]
+    simp only [core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next,
+      sliceIter_next_of_lt s i hlt]
+    simp [hf]
+    by_cases hstep : acc.val + (g s.val[i]).val ≤ U64.max
+    · obtain ⟨acc', hacc', hval⟩ := u64_add_ok acc (g s.val[i]) hstep
+      rw [hacc', bind_ok]
+      exact ih (i + 1) acc' (by omega) (by omega)
+    · rw [u64_add_overflow _ _ (by omega)]
+      simp
+
+private theorem usize_cast_u64_val' (x : Usize) : (UScalar.cast .U64 x).val = x.val := by
+  apply UScalar.cast_val_mod_pow_greater_numBits_eq
+  cases System.Platform.numBits_eq <;> simp_all [UScalarTy.numBits]
+
+/-- `memory_size` returns the total region length whenever it fits in `u64`.
+    Each region contributes `mapping.size() as u64`, which is exact. -/
+@[step]
+theorem memory_size_spec (self : GuestMemory) (h : self.totalLength ≤ U64.max) :
+    self.memory_size ⦃ size => size.val = self.totalLength ⦄ := by
+  unfold memory_size
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok,
+    core.iter.traits.iterator.Iterator.map.default, core.iter.traits.iterator.Iterator.sum.default,
+    U64.Insts.CoreIterTraitsAccumSumU64.sum]
+  have hf : ∀ r : MemoryRegion,
+      memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut () r =
+        ok (UScalar.cast .U64 r.mapping.length, ()) := by
+    intro r
+    simp [memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut,
+      base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size, lift]
+  have hmap : (fun r : MemoryRegion => (UScalar.cast .U64 r.mapping.length).val) =
+      fun r => r.mapping.length.val := by
+    funext r
+    exact usize_cast_u64_val' _
+  have := U64.Insts.CoreIterTraitsAccumSumU64.sumFrom_map_slice_spec
+    memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64 ()
+    (fun r => UScalar.cast .U64 r.mapping.length) hf self.regions.val
+    0 0#u64 (by simpa [hmap, totalLength] using h)
+  simpa [hmap, totalLength] using this
+
+/-- If the total exceeds `u64::MAX`, `memory_size` panics on overflow;
+    `WellFormed.totalLength_le` rules this out. -/
+theorem memory_size_overflow (self : GuestMemory) (h : U64.max < self.totalLength) :
+    self.memory_size = fail .integerOverflow := by
+  unfold memory_size
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok,
+    core.iter.traits.iterator.Iterator.map.default, core.iter.traits.iterator.Iterator.sum.default,
+    U64.Insts.CoreIterTraitsAccumSumU64.sum]
+  have hf : ∀ r : MemoryRegion,
+      memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut () r =
+        ok (UScalar.cast .U64 r.mapping.length, ()) := by
+    intro r
+    simp [memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut,
+      base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size, lift]
+  have hmap : (fun r : MemoryRegion => (UScalar.cast .U64 r.mapping.length).val) =
+      fun r => r.mapping.length.val := by
+    funext r
+    exact usize_cast_u64_val' _
+  exact U64.Insts.CoreIterTraitsAccumSumU64.sumFrom_map_slice_overflow
+    memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64 ()
+    (fun r => UScalar.cast .U64 r.mapping.length) hf self.regions.val
+    0 0#u64 (by simpa [hmap, totalLength] using h)
 
 end vm_memory.guest_memory.GuestMemory

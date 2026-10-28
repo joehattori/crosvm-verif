@@ -24,6 +24,32 @@ noncomputable section
 
 namespace vm_memory
 
+/-- Trait implementation: [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}]
+    Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 99:0-101:27
+    Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>] -/
+@[reducible, rust_trait_impl
+  "core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>"]
+impl_def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator {B :
+  Type} {I : Type} {F : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst
+  : core.iter.traits.iterator.Iterator I Clause0_Item)
+  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
+  Clause0_Item B) : core.iter.traits.iterator.Iterator
+  (core.iter.adapters.map.Map I F) B := {
+  next := core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
+    traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemBInst
+}
+
+/-- Trait implementation: [core::iter::traits::accum::{impl core::iter::traits::accum::Sum<u64> for u64}]
+    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 50:8-50:23
+    Name pattern: [core::iter::traits::accum::Sum<u64, u64>] -/
+@[reducible, rust_trait_impl "core::iter::traits::accum::Sum<u64, u64>"]
+def U64.Insts.CoreIterTraitsAccumSumU64 : core.iter.traits.accum.Sum Std.U64
+  Std.U64 := {
+  sum := fun {I : Type} (iteratorIteratorPU64Inst :
+    core.iter.traits.iterator.Iterator I Std.U64) =>
+    U64.Insts.CoreIterTraitsAccumSumU64.sum iteratorIteratorPU64Inst
+}
+
 /-- [core::option::{core::option::Option<T>}::unwrap_or_else]:
     Source: '/rustc/library/core/src/option.rs', lines 1061:4-1063:52
     Name pattern: [core::option::{core::option::Option<@T>}::unwrap_or_else]
@@ -1449,6 +1475,74 @@ def guest_memory.GuestMemory.impl.locked
 def guest_memory.GuestMemory.impl.use_punchhole_locked
   (self : guest_memory.GuestMemory) : Result Bool := do
   ok self.use_punchhole_locked
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
+def
+  guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut
+  (c : guest_memory.GuestMemory.memory_size.closure)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (Std.U64 × guest_memory.GuestMemory.memory_size.closure)
+  := do
+  let i ←
+    base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size tupled_args.mapping
+  let i1 ← lift (UScalar.cast .U64 i)
+  ok (i1, c)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
+def
+  guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64.call_once
+  (c : guest_memory.GuestMemory.memory_size.closure)
+  (mr : guest_memory.MemoryRegion) :
+  Result Std.U64
+  := do
+  let (i, _) ←
+    guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut
+      c mr
+  ok i
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64
+  : core.ops.function.FnOnce guest_memory.GuestMemory.memory_size.closure
+  guest_memory.MemoryRegion Std.U64 := {
+  call_once :=
+    guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64
+  : core.ops.function.FnMut guest_memory.GuestMemory.memory_size.closure
+  guest_memory.MemoryRegion Std.U64 := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64
+  call_mut :=
+    guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 478:4-483:5
+    Visibility: public -/
+def guest_memory.GuestMemory.memory_size
+  (self : guest_memory.GuestMemory) : Result Std.U64 := do
+  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let i ← core.slice.Slice.iter s
+  let m ←
+    core.iter.traits.iterator.Iterator.map.default
+      (core.iter.traits.iterator.IteratorSliceIter guest_memory.MemoryRegion)
+      guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64
+      i ()
+  core.iter.traits.iterator.Iterator.sum.default
+    (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+    (core.iter.traits.iterator.IteratorSliceIter guest_memory.MemoryRegion)
+    guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64)
+    U64.Insts.CoreIterTraitsAccumSumU64 m
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
