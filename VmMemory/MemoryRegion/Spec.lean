@@ -77,11 +77,26 @@ theorem end_no_overflow_spec (self : MemoryRegion) (h : ValidBounds self) :
   exact hr.val_eq_of_valid h
 
 /-- Membership uses the endpoint specified by EndOutcome, even if it wraps. -/
+def ContainsOutcome (self : MemoryRegion) (addr : GuestAddress) (b : Bool) : Prop :=
+  ∃ endAddr, EndOutcome self endAddr ∧
+    (b = true ↔ self.guest_base.val ≤ addr.val ∧ addr.val < endAddr.val)
+
+/-- `ContainsOutcome` determines the result: it holds for `b` exactly when `b`
+    agrees with whether it holds for `true`. -/
+theorem ContainsOutcome.eq_true_iff {self : MemoryRegion} {addr : GuestAddress} {b : Bool}
+    (h : self.ContainsOutcome addr b) : b = true ↔ self.ContainsOutcome addr true := by
+  obtain ⟨endAddr, he, hb⟩ := h
+  constructor
+  · intro hbt
+    exact ⟨endAddr, he, by simp [← hb, hbt]⟩
+  · rintro ⟨endAddr', he', hb'⟩
+    have : endAddr' = endAddr := he'.trans he.symm
+    subst this
+    exact hb.mpr (hb'.mp rfl)
+
 @[step]
 theorem contains_spec (self : MemoryRegion) (addr : GuestAddress) :
-    self.contains addr ⦃ b =>
-      ∃ endAddr, EndOutcome self endAddr ∧
-        (b = true ↔ self.guest_base.val ≤ addr.val ∧ addr.val < endAddr.val) ⦄ := by
+    self.contains addr ⦃ b => self.ContainsOutcome addr b ⦄ := by
   unfold MemoryRegion.contains
   step as ⟨b, hb⟩
   split

@@ -1436,4 +1436,90 @@ def guest_memory.MemoryRegion.contains_range
         ga
     else ok false
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::locked]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 447:4-449:5
+    Visibility: public -/
+def guest_memory.GuestMemory.impl.locked
+  (self : guest_memory.GuestMemory) : Result Bool := do
+  ok self.locked
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::use_punchhole_locked]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 452:4-454:5
+    Visibility: public -/
+def guest_memory.GuestMemory.impl.use_punchhole_locked
+  (self : guest_memory.GuestMemory) : Result Bool := do
+  ok self.use_punchhole_locked
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
+def
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+  (c : guest_memory.GuestMemory.address_in_range.closure)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (Bool × guest_memory.GuestMemory.address_in_range.closure)
+  := do
+  let b ← guest_memory.MemoryRegion.contains tupled_args c
+  ok (b, c)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
+def
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool.call_once
+  (c : guest_memory.GuestMemory.address_in_range.closure)
+  (mr : guest_memory.MemoryRegion) :
+  Result Bool
+  := do
+  let (b, _) ←
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+      c mr
+  ok b
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool
+  : core.ops.function.FnOnce guest_memory.GuestMemory.address_in_range.closure
+  guest_memory.MemoryRegion Bool := {
+  call_once :=
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool
+  : core.ops.function.FnMut guest_memory.GuestMemory.address_in_range.closure
+  guest_memory.MemoryRegion Bool := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool
+  call_mut :=
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 486:4-488:5
+    Visibility: public -/
+def guest_memory.GuestMemory.address_in_range
+  (self : guest_memory.GuestMemory) (addr : guest_address.GuestAddress) :
+  Result Bool
+  := do
+  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let i ← core.slice.Slice.iter s
+  let (b, _) ←
+    core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
+      guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool
+      i addr
+  ok b
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::num_regions]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 531:4-533:5
+    Visibility: public -/
+def guest_memory.GuestMemory.num_regions
+  (self : guest_memory.GuestMemory) : Result Std.U64 := do
+  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let i := Slice.len s
+  ok (UScalar.cast .U64 i)
+
 end vm_memory

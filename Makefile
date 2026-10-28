@@ -105,6 +105,10 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::MemoryRegion::new_from_shm' \
 		--start-from 'crate::guest_memory::MemoryRegion::new_from_file' \
 		--start-from 'crate::guest_memory::GuestMemory' \
+		--start-from 'crate::guest_memory::GuestMemory::locked' \
+		--start-from 'crate::guest_memory::GuestMemory::use_punchhole_locked' \
+		--start-from 'crate::guest_memory::GuestMemory::num_regions' \
+		--start-from 'crate::guest_memory::GuestMemory::address_in_range' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \

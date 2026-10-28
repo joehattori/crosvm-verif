@@ -40,7 +40,20 @@ def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type} (_A : Type)
     (self : alloc.sync.Arc T) : Result T :=
   ok self.val
 
-/-- Descriptor accessor stored in the file's trait instance. -/
+/-- Short-circuiting `Iterator::any` for slice iterators: call the predicate on
+    each remaining element in order, stop after the first accepted element, and
+    return the advanced iterator. Predicate state is threaded between calls. -/
+@[rust_fun
+  "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any"]
+def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
+    {T F : Type} (fnMutInst : core.ops.function.FnMut F T Bool)
+    (it : core.slice.iter.Iter T) (f : F) : Result (Bool × core.slice.iter.Iter T) :=
+  if h : it.i < it.slice.val.length then do
+    let call ← fnMutInst.call_mut f it.slice.val[it.i]
+    if call.1 then ok (true, { it with i := it.i + 1 })
+    else any fnMutInst { it with i := it.i + 1 } call.2
+  else ok (false, it)
+termination_by it.slice.val.length - it.i
 @[rust_fun
   "base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor"]
 def std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor

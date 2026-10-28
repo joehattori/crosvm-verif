@@ -52,6 +52,17 @@ axiom core.ptr.mut_ptr.RawPtrMutT.is_null
 axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
   {T : Type} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
 
+/-- [core::slice::iter::{impl core::iter::traits::iterator::Iterator<&'a T> for core::slice::iter::Iter<'a, T>}::any]:
+    Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 321:12-324:45
+    Name pattern: [core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any]
+    Visibility: public -/
+@[rust_fun
+  "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any"]
+axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
+  {T : Type} {F : Type} (opsfunctionFnMutFTupleSharedATBoolInst :
+  core.ops.function.FnMut F T Bool) :
+  core.slice.iter.Iter T → F → Result (Bool × (core.slice.iter.Iter T))
+
 /-- [alloc::sync::{impl core::ops::deref::Deref<T> for alloc::sync::Arc<T>}::deref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 2570:4-2570:25
     Name pattern: [alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref]

@@ -20,7 +20,9 @@ The default build checks these specification modules:
 - [GuestMemory/Spec.lean](GuestMemory/Spec.lean): the `WellFormed` region
   invariant (representable ends; each region ends before every later one starts)
   and its consequences: sorted bases, at most one region per address, and a total
-  length that fits in `u64`. No `GuestMemory` methods are verified yet.
+  length that fits in `u64`. Verified methods: `locked`, `use_punchhole_locked`,
+  `num_regions`, and `address_in_range`, with its mathematical form under
+  `WellFormed`.
 
 The specifications define the exact contracts and preconditions. The
 non-overflow corollaries require `ValidBounds`. The remaining MemoryRegion
