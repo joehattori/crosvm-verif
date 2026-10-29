@@ -7,9 +7,8 @@ Verification covers selected operations on
 [SystemAllocator](SystemAllocator/Spec.lean). These specification modules define
 the exact coverage, guarantees, and preconditions.
 
-The default build also checks `GuestAddress` operations, `MemoryRegion`'s
-four interval queries, and selected builder methods; see
-[VmMemory](../VmMemory/README.md) for coverage, preconditions, and extraction details.
+The default build also checks the `vm_memory` specifications; see
+[VmMemory](../VmMemory/README.md).
 
 The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
 
