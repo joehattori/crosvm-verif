@@ -82,9 +82,4 @@ def MunmapReturnSpec (pageSize : Usize) (addr : VoidPtr) (len : Usize) (ret : I3
   _root_.libc_1.unix.munmap addr len = ok ret ∧
   (ret = 0#i32 → 0 < pageSize.val ∧ addr.addr.val % pageSize.val = 0 ∧ 0 < len.val)
 
-/-- Guarded syscall assumption. Failure is permitted: the caller ignores the C
-    status. The state model removes pages only when the returned code is zero. -/
-def MunmapSpec (pageSize : Usize) (allowed : VoidPtr → Usize → Prop) : Prop :=
-  ∀ addr len, allowed addr len → ∃ ret, MunmapReturnSpec pageSize addr len ret
-
 end Syscalls.Mmap

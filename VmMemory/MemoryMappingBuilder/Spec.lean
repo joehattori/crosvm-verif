@@ -84,31 +84,29 @@ theorem BuildOutcome.mapped_properties [Platform64] {self : MemoryMappingBuilder
   · simp at hOut
   · obtain ⟨hfd, h⟩ := hOut
     refine ⟨h.size_eq, hfd, h.not_map_failed, h.range_fits, ?_, ?_⟩
-    · intro _ ha
-      exact h.default_alignment rfl (by simp [ha])
+    · intro _ _
+      exact h.page_aligned
     · rintro a hpos (⟨_, ha⟩ | ⟨_, ha⟩)
       · have hrequested := h.requested_alignment
         rw [ha] at hrequested
-        exact hrequested hpos
+        exact (hrequested hpos).2
       · cases halign : self.align with
         | none => simp [halign] at ha; subst a; simp at hpos
         | some b =>
           have hab : b = a := by simpa [halign] using ha
           have hrequested := h.requested_alignment
           rw [halign, hab] at hrequested
-          exact hrequested hpos
+          exact (hrequested hpos).2
 
-/-- Default page alignment also holds for descriptor-backed builds and for an
-    explicitly zero alignment request. -/
-theorem BuildOutcome.default_page_alignment {self : MemoryMappingBuilder}
+/-- Every successful build is page aligned, regardless of its requested alignment. -/
+theorem BuildOutcome.page_aligned {self : MemoryMappingBuilder}
     {pageSize : Usize} {mapping : MemoryMapping}
-    (hOut : BuildOutcome self pageSize (.Ok mapping))
-    (hAlign : self.align.getD 0#u64 = 0#u64) :
+    (hOut : BuildOutcome self pageSize (.Ok mapping)) :
     mapping.mapping.addr.addr.val % pageSize.val = 0 := by
   unfold BuildOutcome at hOut
   split at hOut
   · simp at hOut
-  · exact hOut.2.default_alignment rfl hAlign
+  · exact hOut.2.page_aligned
 
 @[step]
 theorem new_spec (size : Usize) :
@@ -152,6 +150,7 @@ private theorem unwrap_or_eq_getD {T : Type} (value : Option T) (fallback : T) :
 @[step]
 theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo)
     (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
     (hMunmap : MunmapSpec pageSize
@@ -169,7 +168,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
       simp only [Bool.false_eq_true, ↓reduceIte]
       simp only [effective_protection_eq, bind_ok]
       step with new_protection_spec pageSize self.size self.align self.effectiveProtection
-        hPage hMmap hMunmap as ⟨created, hc⟩
+        hPage hPagePow hMmap hMunmap as ⟨created, hc⟩
       cases created with
       | Ok mapping =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
@@ -187,7 +186,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     simp only [effective_protection_eq, bind_ok]
     step with from_fd_offset_protection_populate_spec pageSize descriptor self.size
       (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate
-      hPage (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
+      hPage hPagePow (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
     cases created with
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]

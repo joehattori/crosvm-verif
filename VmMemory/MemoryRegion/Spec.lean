@@ -314,6 +314,7 @@ def NewFromShmOutcome (pageSize : Usize) (size : U64) (guest_base : GuestAddress
 theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64)
     (shm : alloc.sync.Arc base.shm.SharedMemory) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo)
     (hMmap : MmapSpec pageSize) :
     new_from_shm size guest_base offset shm ⦃ result =>
       NewFromShmOutcome pageSize size guest_base offset shm result ⦄ := by
@@ -328,7 +329,7 @@ theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64
   have hNone : withOffset.align = none := by
     rw [show withOffset = _ from hOff, show configured = _ from hConf,
       show builder = _ from hNew]
-  step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage
+  step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage hPagePow
     (by rw [hDesc]; rintro d ⟨⟩; exact ⟨_, rfl⟩) hMmap (hNone ▸ MunmapSpec.of_none _ _ _)
     as ⟨built, hBuilt⟩
   apply WP.spec_mono (mapped_region_spec built guest_base (.Shm shm) offset)
@@ -394,6 +395,7 @@ def NewFromFileOutcome (pageSize : Usize) (size : U64) (guest_base : GuestAddres
 theorem new_from_file_spec (size : U64) (guest_base : GuestAddress) (offset : U64)
     (file : alloc.sync.Arc std.fs.File) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo)
     (hMmap : MmapSpec pageSize) :
     new_from_file size guest_base offset file ⦃ result =>
       NewFromFileOutcome pageSize size guest_base offset file result ⦄ := by
@@ -408,7 +410,7 @@ theorem new_from_file_spec (size : U64) (guest_base : GuestAddress) (offset : U6
   have hNone : withOffset.align = none := by
     rw [show withOffset = _ from hOff, show configured = _ from hConf,
       show builder = _ from hNew]
-  step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage
+  step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage hPagePow
     (by rw [hDesc]; rintro d ⟨⟩; exact ⟨_, rfl⟩) hMmap (hNone ▸ MunmapSpec.of_none _ _ _)
     as ⟨built, hBuilt⟩
   apply WP.spec_mono (mapped_region_spec built guest_base (.File file) offset)
