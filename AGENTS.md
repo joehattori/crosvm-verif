@@ -9,19 +9,14 @@ descriptions in their respective READMEs rather than duplicating them here.
 
 | Path | Role |
 | --- | --- |
-| [crosvm/](crosvm/) | Pinned upstream Rust submodule; the current sources of interest are [address_range.rs](crosvm/resources/src/address_range.rs) and [address_allocator.rs](crosvm/resources/src/address_allocator.rs). |
-| [aeneas/](aeneas/) | Pinned toolchain submodule, including the [Lean library](aeneas/backends/lean/) and [examples](aeneas/tests/lean/). |
-| [Resources/Types.lean](Resources/Types.lean), [Resources/Funs.lean](Resources/Funs.lean) | Generated types and functions. |
-| [Resources/TypesExternal_Template.lean](Resources/TypesExternal_Template.lean), [Resources/FunsExternal_Template.lean](Resources/FunsExternal_Template.lean) | Generated declarations for missing external models. |
-| [Resources/TypesExternal.lean](Resources/TypesExternal.lean), [Resources/FunsExternal.lean](Resources/FunsExternal.lean) | Handwritten external type and function models. |
-| [Resources/AddressRange/Spec.lean](Resources/AddressRange/Spec.lean) | Mathematical predicates and proofs for address ranges. |
-| [Resources/AddressAllocator/Collections.lean](Resources/AddressAllocator/Collections.lean) | Free-region invariant, key equality, and collection operation proofs. |
-| [Resources/AddressAllocator/Spec.lean](Resources/AddressAllocator/Spec.lean) | Allocator method proofs, including aligned fits and ordered search. |
-| [Utils/Alignment.lean](Utils/Alignment.lean) | Shared alignment definitions and arithmetic lemmas. |
-| [Resources/SystemAllocator/Spec.lean](Resources/SystemAllocator/Spec.lean) | System allocator method proofs. |
-| [Resources/README.md](Resources/README.md) | Verification outline and extraction prerequisites. |
+| [crosvm/](crosvm/) | Pinned upstream Rust submodule. The Makefile's `--start-from` and `--include` lines select the extracted items from the `resources`, `vm_memory`, and `base` crates. |
+| [aeneas/](aeneas/) | Pinned toolchain submodule: our fork of Aeneas, which also pins and patches Charon. |
+| [Resources/](Resources/), [VmMemory/](VmMemory/) | One directory per extracted crate. `Types.lean` and `Funs.lean` are generated; `*External_Template.lean` are generated declarations for missing external models; `TypesExternal.lean` and `FunsExternal.lean` are the handwritten models. `<Item>/Spec.lean` modules (plus helpers such as `AddressAllocator/Collections.lean`) hold the specifications and proofs. Each `README.md` gives the verified scope and its exceptions. |
+| [Syscalls/](Syscalls/) | Trusted system call contracts and flag constants, e.g. `mmap(2)` and `munmap(2)` for the `MemoryMapping` proofs. |
+| [Utils/](Utils/) | Code shared by both crates: alignment arithmetic, models of Rust core items (`CoreExternal.lean`), and the `Platform64` assumption. |
+| [Resources.lean](Resources.lean), [lakefile.lean](lakefile.lean) | `Resources.lean` is the default build target and imports every specification module; the lakefile defines the `Resources`, `VmMemory`, `Utils`, and `Syscalls` libraries. |
+| [Makefile](Makefile), [scripts/](scripts/) | Extraction (`make extract`, `make aeneas-bin`) and running Charon in crosvm's development container. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
-| [Resources.lean](Resources.lean) | Library entry point checked by the default build. |
 
 # Editing rules
 
@@ -29,7 +24,8 @@ descriptions in their respective READMEs rather than duplicating them here.
   the translator as appropriate, then regenerate; do not hand-edit generated
   definitions to make a proof succeed.
 - Keep proofs in handwritten specification modules. Maintain external models
-  in `FunsExternal.lean`; do not overwrite it with the generated template.
+  in the handwritten `TypesExternal.lean`, `FunsExternal.lean`, and
+  `Utils/CoreExternal.lean`; do not overwrite them with the generated templates.
   After extraction, reconcile any changed template signatures and inspect the
   generated diff before updating proofs.
 - Import new specification modules in `Resources.lean` so the default build
@@ -68,6 +64,14 @@ descriptions in their respective READMEs rather than duplicating them here.
   their definitions in callers. Add only the caller's policy, result conversion,
   and connections between intermediate states. Keep bounds needed solely to
   justify casts or arithmetic inside the proof when they follow from the contract.
+- Use encapsulated results as much as possible. When the Rust code delegates a
+  check to a library operation, state the outcome through that operation's
+  result instead of restating its condition by hand. For example, for
+  `size.checked_add(align as usize)` write
+  `Usize.checked_add size (UScalar.cast .Usize a) = none` (or `= some s`), not
+  `Usize.max < size.val + a.val` (or `s.val = size.val + a.val`). Derive the
+  arithmetic in a lemma, with any extra preconditions it needs, where a proof
+  or corollary uses it.
 - Introduce predicates for reusable concepts or to clarify composition; avoid
   overlapping predicates that restate the same behavior. Put reusable
   consequences in lemmas on the existing predicate, and keep implementation
@@ -76,6 +80,11 @@ descriptions in their respective READMEs rather than duplicating them here.
 - Respect bounded Rust arithmetic. Use `U64.val` and `U64.max` to express
   mathematical bounds, and discharge overflow and underflow obligations.
   Distinguish an expected `Option.none` return from failure in Aeneas's `Result`.
+- crosvm supports only 64-bit hosts. When a proof needs 64-bit `usize` (e.g. a
+  lossless `u64 as usize` cast or `Usize.max = U64.max`), take `[Platform64]`
+  from `Utils/Platform.lean` and use its lemmas. Place `[Platform64]` before any
+  hypotheses. Do not add per-value fit hypotheses such as `x.val ≤ Usize.max`
+  for `u64` values, and do not keep specifications generic over 32-bit hosts.
 - Preserve the source semantics of inclusive address ranges: emptiness is
   `end < start`, and any such pair represents an empty range. Rust equality
   considers all empty ranges equal; Lean structure equality compares fields.
