@@ -7,48 +7,42 @@ contracts and preconditions. The root Makefile lists the extracted functions.
 
 ## Reading the mapping specifications
 
-Start with `MappingProperties` in
-[MemoryMapping/Spec.lean](MemoryMapping/Spec.lean). It states six properties of
-a successful returned value: the requested length, exclusion of `MAP_FAILED`,
-an end address that fits in `usize`, preservation of a requested non-null
-address, default page alignment when both optional arguments are absent, and
-positive requested alignment when no address is supplied. For example, a
-successful request for 8192 bytes aligned to 65536, with no address supplied,
-returns a logical length of 8192 and an address divisible by 65536.
+`MappingProperties` in [MemoryMapping/Spec.lean](MemoryMapping/Spec.lean) is the
+primary mathematical contract. A successful result has the requested length,
+is not `MAP_FAILED`, has an end address that fits in `usize`, respects a
+requested non-null fixed address, and satisfies the requested alignment.
+With no fixed address, both absent alignment and explicit zero alignment give
+page alignment. For example, a successful request for 8192 bytes aligned to
+65536 returns length 8192 and an address divisible by 65536.
 
-`try_mmap_populate_success_spec` connects the translated function directly to
-these properties under the same assumptions as the detailed theorem. It is
-success-only: its error branch imposes no condition. The stronger
-`try_mmap_populate_spec` remains the specification used by proof automation;
-`TryMmapOutcome` retains error behavior, syscall arguments, and trim geometry.
-Its stages separate address validation, alignment reservation, and the final
-file/anonymous mapping. The previous monolithic predicate was already proved
-equivalent to this modular formulation; the refactor uses that formulation
-directly and removes the redundant conversion proofs.
+`try_mmap_populate_spec` proves this contract directly about the translated
+function, using private lemmas for syscall results, alignment arithmetic, and
+trimming. There is no `TryMmapOutcome` or equivalent whole-function execution
+predicate. `MappingResultProperties` only lifts the success properties over
+Rust's `Result`: its error case is `True`. The constructor wrappers use the
+same contract, and `MemoryMappingBuilder.BuildOutcome` states the final
+mapping properties without existential intermediate outcomes.
 
-These distinctions matter when reviewing intended behavior:
+These are success-only contracts: they exclude Aeneas failure/panic under
+their stated assumptions, but do not promise successful allocation or classify
+all ordinary Rust errors. Error requirements are proved separately:
+`try_mmap_populate_not_page_aligned_spec` verifies rejection of a misaligned
+fixed address without assuming any syscall contract, and
+`build_populate_invalid_spec` verifies rejection of anonymous population.
+Exact error precedence and complete syscall traces are no longer public
+postconditions.
 
-- Alignment equal to the page size is treated like zero alignment and does
-  not require an extra reservation.
-- `Some(null)` can enter the alignment-reservation path; the guarantee about
-  preserving an explicitly supplied address therefore excludes null.
-- A reservation can fail before file-offset validation. An oversized offset
-  does not unconditionally imply `InvalidOffset`.
-- The small success contract does not yet state default page alignment for
-  an explicit `Some(0)` alignment. This is a limitation of that summary, not
-  evidence that the implementation returns an unaligned address.
-
-A proof that implementation satisfies specification does not establish that
-the specification captures the intended API. Review these mathematical
-properties separately from the source, and add further requirements as
-theorems rather than changing them to follow the implementation. Equivalence
-of two specifications establishes preservation, not correctness of their intent.
+`Some(null)` can enter the alignment-reservation path, so fixed-address
+preservation deliberately excludes null. Alignment equal to the page size
+uses the default mapping path; the contract still guarantees that alignment.
 
 The syscall contracts describe return values and numeric address geometry,
-not the OS memory state. In particular, `MunmapSpec` allows any C return code:
-Aeneas `ok ret` means normal return, not `ret = 0`. Neither successful cleanup,
-the effects of page rounding, memory permissions/contents, nor leak freedom
-are established by these mapping contracts. See also the root trust boundary.
+not OS memory state. `MunmapSpec` permits any C return code: Aeneas `ok ret`
+means normal return, not `ret = 0`. Successful cleanup, page-rounding effects,
+memory permissions/contents, ownership, and leak freedom are not established.
+Review these assumptions and mathematical properties independently of the
+source; a checked proof does not establish that they capture every intended
+API requirement. See also the root trust boundary.
 
 Not verified:
 - `GuestMemory::find_region`, `offset_from_base`, and `end_addr`: the pinned

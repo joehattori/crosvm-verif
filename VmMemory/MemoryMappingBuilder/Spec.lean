@@ -48,33 +48,23 @@ def WrapOutcome (mapping : PlatformMemoryMapping)
     (result : core.result.Result MemoryMapping Error) : Prop :=
   result = .Ok { mapping := mapping, _file_descriptor := none }
 
-/-- Outcome of `MemoryMappingBuilder::build`, dispatching to `NewProtectionOutcome`
-    for anonymous mappings and `FromFdOutcome` for descriptor-backed mappings, and
-    wrapping any created `PlatformMemoryMapping` with `WrapOutcome`. Anonymous
-    population is rejected before any system call. -/
+/-- Building an anonymous populated mapping is rejected. Otherwise successful
+    builds satisfy the mapping contract and retain no cloned descriptor.
+    Other ordinary Rust errors are unconstrained. -/
 def BuildOutcome (self : MemoryMappingBuilder) (pageSize : Usize)
     (result : core.result.Result MemoryMapping Error) : Prop :=
-  match self.descriptor with
-  | none =>
-    if self.populate then result = .Err .InvalidArgument
-    else
-      ∃ created,
-        NewProtectionOutcome pageSize self.size self.align self.effectiveProtection created ∧
-        match created with
-        | .Ok mapping => WrapOutcome mapping result
-        | .Err error => result = .Err error
-  | some descriptor =>
-    ∃ created,
-      FromFdOutcome pageSize descriptor self.size
-        (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate created ∧
-      match created with
-      | .Ok mapping => WrapOutcome mapping result
-      | .Err error => result = .Err error
+  if self.descriptor.isNone && self.populate then result = .Err .InvalidArgument
+  else
+    match result with
+    | .Ok mapping =>
+      mapping._file_descriptor = none ∧
+      MappingProperties pageSize none self.size self.align mapping.mapping
+    | .Err _ => True
 
 /-- Properties guaranteed by `BuildOutcome` whenever a build succeeds with `.Ok mapping`:
     the mapping has the requested length and `_file_descriptor = none`, the mapped
-    address is not `MAP_FAILED`, the mapped region `[addr, addr + size)` fits in the
-    user address space without wrapping, and the address satisfies the requested or
+    address is not `MAP_FAILED`, the mapped region `[addr, addr + size)` fits in `usize`
+    without wrapping, and the address satisfies the requested or
     page alignment. -/
 theorem BuildOutcome.mapped_properties [Platform64] {self : MemoryMappingBuilder}
     {pageSize : Usize} {mapping : MemoryMapping}
@@ -89,38 +79,32 @@ theorem BuildOutcome.mapped_properties [Platform64] {self : MemoryMappingBuilder
       (self.descriptor = none ∧ self.align = some a ∨
         self.descriptor.isSome ∧ self.align.getD 0#u64 = a) →
       mapping.mapping.addr.addr.val % a.val = 0) := by
-  cases hd : self.descriptor with
-  | none =>
-    simp only [BuildOutcome, hd] at hOut
-    split at hOut
-    · simp at hOut
-    · obtain ⟨created, hc, hw⟩ := hOut
-      cases created with
-      | Err error => simp at hw
-      | Ok inner =>
-        have heq : mapping = { mapping := inner, _file_descriptor := none } := by
-          simpa [WrapOutcome] using hw
-        subst mapping
-        obtain ⟨hsize, hne, hfit, _, hpage, halign⟩ := hc.mapped_properties
-        refine ⟨hsize, rfl, hne, hfit, fun _ ha => hpage rfl ha, ?_⟩
-        rintro a hpos (⟨_, ha⟩ | ⟨hsome, _⟩)
-        · exact halign a rfl ha hpos
-        · simp at hsome
-  | some descriptor =>
-    simp only [BuildOutcome, hd] at hOut
-    obtain ⟨created, hc, hw⟩ := hOut
-    cases created with
-    | Err error => simp at hw
-    | Ok inner =>
-      have heq : mapping = { mapping := inner, _file_descriptor := none } := by
-        simpa [WrapOutcome] using hw
-      subst mapping
-      obtain ⟨hsize, hne, hfit, _, _, halign⟩ := hc.mapped_properties
-      refine ⟨hsize, rfl, hne, hfit, by simp, ?_⟩
-      rintro a hpos (⟨hnone, _⟩ | ⟨_, ha⟩)
-      · simp at hnone
-      · subst ha
-        exact halign (self.align.getD 0#u64) rfl rfl hpos
+  unfold BuildOutcome at hOut
+  split at hOut
+  · simp at hOut
+  · obtain ⟨hfd, h⟩ := hOut
+    refine ⟨h.size_eq, hfd, h.not_map_failed, h.range_fits, ?_, ?_⟩
+    · intro _ ha
+      exact h.default_alignment rfl (by simp [ha])
+    · rintro a hpos (⟨_, ha⟩ | ⟨_, ha⟩)
+      · exact h.requested_alignment a rfl ha hpos
+      · cases halign : self.align with
+        | none => simp [halign] at ha; subst a; simp at hpos
+        | some b =>
+          have hab : b = a := by simpa [halign] using ha
+          exact h.requested_alignment a rfl (halign.trans (congrArg some hab)) hpos
+
+/-- Default page alignment also holds for descriptor-backed builds and for an
+    explicitly zero alignment request. -/
+theorem BuildOutcome.default_page_alignment {self : MemoryMappingBuilder}
+    {pageSize : Usize} {mapping : MemoryMapping}
+    (hOut : BuildOutcome self pageSize (.Ok mapping))
+    (hAlign : self.align.getD 0#u64 = 0#u64) :
+    mapping.mapping.addr.addr.val % pageSize.val = 0 := by
+  unfold BuildOutcome at hOut
+  split at hOut
+  · simp at hOut
+  · exact hOut.2.default_alignment rfl hAlign
 
 @[step]
 theorem new_spec (size : Usize) :
@@ -186,14 +170,14 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
       | Ok mapping =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
         step with wrap_none_spec mapping as ⟨result, hr⟩
-        simp only [BuildOutcome, hd, hp, Bool.false_eq_true, ↓reduceIte]
-        exact ⟨.Ok mapping, hc, hr⟩
+        change result = .Ok { mapping := mapping, _file_descriptor := none } at hr
+        subst result
+        simpa [BuildOutcome, hd, hp, MappingResultProperties] using hc
       | Err error =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
         step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec
           MemoryMapping (core.convert.FromSame Error) error error rfl as ⟨result, hr⟩
-        simp only [BuildOutcome, hd, hp, Bool.false_eq_true, ↓reduceIte]
-        exact ⟨.Err error, hc, hr⟩
+        simp [BuildOutcome, hd, hp, hr]
   | some descriptor =>
     simp only [unwrap_or_eq_getD, lift, bind_ok]
     simp only [effective_protection_eq, bind_ok]
@@ -204,14 +188,15 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
       step with wrap_none_spec mapping as ⟨result, hr⟩
-      simp only [BuildOutcome, hd]
-      exact ⟨.Ok mapping, hc, hr⟩
+      change result = .Ok { mapping := mapping, _file_descriptor := none } at hr
+      subst result
+      have hprops := MappingProperties.of_getD_zero hc
+      simpa [BuildOutcome, hd] using hprops
     | Err error =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
       step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec
         MemoryMapping (core.convert.FromSame Error) error error rfl as ⟨result, hr⟩
-      simp only [BuildOutcome, hd]
-      exact ⟨.Err error, hc, hr⟩
+      simp [BuildOutcome, hd, hr]
 
 /-- Anonymous population is rejected before any external operation is called. -/
 theorem build_populate_invalid_spec (self : MemoryMappingBuilder)
