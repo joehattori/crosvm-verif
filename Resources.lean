@@ -2,6 +2,7 @@ module
 public import Utils.Alignment
 public import Utils.Platform
 public import Syscalls.Mmap
+public import Syscalls.MappingState.Tests
 public import Resources.Types
 public import Resources.Funs
 public import Resources.AddressRange.Spec

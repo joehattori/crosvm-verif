@@ -154,7 +154,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec
+    (hMunmap : MunmapSpec pageSize
       (TryMmapTrimAllowed pageSize self.size self.align
         (protectionFlags self.effectiveProtection))) :
     base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result =>

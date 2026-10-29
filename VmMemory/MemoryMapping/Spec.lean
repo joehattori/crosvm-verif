@@ -1,6 +1,6 @@
 module
 public import VmMemory.Funs
-public import Syscalls.Mmap
+public import Syscalls.MappingState
 public import Utils.Alignment
 public import Utils.Platform
 import all Init.Data.Nat.Power2.Basic
@@ -130,8 +130,8 @@ def TryMmapTrimAllowed (pageSize : Usize) (size : Usize) (align : Option U64) (p
     IsTrimmedSubrange origAddr origSize (alignVoidPtr origAddr a) size unmapAddr unmapLen
 
 theorem MunmapSpec.of_getD_zero {pageSize size : Usize} {align : Option U64} {prot : I32}
-    (h : MunmapSpec (TryMmapTrimAllowed pageSize size align prot)) :
-    MunmapSpec (TryMmapTrimAllowed pageSize size (some (align.getD 0#u64)) prot) := by
+    (h : MunmapSpec pageSize (TryMmapTrimAllowed pageSize size align prot)) :
+    MunmapSpec pageSize (TryMmapTrimAllowed pageSize size (some (align.getD 0#u64)) prot) := by
   intro addr len htrim
   apply h addr len
   cases align with
@@ -144,36 +144,26 @@ theorem MunmapSpec.of_getD_zero {pageSize size : Usize} {align : Option U64} {pr
 /-- Without a requested alignment, no trimming `munmap` range is permitted, so
     the guarded specification holds vacuously. -/
 theorem MunmapSpec.of_none (pageSize size : Usize) (prot : I32) :
-    MunmapSpec (TryMmapTrimAllowed pageSize size none prot) := by
+    MunmapSpec pageSize (TryMmapTrimAllowed pageSize size none prot) := by
   rintro addr len ⟨a, _, _, hn, ha0, _⟩
   split at hn
   · exact False.elim (ha0 (Option.some.inj hn).symm)
   · simp at hn
 
-private def trimMunmapOutcome (origAddr : Option VoidPtr) (origSize : Option Usize)
-    (mappedAddr : VoidPtr) (size : Usize) : Prop :=
-  match origAddr with
-  | some rawOrigAddr =>
-    let unmapStart := rawOrigAddr.addr.val
-    let unmapEnd := mappedAddr.addr.val
-    let unmapSize := unmapEnd - unmapStart
-    (0 < unmapSize →
-      ∃ (sz : Usize) (ret : I32),
-        sz.val = unmapSize ∧
-        MunmapCallSpec rawOrigAddr sz ret ∧
-        ∀ rawOrigSize, origSize = some rawOrigSize →
-          IsTrimmedSubrange rawOrigAddr rawOrigSize mappedAddr size rawOrigAddr sz) ∧
-    let unmapStart1 := mappedAddr.addr.val + size.val
-    ∃ rawOrigSize, origSize = some rawOrigSize ∧
-      let unmapEnd1 := rawOrigAddr.addr.val + rawOrigSize.val
-      let unmapSize1 := unmapEnd1 - unmapStart1
-      (0 < unmapSize1 →
-        ∃ (ptr : VoidPtr) (sz : Usize) (ret : I32),
-          ptr.addr.val = unmapStart1 ∧
-          sz.val = unmapSize1 ∧
-          MunmapCallSpec ptr sz ret ∧
-          IsTrimmedSubrange rawOrigAddr rawOrigSize mappedAddr size ptr sz)
-  | none => True
+/-- The actual trimming computation, instrumented with mapped-byte state. -/
+private def trimMunmapOutcome (pageSize : Usize) (origAddr : Option VoidPtr)
+    (origSize : Option Usize) (mappedAddr : VoidPtr) (size : Usize) : Prop :=
+  match origAddr, origSize with
+  | some rawOrigAddr, some rawOrigSize =>
+    let reservation : PlatformMemoryMapping :=
+      { addr := RawPtr.cast Std.U8 .Mut rawOrigAddr, size := rawOrigSize }
+    let kept : PlatformMemoryMapping :=
+      { addr := RawPtr.cast Std.U8 .Mut mappedAddr, size }
+    trimMapping pageSize reservation kept ⦃ out =>
+      out.mapping = kept ∧ out.remaining.Covers kept ∧
+      (out.cleaned = true → out.remaining = Mapping.state kept) ⦄
+  | none, none => True
+  | _, _ => False
 
 private def fdMmapOutcome (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
     (prot flags : I32)
@@ -187,7 +177,7 @@ private def fdMmapOutcome (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
       if addr = mapFailedPtr then
         result = .Err (.SystemCallFailed _root_.base.errno.Error.last_errno)
       else
-        trimMunmapOutcome origAddr origSize addr size ∧
+        trimMunmapOutcome pageSize origAddr origSize addr size ∧
         result = .Ok { addr := RawPtr.cast Std.U8 .Mut addr, size := size }
   | some (descriptor, offset) =>
     if I64.max < offset.val then
@@ -200,7 +190,7 @@ private def fdMmapOutcome (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
         if addr = mapFailedPtr then
           result = .Err (.SystemCallFailed _root_.base.errno.Error.last_errno)
         else
-          trimMunmapOutcome origAddr origSize addr size ∧
+          trimMunmapOutcome pageSize origAddr origSize addr size ∧
           result = .Ok { addr := RawPtr.cast Std.U8 .Mut addr, size := size }
 
 private theorem usize_cast_u64_val (x : Usize) :
@@ -329,7 +319,7 @@ private theorem fdMmapOutcome_ok_spec {pageSize : Usize} {reqAddr : VoidPtr}
         apply hne
         cases ret
         simpa [mapFailedPtr] using heq
-      exact ⟨rfl, hne', hfit, fun hf => congrArg RawPtr.addr (hfixed (hf none)), hpage⟩
+      exact ⟨rfl, hne', hfit, fun hf => congrArg RawPtr.addr (hfixed (hf none)), fun _ => hpage.2⟩
   | some p =>
     rcases p with ⟨descriptor, offset⟩
     simp only [fdMmapOutcome] at h
@@ -348,7 +338,7 @@ private theorem fdMmapOutcome_ok_spec {pageSize : Usize} {reqAddr : VoidPtr}
           apply hne
           cases ret
           simpa [mapFailedPtr] using heq
-        exact ⟨rfl, hne', hfit, fun hf => congrArg RawPtr.addr (hfixed (hf (some rawFd))), hpage⟩
+        exact ⟨rfl, hne', hfit, fun hf => congrArg RawPtr.addr (hfixed (hf (some rawFd))), fun _ => hpage.2⟩
 
 /-- Recover the original positive alignment from the normalized request. -/
 private theorem normalizeAlign_nonzero {pageSize : Usize} {align : Option U64} {a : U64}
@@ -545,17 +535,14 @@ private theorem rawPtr_toUScalar_usize {T : Type} {M : Mutability} (p : RawPtr T
   apply UScalar.eq_of_val_eq
   simp [RawPtr.toUScalar]
 
-private theorem rawPtr_ofUScalar_usize_val (x : Usize) :
-    (RawPtr.ofUScalar vm_memory.core.ffi.c_void .Mut x).addr.val = x.val := by
-  simp [RawPtr.ofUScalar]
-
-private theorem unmap_tail_spec (origAddr addr3 : VoidPtr) (size origSize : Usize)
+private theorem unmap_tail_spec (pageSize : Usize) (origAddr addr3 : VoidPtr) (size origSize : Usize)
+    (hpage : 0 < pageSize.val) (halign : addr3.addr.val % pageSize.val = 0)
     (hle : origAddr.addr.val ≤ addr3.addr.val)
     (hfit1 : addr3.addr.val + size.val ≤ origAddr.addr.val + origSize.val)
     (hfit2 : origAddr.addr.val + origSize.val ≤ Usize.max)
     (hMunmap : ∀ unmapAddr unmapLen,
       IsTrimmedSubrange origAddr origSize addr3 size unmapAddr unmapLen →
-      ∃ ret, _root_.libc_1.unix.munmap unmapAddr unmapLen = ok ret) :
+      ∃ ret, MunmapReturnSpec pageSize unmapAddr unmapLen ret) :
     (do
       let unmap_size ← RawPtr.toUScalar .Usize addr3 - RawPtr.toUScalar .Usize origAddr
       let _ ←
@@ -575,65 +562,27 @@ private theorem unmap_tail_spec (origAddr addr3 : VoidPtr) (size origSize : Usiz
       ok (core.result.Result.Ok
         ({ addr := RawPtr.cast Std.U8 .Mut addr3, size } : PlatformMemoryMapping) :
         core.result.Result PlatformMemoryMapping MmapError)) ⦃ r =>
-      trimMunmapOutcome (some origAddr) (some origSize) addr3 size ∧
+      trimMunmapOutcome pageSize (some origAddr) (some origSize) addr3 size ∧
       r = .Ok { addr := RawPtr.cast Std.U8 .Mut addr3, size := size } ⦄ := by
-  simp only [rawPtr_toUScalar_usize]
-  step as ⟨unmap_size, hunmap_size⟩
-  have hprefix :
-      (if unmap_size > 0#usize then do
-        let _ ← _root_.libc_1.unix.munmap origAddr unmap_size
-        ok ()
-      else ok ()) ⦃ _ =>
-        0 < addr3.addr.val - origAddr.addr.val →
-          ∃ (sz : Usize) (ret : I32),
-            sz.val = addr3.addr.val - origAddr.addr.val ∧
-            MunmapCallSpec origAddr sz ret ∧
-            IsTrimmedSubrange origAddr origSize addr3 size origAddr sz ⦄ := by
-    by_cases hgt : unmap_size > 0#usize
-    · have hpos : 0 < unmap_size.val := by scalar_tac
-      have htrim : IsTrimmedSubrange origAddr origSize addr3 size origAddr unmap_size :=
-        ⟨hpos, le_rfl, by omega, Or.inl (by omega)⟩
-      obtain ⟨ret, hmunmap⟩ := hMunmap origAddr unmap_size htrim
-      simp only [hgt, ↓reduceIte, hmunmap, bind_ok, WP.spec_ok]
-      intro _
-      exact ⟨unmap_size, ret, hunmap_size, ⟨hmunmap, hpos, by omega⟩, htrim⟩
-    · simp only [hgt, ↓reduceIte, WP.spec_ok]
-      intro hpos
-      have : unmap_size > 0#usize := by scalar_tac
-      exact False.elim (hgt this)
-  step with hprefix as ⟨hp1⟩
-  step as ⟨unmap_start1, hstart1⟩
-  step as ⟨unmap_end1, hend1⟩
-  step as ⟨unmap_size1, hunmap_size1⟩
-  let p2 : VoidPtr := RawPtr.ofUScalar vm_memory.core.ffi.c_void .Mut unmap_start1
-  have hp2 : p2.addr.val = unmap_start1.val := rawPtr_ofUScalar_usize_val unmap_start1
-  have hsuffix :
-      (if unmap_size1 > 0#usize then do
-        let _ ← _root_.libc_1.unix.munmap p2 unmap_size1
-        ok ()
-      else ok ()) ⦃ _ =>
-        0 < (origAddr.addr.val + origSize.val) - (addr3.addr.val + size.val) →
-          ∃ (ptr : VoidPtr) (sz : Usize) (ret : I32),
-            ptr.addr.val = addr3.addr.val + size.val ∧
-            sz.val = (origAddr.addr.val + origSize.val) - (addr3.addr.val + size.val) ∧
-            MunmapCallSpec ptr sz ret ∧
-            IsTrimmedSubrange origAddr origSize addr3 size ptr sz ⦄ := by
-    by_cases hgt1 : unmap_size1 > 0#usize
-    · have hpos1 : 0 < unmap_size1.val := by scalar_tac
-      have htrim1 : IsTrimmedSubrange origAddr origSize addr3 size p2 unmap_size1 :=
-        ⟨hpos1, by omega, by omega, Or.inr (by omega)⟩
-      obtain ⟨ret1, hmunmap1⟩ := hMunmap p2 unmap_size1 htrim1
-      simp only [hgt1, ↓reduceIte, hmunmap1, bind_ok, WP.spec_ok]
-      intro _
-      exact ⟨p2, unmap_size1, ret1, by omega, by omega, ⟨hmunmap1, hpos1, by omega⟩, htrim1⟩
-    · simp only [hgt1, ↓reduceIte, WP.spec_ok]
-      intro hpos1
-      have : unmap_size1 > 0#usize := by scalar_tac
-      exact False.elim (hgt1 this)
-  step with hsuffix as ⟨hp2_spec⟩
-  refine ⟨fun hpos => ?_, origSize, rfl, hp2_spec⟩
-  obtain ⟨sz, ret, hsz, hcall, htrim⟩ := hp1 hpos
-  exact ⟨sz, ret, hsz, hcall, fun _ h => Option.some.inj h ▸ htrim⟩
+  let reservation : PlatformMemoryMapping :=
+    { addr := RawPtr.cast Std.U8 .Mut origAddr, size := origSize }
+  let kept : PlatformMemoryMapping :=
+    { addr := RawPtr.cast Std.U8 .Mut addr3, size }
+  have hs := trimMapping_spec pageSize reservation kept hpage halign hle hfit1 hfit2 hMunmap
+  have he := congrArg
+    (fun m : Result PlatformMemoryMapping => do
+      let mapping ← m
+      ok (core.result.Result.Ok mapping : core.result.Result PlatformMemoryMapping MmapError))
+    (trimMapping_erase pageSize reservation kept)
+  simp only [bind_tc_eq, Std.bind_assoc, bind_ok, reservation, kept, RawPtr.cast] at he
+  simp only [rawPtr_toUScalar_usize, RawPtr.cast]
+  apply Eq.mp (congrArg (fun m => WP.spec m (fun r =>
+    trimMunmapOutcome pageSize (some origAddr) (some origSize) addr3 size ∧
+      r = .Ok kept)) he)
+  apply WP.spec_bind hs
+  intro out hout
+  simp only [WP.spec_ok]
+  exact ⟨hs, congrArg core.result.Result.Ok hout.1⟩
 
 private theorem aligned_fd_none_spec (pageSize : Usize) (addr : Option (MutRawPtr U8))
     (origAddr : VoidPtr) (align2 : U64) (size origSize : Usize)
@@ -644,7 +593,7 @@ private theorem aligned_fd_none_spec (pageSize : Usize) (addr : Option (MutRawPt
     (hMmap : MmapSpec pageSize)
     (hMunmap : ∀ unmapAddr unmapLen,
       IsTrimmedSubrange origAddr origSize (alignVoidPtr origAddr align2) size unmapAddr unmapLen →
-      ∃ ret, _root_.libc_1.unix.munmap unmapAddr unmapLen = ok ret) :
+      ∃ ret, MunmapReturnSpec pageSize unmapAddr unmapLen ret) :
     (let flags2 := addrMmapFlags addr populate ||| MAP_FIXED
     let addr2 := alignVoidPtr origAddr align2
     do
@@ -681,12 +630,12 @@ private theorem aligned_fd_none_spec (pageSize : Usize) (addr : Option (MutRawPt
   by_cases hfail : ret = mapFailedPtr
   · simp only [hmmap, hfail, _root_.base.errno.Error.last, bind_ok, ↓reduceIte, WP.spec_ok]
     exact ⟨mapFailedPtr, hfail ▸ hm, by simp⟩
-  · obtain ⟨_, hfixed, _⟩ := hm.2 hfail
+  · obtain ⟨_, hfixed, hpage, halign⟩ := hm.2 hfail
     have heq := hfixed (targetMmapFlags_map_fixed_or addr populate none)
     simp only [hmmap, bind_ok, hfail, ↓reduceIte]
     subst heq
-    apply WP.spec_mono (unmap_tail_spec origAddr (alignVoidPtr origAddr align2) size origSize
-      hbounds.1 hbounds.2.1 hfit_orig hMunmap)
+    apply WP.spec_mono (unmap_tail_spec pageSize origAddr (alignVoidPtr origAddr align2) size origSize
+      hpage halign hbounds.1 hbounds.2.1 hfit_orig hMunmap)
     intro r ⟨htrim, hr⟩
     exact ⟨alignVoidPtr origAddr align2, hm, by simp [hfail, htrim, hr]⟩
 
@@ -701,7 +650,7 @@ private theorem aligned_fd_some_spec (pageSize : Usize) (addr : Option (MutRawPt
     (hMmap : MmapSpec pageSize)
     (hMunmap : ∀ unmapAddr unmapLen,
       IsTrimmedSubrange origAddr origSize (alignVoidPtr origAddr align2) size unmapAddr unmapLen →
-      ∃ ret, _root_.libc_1.unix.munmap unmapAddr unmapLen = ok ret) :
+      ∃ ret, MunmapReturnSpec pageSize unmapAddr unmapLen ret) :
     (let flags2 := addrMmapFlags addr populate ||| MAP_FIXED
     let addr2 := alignVoidPtr origAddr align2
     if offset > IScalar.hcast .U64 core.num.I64.MAX then
@@ -757,12 +706,12 @@ private theorem aligned_fd_some_spec (pageSize : Usize) (addr : Option (MutRawPt
         _root_.base.errno.Error.last, WP.spec_ok]
       simp only [fdMmapOutcome, hoff, ↓reduceIte]
       exact ⟨rawFd, mapFailedPtr, hdesc, hfail ▸ hm, by simp⟩
-    · obtain ⟨_, hfixed, _⟩ := hm.2 hfail
+    · obtain ⟨_, hfixed, hpage, halign⟩ := hm.2 hfail
       have heq := hfixed (targetMmapFlags_map_fixed_or addr populate (some rawFd))
       simp only [hoff', ↓reduceIte, hdesc, bind_ok, seal_flags_eval, hmmap, hfail]
       subst heq
-      apply WP.spec_mono (unmap_tail_spec origAddr (alignVoidPtr origAddr align2) size origSize
-        hbounds.1 hbounds.2.1 hfit_orig hMunmap)
+      apply WP.spec_mono (unmap_tail_spec pageSize origAddr (alignVoidPtr origAddr align2) size origSize
+        hpage halign hbounds.1 hbounds.2.1 hfit_orig hMunmap)
       intro r ⟨htrim, hr⟩
       simp only [fdMmapOutcome, hoff, ↓reduceIte]
       exact ⟨rawFd, alignVoidPtr origAddr align2, hdesc, hm, by simp [hfail, htrim, hr]⟩
@@ -780,7 +729,7 @@ theorem try_mmap_populate_spec (pageSize : Usize) (addr : Option (MutRawPtr U8))
     (hPagePos : addr.isSome → 0 < pageSize.val)
     (hFd : ∀ d offset, fd = some (d, offset) → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec (TryMmapTrimAllowed pageSize size align prot)) :
+    (hMunmap : MunmapSpec pageSize (TryMmapTrimAllowed pageSize size align prot)) :
     vm_memory.base.sys.linux.mmap.MemoryMapping.try_mmap_populate
       addr size align prot fd populate ⦃ result =>
       MappingResultProperties pageSize addr size align result ⦄ := by
@@ -834,7 +783,7 @@ theorem try_mmap_populate_spec (pageSize : Usize) (addr : Option (MutRawPtr U8))
             have hMunmapLocal : ∀ unmapAddr unmapLen,
                 IsTrimmedSubrange origAddr orig_size (alignVoidPtr origAddr align2) size
                   unmapAddr unmapLen →
-                ∃ ret, _root_.libc_1.unix.munmap unmapAddr unmapLen = ok ret := by
+                ∃ ret, MunmapReturnSpec pageSize unmapAddr unmapLen ret := by
               intro unmapAddr unmapLen htrim
               exact hMunmap unmapAddr unmapLen
                 ⟨align2, orig_size, origAddr, hn, ha0', hpow, hadd, hres.1, hfail, htrim⟩
@@ -924,7 +873,7 @@ theorem try_mmap_populate_spec (pageSize : Usize) (addr : Option (MutRawPtr U8))
                 have hMunmapLocal : ∀ unmapAddr unmapLen,
                     IsTrimmedSubrange origAddr orig_size (alignVoidPtr origAddr align2) size
                       unmapAddr unmapLen →
-                    ∃ ret, _root_.libc_1.unix.munmap unmapAddr unmapLen = ok ret := by
+                    ∃ ret, MunmapReturnSpec pageSize unmapAddr unmapLen ret := by
                   intro unmapAddr unmapLen htrim
                   exact hMunmap unmapAddr unmapLen
                     ⟨align2, orig_size, origAddr, hn, ha0', hpow, hadd, hres.1, hfail, htrim⟩
@@ -1001,7 +950,7 @@ theorem try_mmap_spec (pageSize : Usize) (addr : Option (MutRawPtr U8))
     (hPagePos : addr.isSome → 0 < pageSize.val)
     (hFd : ∀ d offset, fd = some (d, offset) → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec (TryMmapTrimAllowed pageSize size align prot)) :
+    (hMunmap : MunmapSpec pageSize (TryMmapTrimAllowed pageSize size align prot)) :
     vm_memory.base.sys.linux.mmap.MemoryMapping.try_mmap
       addr size align prot fd ⦃ result =>
       MappingResultProperties pageSize addr size align result ⦄ := by
@@ -1017,7 +966,7 @@ theorem new_protection_spec (pageSize : Usize) (size : Usize) (align : Option U6
     [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec (TryMmapTrimAllowed pageSize size align (protectionFlags protection))) :
+    (hMunmap : MunmapSpec pageSize (TryMmapTrimAllowed pageSize size align (protectionFlags protection))) :
     vm_memory.base.sys.linux.mmap.MemoryMapping.new_protection
       size align protection ⦃ result =>
       MappingResultProperties pageSize none size align result ⦄ := by
@@ -1039,7 +988,7 @@ theorem from_fd_offset_protection_populate_spec (pageSize : Usize)
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hFd : ValidDescriptor descriptor)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec
+    (hMunmap : MunmapSpec pageSize
       (TryMmapTrimAllowed pageSize size (some align) (protectionFlags protection))) :
     vm_memory.base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
       descriptor size offset align protection populate ⦃ result =>

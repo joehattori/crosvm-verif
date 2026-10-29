@@ -48,7 +48,7 @@ abbrev F_SEAL_WRITE : I32 := 0x0008#i32
     `mmap64` returns `ret : VoidPtr`, which is either `mapFailedPtr` (`MAP_FAILED`) on
     failure, or an address whose numeric range `[ret, ret + size)` fits in `usize`
     without wrapping, equals `reqAddr` when `MAP_FIXED` is set in `flags`, and is
-    page-aligned when `reqAddr` is null. This return-value model does not represent
+    page-aligned on success, with a positive page size. This return-value model does not represent
     the OS memory state, ownership, contents, or access permissions. -/
 def MmapCallSpec (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
     (prot flags fd : I32) (offset : I64) (ret : VoidPtr) : Prop :=
@@ -56,7 +56,7 @@ def MmapCallSpec (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
   (ret ≠ mapFailedPtr →
     ret.addr.val + size.val ≤ Usize.max ∧
     (flags &&& MAP_FIXED ≠ 0#i32 → ret = reqAddr) ∧
-    (reqAddr = nullVoidPtr → ret.addr.val % pageSize.val = 0))
+    (0 < pageSize.val ∧ ret.addr.val % pageSize.val = 0))
 
 /-- System-level specification of `libc::mmap64`: every call to `mmap64`
     returns a pointer `ret` satisfying `MmapCallSpec`. -/
@@ -76,20 +76,15 @@ def IsTrimmedSubrange (origAddr : VoidPtr) (origSize : Usize)
   (unmapAddr.addr.val + unmapLen.val ≤ mappedAddr.addr.val ∨
     mappedAddr.addr.val + size.val ≤ unmapAddr.addr.val)
 
-/-- Outcome of a single `munmap(2)` system call on a non-empty, non-wrapping
-    range `[addr, addr + len)`. -/
-def MunmapCallSpec (addr : VoidPtr) (len : Usize) (ret : I32) : Prop :=
+/-- C return behavior used by the state model. Invalid starts cannot successfully
+    unmap pages; zero length is also rejected. A nonzero status is a failed trim. -/
+def MunmapReturnSpec (pageSize : Usize) (addr : VoidPtr) (len : Usize) (ret : I32) : Prop :=
   _root_.libc_1.unix.munmap addr len = ok ret ∧
-  0 < len.val ∧
-  addr.addr.val + len.val ≤ Usize.max
+  (ret = 0#i32 → 0 < pageSize.val ∧ addr.addr.val % pageSize.val = 0 ∧ 0 < len.val)
 
-/-- Guarded specification of `libc::munmap`: on ranges permitted by `allowed`,
-    the modeled call returns normally with a C return code. The code may be
-    nonzero: `ok ret` is Aeneas normal return, not OS-level success. No memory
-    removal or behavior on other ranges is asserted. -/
-def MunmapSpec (allowed : VoidPtr → Usize → Prop) : Prop :=
-  ∀ addr len,
-    allowed addr len →
-    ∃ ret, _root_.libc_1.unix.munmap addr len = ok ret
+/-- Guarded syscall assumption. Failure is permitted: the caller ignores the C
+    status. The state model removes pages only when the returned code is zero. -/
+def MunmapSpec (pageSize : Usize) (allowed : VoidPtr → Usize → Prop) : Prop :=
+  ∀ addr len, allowed addr len → ∃ ret, MunmapReturnSpec pageSize addr len ret
 
 end Syscalls.Mmap
