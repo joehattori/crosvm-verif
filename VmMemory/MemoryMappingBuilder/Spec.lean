@@ -87,12 +87,16 @@ theorem BuildOutcome.mapped_properties [Platform64] {self : MemoryMappingBuilder
     · intro _ ha
       exact h.default_alignment rfl (by simp [ha])
     · rintro a hpos (⟨_, ha⟩ | ⟨_, ha⟩)
-      · exact h.requested_alignment a rfl ha hpos
+      · have hrequested := h.requested_alignment
+        rw [ha] at hrequested
+        exact hrequested hpos
       · cases halign : self.align with
         | none => simp [halign] at ha; subst a; simp at hpos
         | some b =>
           have hab : b = a := by simpa [halign] using ha
-          exact h.requested_alignment a rfl (halign.trans (congrArg some hab)) hpos
+          have hrequested := h.requested_alignment
+          rw [halign, hab] at hrequested
+          exact hrequested hpos
 
 /-- Default page alignment also holds for descriptor-backed builds and for an
     explicitly zero alignment request. -/

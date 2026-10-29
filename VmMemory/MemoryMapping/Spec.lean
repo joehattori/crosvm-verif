@@ -19,42 +19,48 @@ abbrev PlatformMemoryMapping := vm_memory.base.sys.linux.mmap.MemoryMapping
 /-- Mathematical properties of a successful mapping, expressed only in terms
     of the request and the returned value. Memory contents, access permissions,
     ownership, and cleanup are outside this return-value model. -/
-structure MappingProperties (pageSize : Usize) (addr : Option (MutRawPtr U8))
+structure MappingProperties (pageSize : Usize) (hint_addr : Option (MutRawPtr U8))
     (size : Usize) (align : Option U64) (mapping : PlatformMemoryMapping) : Prop where
   size_eq : mapping.size = size
   not_map_failed : mapping.addr.addr ≠ core.num.Usize.MAX
   range_fits : mapping.addr.addr.val + size.val ≤ Usize.max
   /-- A non-null fixed address is respected. `Some(null)` can instead enter
       the alignment-reservation path. -/
-  fixed_address : ∀ reqAddr, addr = some reqAddr → reqAddr.addr ≠ 0#usize →
-    mapping.addr.addr = reqAddr.addr
+  fixed_address : match hint_addr with
+    | some addr => addr.addr ≠ 0#usize → mapping.addr.addr = addr.addr
+    | none => True
   /-- Absent and explicitly zero alignment both request default page alignment. -/
-  default_alignment : addr = none → align.getD 0#u64 = 0#u64 →
+  default_alignment : hint_addr = none → align.getD 0#u64 = 0#u64 →
     mapping.addr.addr.val % pageSize.val = 0
-  requested_alignment : ∀ a, addr = none → align = some a → 0 < a.val →
-    mapping.addr.addr.val % a.val = 0
+  requested_alignment : match (hint_addr, align) with
+    | (none, some a) => 0 < a.val → mapping.addr.addr.val % a.val = 0
+    | _ => True
 
 /-- Successful results satisfy the mathematical mapping contract. Ordinary Rust
     errors are unconstrained; this does not assert that allocation succeeds.
     Aeneas panic/failure is still excluded by the enclosing function spec. -/
-def MappingResultProperties (pageSize : Usize) (addr : Option (MutRawPtr U8))
+def MappingResultProperties (pageSize : Usize) (hint_addr : Option (MutRawPtr U8))
     (size : Usize) (align : Option U64)
     (result : core.result.Result PlatformMemoryMapping MmapError) : Prop :=
   match result with
-  | .Ok mapping => MappingProperties pageSize addr size align mapping
+  | .Ok mapping => MappingProperties pageSize hint_addr size align mapping
   | .Err _ => True
 
 /-- Wrappers may replace an absent alignment with zero without losing any of
     the success guarantees. -/
 theorem MappingProperties.of_getD_zero {pageSize size : Usize}
-    {addr : Option (MutRawPtr U8)} {align : Option U64} {mapping : PlatformMemoryMapping}
-    (h : MappingProperties pageSize addr size (some (align.getD 0#u64)) mapping) :
-    MappingProperties pageSize addr size align mapping := by
+    {hint_addr : Option (MutRawPtr U8)} {align : Option U64} {mapping : PlatformMemoryMapping}
+    (h : MappingProperties pageSize hint_addr size (some (align.getD 0#u64)) mapping) :
+    MappingProperties pageSize hint_addr size align mapping := by
   refine ⟨h.size_eq, h.not_map_failed, h.range_fits, h.fixed_address, ?_, ?_⟩
   · intro haddr hz
     exact h.default_alignment haddr hz
-  · intro a haddr ha hpos
-    exact h.requested_alignment a haddr (by simp [ha]) hpos
+  · cases hint_addr with
+    | some _ => trivial
+    | none =>
+      cases align with
+      | none => trivial
+      | some a => exact h.requested_alignment
 
 /-- Linux `PROT_*` bitmask corresponding to `Protection`. -/
 def protectionFlags (prot : Protection) : I32 :=
@@ -366,13 +372,16 @@ private theorem direct_none_properties {pageSize size : Usize} {align : Option U
   | Ok mapping =>
     obtain ⟨hsize, hne, hfit, _, hpage⟩ := fdMmapOutcome_ok_spec h
     refine ⟨hsize, hne, hfit, by simp, fun _ _ => hpage rfl, ?_⟩
-    intro a _ halign hpos
-    by_cases heq : a = UScalar.cast .U64 pageSize
-    · rw [heq, usize_cast_u64_val]
-      exact hpage rfl
-    · have hz : a = 0#u64 := by simpa [normalizeAlign, halign, heq] using hn
-      subst a
-      simp at hpos
+    cases halign : align with
+    | none => trivial
+    | some a =>
+      intro hpos
+      by_cases heq : a = UScalar.cast .U64 pageSize
+      · rw [heq, usize_cast_u64_val]
+        exact hpage rfl
+      · have hz : a = 0#u64 := by simpa [normalizeAlign, halign, heq] using hn
+        subst a
+        simp at hpos
 
 private theorem direct_fixed_properties {pageSize size : Usize} {align : Option U64}
     {reqAddr : MutRawPtr U8} {prot : I32} {populate : Bool}
@@ -386,10 +395,8 @@ private theorem direct_fixed_properties {pageSize size : Usize} {align : Option 
   | Ok mapping =>
     obtain ⟨hsize, hne, hfit, hfixed, _⟩ := fdMmapOutcome_ok_spec h
     refine ⟨hsize, hne, hfit, ?_, by simp, by simp⟩
-    intro p hp _
-    have heq := hfixed (targetMmapFlags_map_fixed_some reqAddr populate)
-    cases Option.some.inj hp
-    exact heq
+    intro _
+    exact hfixed (targetMmapFlags_map_fixed_some reqAddr populate)
 
 private theorem aligned_properties {pageSize size origSize : Usize}
     {addr : Option (MutRawPtr U8)} {align : Option U64} {a : U64} {origAddr : VoidPtr}
@@ -409,17 +416,20 @@ private theorem aligned_properties {pageSize size origSize : Usize}
     obtain ⟨hsize, hne, hfit, hfixed, _⟩ := fdMmapOutcome_ok_spec h
     have heq := hfixed (targetMmapFlags_map_fixed_or addr populate)
     have hrequested := normalizeAlign_nonzero hn ha0
+    subst align
     have hbounds := alignVoidPtr_bounds origAddr a size origSize hpow horig hfit_orig
     refine ⟨hsize, hne, hfit, ?_, ?_, ?_⟩
-    · intro p hp hne0
-      exact False.elim (hne0 (hnull p hp))
+    · cases hp : addr with
+      | none => trivial
+      | some p => exact fun hne0 => False.elim (hne0 (hnull p hp))
     · intro _ hz
-      rw [hrequested] at hz
       exact False.elim (ha0 hz)
-    · intro requested _ hreq _
-      have ha : a = requested := Option.some.inj (hrequested.symm.trans hreq)
-      rw [← ha, heq]
-      exact hbounds.2.2
+    · cases addr with
+      | none =>
+        intro _
+        rw [heq]
+        exact hbounds.2.2
+      | some _ => trivial
 
 @[step]
 theorem protection_from_spec (p : Protection) :
