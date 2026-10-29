@@ -46,9 +46,10 @@ abbrev F_SEAL_WRITE : I32 := 0x0008#i32
 
 /-- Outcome of a single `mmap64(2)` system call at `(reqAddr, size, prot, flags, fd, offset)`:
     `mmap64` returns `ret : VoidPtr`, which is either `mapFailedPtr` (`MAP_FAILED`) on
-    failure, or a valid mapped address whose range `[ret, ret + size)` fits in the
-    user address space without wrapping, equals `reqAddr` when `MAP_FIXED` is set in
-    `flags`, and is page-aligned when `reqAddr` is null. -/
+    failure, or an address whose numeric range `[ret, ret + size)` fits in `usize`
+    without wrapping, equals `reqAddr` when `MAP_FIXED` is set in `flags`, and is
+    page-aligned when `reqAddr` is null. This return-value model does not represent
+    the OS memory state, ownership, contents, or access permissions. -/
 def MmapCallSpec (pageSize : Usize) (reqAddr : VoidPtr) (size : Usize)
     (prot flags fd : I32) (offset : I64) (ret : VoidPtr) : Prop :=
   _root_.libc_1.unix.linux_like.mmap64 reqAddr size prot flags fd offset = ok ret ∧
@@ -82,8 +83,10 @@ def MunmapCallSpec (addr : VoidPtr) (len : Usize) (ret : I32) : Prop :=
   0 < len.val ∧
   addr.addr.val + len.val ≤ Usize.max
 
-/-- Guarded specification of `libc::munmap`: `munmap(addr, len)` is guaranteed
-    to succeed only on address ranges permitted by `allowed`. -/
+/-- Guarded specification of `libc::munmap`: on ranges permitted by `allowed`,
+    the modeled call returns normally with a C return code. The code may be
+    nonzero: `ok ret` is Aeneas normal return, not OS-level success. No memory
+    removal or behavior on other ranges is asserted. -/
 def MunmapSpec (allowed : VoidPtr → Usize → Prop) : Prop :=
   ∀ addr len,
     allowed addr len →
