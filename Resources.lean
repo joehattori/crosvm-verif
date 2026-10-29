@@ -1,5 +1,6 @@
 module
 public import Utils.Alignment
+public import Utils.Platform
 public import Syscalls.Mmap
 public import Resources.Types
 public import Resources.Funs

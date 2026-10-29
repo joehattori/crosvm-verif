@@ -411,104 +411,47 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
           if b1
           then
             let i3 ← lift (UScalar.cast .Usize align2)
-            let orig_size ← size + i3
-            let i4 ← libc_1.unix.linux_like.MAP_PRIVATE
-            let i5 ←
-              libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_NORESERVE
-            let i6 ← lift (i4 ||| i5)
-            let i7 ←
-              libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS
-            let i8 ← lift (i6 ||| i7)
-            let orig_addr ←
-              libc_1.unix.linux_like.mmap64 addr1 orig_size prot i8 (-1)#i32
-                0#i64
-            let p ← libc_1.unix.linux_like.MAP_FAILED
-            if orig_addr = p
-            then
-              let e ← base.errno.Error.last
-              ok (core.result.Result.Err (base.mmap.Error.SystemCallFailed e))
-            else
-              let i9 ← libc_1.unix.linux_like.MAP_FIXED
-              let flags2 ← lift (flags1 ||| i9)
-              let mask ← align2 - 1#u64
-              let i10 ← lift (UScalar.cast .Usize mask)
-              let p1 ← core.ptr.mut_ptr.RawPtrMutT.wrapping_add orig_addr i10
-              let i11 ← lift (RawPtr.toUScalar .U64 p1)
-              let i12 ← lift (~~~ mask)
-              let i13 ← lift (i11 &&& i12)
-              let addr2 ← lift (RawPtr.ofUScalar core.ffi.c_void .Mut i13)
-              match fd with
-              | none =>
-                let i14 ← lift (i7 ||| i5)
-                let flags3 ← lift (flags2 ||| i14)
-                let addr3 ←
-                  libc_1.unix.linux_like.mmap64 addr2 size prot flags3 (-1)#i32
-                    0#i64
-                if addr3 = p
-                then
-                  let e ← base.errno.Error.last
-                  ok (core.result.Result.Err (base.mmap.Error.SystemCallFailed
-                    e))
-                else
-                  let unmap_start ← lift (RawPtr.toUScalar .Usize orig_addr)
-                  let unmap_end ← lift (RawPtr.toUScalar .Usize addr3)
-                  let unmap_size ← unmap_end - unmap_start
-                  if unmap_size > 0#usize
-                  then
-                    do
-                    let _ ← libc_1.unix.munmap orig_addr unmap_size
-                    ok ()
-                  else ok ()
-                  let i15 ← lift (RawPtr.toUScalar .Usize addr3)
-                  let unmap_start1 ← i15 + size
-                  let i16 ← lift (RawPtr.toUScalar .Usize orig_addr)
-                  let i17 ← core.option.Option.unwrap (some orig_size)
-                  let unmap_end1 ← i16 + i17
-                  let unmap_size1 ← unmap_end1 - unmap_start1
-                  if unmap_size1 > 0#usize
-                  then
-                    do
-                    let p2 ←
-                      lift (RawPtr.ofUScalar core.ffi.c_void .Mut unmap_start1)
-                    let _ ← libc_1.unix.munmap p2 unmap_size1
-                    ok ()
-                  else ok ()
-                  let i18 ← libc_1.unix.linux_like.MADV_DONTDUMP
-                  let _ ←
-                    libc_1.unix.linux_like.linux_l4re_shared.madvise addr3 size
-                      i18
-                  let i19 ← libc_1.unix.linux_like.MADV_MERGEABLE
-                  let _ ←
-                    libc_1.unix.linux_like.linux_l4re_shared.madvise addr3 size
-                      i19
-                  let p2 ← lift (RawPtr.cast Std.U8 .Mut addr3)
-                  ok (core.result.Result.Ok { addr := p2, size })
-              | some p2 =>
-                let (fd1, offset) := p2
-                let i14 ← lift (IScalar.hcast .U64 core.num.I64.MAX)
-                if offset > i14
-                then ok (core.result.Result.Err base.mmap.Error.InvalidOffset)
-                else
-                  let i15 ← fd1.inst.as_raw_descriptor fd1.value
-                  let i16 ← libc_1.unix.linux_like.F_GET_SEALS
-                  let seals ← libc_1.unix.fcntl i15 i16
-                  let flags3 ←
-                    if seals >= 0#i32
-                    then
-                      do
-                      let i17 ← libc_1.unix.linux_like.F_SEAL_WRITE
-                      let i18 ← lift (seals &&& i17)
-                      if i18 != 0#i32
-                      then
-                        let i19 ← lift (~~~ flags)
-                        let flags4 ← lift (flags2 &&& i19)
-                        ok (flags4 ||| i4)
-                      else ok flags2
-                    else ok flags2
-                  let offset1 ← lift (UScalar.hcast .I64 offset)
+            let o ← lift (Usize.checked_add size i3)
+            let r ←
+              core.option.Option.ok_or o base.mmap.Error.InvalidAlignment
+            let cf ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r
+            match cf with
+            | core.ops.control_flow.ControlFlow.Continue val =>
+              let i4 ← libc_1.unix.linux_like.MAP_PRIVATE
+              let i5 ←
+                libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_NORESERVE
+              let i6 ← lift (i4 ||| i5)
+              let i7 ←
+                libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS
+              let i8 ← lift (i6 ||| i7)
+              let orig_addr ←
+                libc_1.unix.linux_like.mmap64 addr1 val prot i8 (-1)#i32 0#i64
+              let p ← libc_1.unix.linux_like.MAP_FAILED
+              if orig_addr = p
+              then
+                let e ← base.errno.Error.last
+                ok (core.result.Result.Err (base.mmap.Error.SystemCallFailed
+                  e))
+              else
+                let i9 ← libc_1.unix.linux_like.MAP_FIXED
+                let flags2 ← lift (flags1 ||| i9)
+                let mask ← align2 - 1#u64
+                let i10 ← lift (UScalar.cast .Usize mask)
+                let p1 ←
+                  core.ptr.mut_ptr.RawPtrMutT.wrapping_add orig_addr i10
+                let i11 ← lift (RawPtr.toUScalar .U64 p1)
+                let i12 ← lift (~~~ mask)
+                let i13 ← lift (i11 &&& i12)
+                let addr2 ← lift (RawPtr.ofUScalar core.ffi.c_void .Mut i13)
+                match fd with
+                | none =>
+                  let i14 ← lift (i7 ||| i5)
+                  let flags3 ← lift (flags2 ||| i14)
                   let addr3 ←
-                    libc_1.unix.linux_like.mmap64 addr2 size prot flags3 i15
-                      offset1
+                    libc_1.unix.linux_like.mmap64 addr2 size prot flags3
+                      (-1)#i32 0#i64
                   if addr3 = p
                   then
                     let e ← base.errno.Error.last
@@ -525,31 +468,103 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
                       let _ ← libc_1.unix.munmap orig_addr unmap_size
                       ok ()
                     else ok ()
-                    let i17 ← lift (RawPtr.toUScalar .Usize addr3)
-                    let unmap_start1 ← i17 + size
-                    let i18 ← lift (RawPtr.toUScalar .Usize orig_addr)
-                    let i19 ← core.option.Option.unwrap (some orig_size)
-                    let unmap_end1 ← i18 + i19
+                    let i15 ← lift (RawPtr.toUScalar .Usize addr3)
+                    let unmap_start1 ← i15 + size
+                    let i16 ← lift (RawPtr.toUScalar .Usize orig_addr)
+                    let i17 ← core.option.Option.unwrap (some val)
+                    let unmap_end1 ← i16 + i17
                     let unmap_size1 ← unmap_end1 - unmap_start1
                     if unmap_size1 > 0#usize
                     then
                       do
-                      let p3 ←
+                      let p2 ←
                         lift (RawPtr.ofUScalar core.ffi.c_void .Mut
                           unmap_start1)
-                      let _ ← libc_1.unix.munmap p3 unmap_size1
+                      let _ ← libc_1.unix.munmap p2 unmap_size1
                       ok ()
                     else ok ()
-                    let i20 ← libc_1.unix.linux_like.MADV_DONTDUMP
+                    let i18 ← libc_1.unix.linux_like.MADV_DONTDUMP
                     let _ ←
                       libc_1.unix.linux_like.linux_l4re_shared.madvise addr3
-                        size i20
-                    let i21 ← libc_1.unix.linux_like.MADV_MERGEABLE
+                        size i18
+                    let i19 ← libc_1.unix.linux_like.MADV_MERGEABLE
                     let _ ←
                       libc_1.unix.linux_like.linux_l4re_shared.madvise addr3
-                        size i21
-                    let p3 ← lift (RawPtr.cast Std.U8 .Mut addr3)
-                    ok (core.result.Result.Ok { addr := p3, size })
+                        size i19
+                    let p2 ← lift (RawPtr.cast Std.U8 .Mut addr3)
+                    ok (core.result.Result.Ok { addr := p2, size })
+                | some p2 =>
+                  let (fd1, offset) := p2
+                  let i14 ← lift (IScalar.hcast .U64 core.num.I64.MAX)
+                  if offset > i14
+                  then
+                    ok (core.result.Result.Err base.mmap.Error.InvalidOffset)
+                  else
+                    let i15 ← fd1.inst.as_raw_descriptor fd1.value
+                    let i16 ← libc_1.unix.linux_like.F_GET_SEALS
+                    let seals ← libc_1.unix.fcntl i15 i16
+                    let flags3 ←
+                      if seals >= 0#i32
+                      then
+                        do
+                        let i17 ← libc_1.unix.linux_like.F_SEAL_WRITE
+                        let i18 ← lift (seals &&& i17)
+                        if i18 != 0#i32
+                        then
+                          let i19 ← lift (~~~ flags)
+                          let flags4 ← lift (flags2 &&& i19)
+                          ok (flags4 ||| i4)
+                        else ok flags2
+                      else ok flags2
+                    let offset1 ← lift (UScalar.hcast .I64 offset)
+                    let addr3 ←
+                      libc_1.unix.linux_like.mmap64 addr2 size prot flags3 i15
+                        offset1
+                    if addr3 = p
+                    then
+                      let e ← base.errno.Error.last
+                      ok (core.result.Result.Err
+                        (base.mmap.Error.SystemCallFailed e))
+                    else
+                      let unmap_start ←
+                        lift (RawPtr.toUScalar .Usize orig_addr)
+                      let unmap_end ← lift (RawPtr.toUScalar .Usize addr3)
+                      let unmap_size ← unmap_end - unmap_start
+                      if unmap_size > 0#usize
+                      then
+                        do
+                        let _ ← libc_1.unix.munmap orig_addr unmap_size
+                        ok ()
+                      else ok ()
+                      let i17 ← lift (RawPtr.toUScalar .Usize addr3)
+                      let unmap_start1 ← i17 + size
+                      let i18 ← lift (RawPtr.toUScalar .Usize orig_addr)
+                      let i19 ← core.option.Option.unwrap (some val)
+                      let unmap_end1 ← i18 + i19
+                      let unmap_size1 ← unmap_end1 - unmap_start1
+                      if unmap_size1 > 0#usize
+                      then
+                        do
+                        let p3 ←
+                          lift (RawPtr.ofUScalar core.ffi.c_void .Mut
+                            unmap_start1)
+                        let _ ← libc_1.unix.munmap p3 unmap_size1
+                        ok ()
+                      else ok ()
+                      let i20 ← libc_1.unix.linux_like.MADV_DONTDUMP
+                      let _ ←
+                        libc_1.unix.linux_like.linux_l4re_shared.madvise addr3
+                          size i20
+                      let i21 ← libc_1.unix.linux_like.MADV_MERGEABLE
+                      let _ ←
+                        libc_1.unix.linux_like.linux_l4re_shared.madvise addr3
+                          size i21
+                      let p3 ← lift (RawPtr.cast Std.U8 .Mut addr3)
+                      ok (core.result.Result.Ok { addr := p3, size })
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                base.sys.linux.mmap.MemoryMapping (core.convert.FromSame
+                base.mmap.Error) residual
           else ok (core.result.Result.Err base.mmap.Error.InvalidAlignment)
         else ok (core.result.Result.Err base.mmap.Error.InvalidAlignment)
   | some addr1 =>
@@ -709,107 +724,46 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
             if b1
             then
               let i8 ← lift (UScalar.cast .Usize align2)
-              let orig_size ← size + i8
-              let p ← core.ptr.null_mut core.ffi.c_void
-              let i9 ← libc_1.unix.linux_like.MAP_PRIVATE
-              let i10 ← lift (i9 ||| i4)
-              let i11 ←
-                libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS
-              let i12 ← lift (i10 ||| i11)
-              let orig_addr ←
-                libc_1.unix.linux_like.mmap64 p orig_size prot i12 (-1)#i32
-                  0#i64
-              let p1 ← libc_1.unix.linux_like.MAP_FAILED
-              if orig_addr = p1
-              then
-                let e ← base.errno.Error.last
-                ok (core.result.Result.Err (base.mmap.Error.SystemCallFailed
-                  e))
-              else
-                let flags3 ← lift (flags2 ||| i3)
-                let mask ← align2 - 1#u64
-                let i13 ← lift (UScalar.cast .Usize mask)
-                let p2 ←
-                  core.ptr.mut_ptr.RawPtrMutT.wrapping_add orig_addr i13
-                let i14 ← lift (RawPtr.toUScalar .U64 p2)
-                let i15 ← lift (~~~ mask)
-                let i16 ← lift (i14 &&& i15)
-                let addr3 ← lift (RawPtr.ofUScalar core.ffi.c_void .Mut i16)
-                match fd with
-                | none =>
-                  let i17 ← lift (i11 ||| i4)
-                  let flags4 ← lift (flags3 ||| i17)
-                  let addr4 ←
-                    libc_1.unix.linux_like.mmap64 addr3 size prot flags4
-                      (-1)#i32 0#i64
-                  if addr4 = p1
-                  then
-                    let e ← base.errno.Error.last
-                    ok (core.result.Result.Err
-                      (base.mmap.Error.SystemCallFailed e))
-                  else
-                    let unmap_start ←
-                      lift (RawPtr.toUScalar .Usize orig_addr)
-                    let unmap_end ← lift (RawPtr.toUScalar .Usize addr4)
-                    let unmap_size ← unmap_end - unmap_start
-                    if unmap_size > 0#usize
-                    then
-                      do
-                      let _ ← libc_1.unix.munmap orig_addr unmap_size
-                      ok ()
-                    else ok ()
-                    let i18 ← lift (RawPtr.toUScalar .Usize addr4)
-                    let unmap_start1 ← i18 + size
-                    let i19 ← lift (RawPtr.toUScalar .Usize orig_addr)
-                    let i20 ← core.option.Option.unwrap (some orig_size)
-                    let unmap_end1 ← i19 + i20
-                    let unmap_size1 ← unmap_end1 - unmap_start1
-                    if unmap_size1 > 0#usize
-                    then
-                      do
-                      let p3 ←
-                        lift (RawPtr.ofUScalar core.ffi.c_void .Mut
-                          unmap_start1)
-                      let _ ← libc_1.unix.munmap p3 unmap_size1
-                      ok ()
-                    else ok ()
-                    let i21 ← libc_1.unix.linux_like.MADV_DONTDUMP
-                    let _ ←
-                      libc_1.unix.linux_like.linux_l4re_shared.madvise addr4
-                        size i21
-                    let i22 ← libc_1.unix.linux_like.MADV_MERGEABLE
-                    let _ ←
-                      libc_1.unix.linux_like.linux_l4re_shared.madvise addr4
-                        size i22
-                    let p3 ← lift (RawPtr.cast Std.U8 .Mut addr4)
-                    ok (core.result.Result.Ok { addr := p3, size })
-                | some p3 =>
-                  let (fd1, offset) := p3
-                  let i17 ← lift (IScalar.hcast .U64 core.num.I64.MAX)
-                  if offset > i17
-                  then
-                    ok (core.result.Result.Err base.mmap.Error.InvalidOffset)
-                  else
-                    let i18 ← fd1.inst.as_raw_descriptor fd1.value
-                    let i19 ← libc_1.unix.linux_like.F_GET_SEALS
-                    let seals ← libc_1.unix.fcntl i18 i19
-                    let flags4 ←
-                      if seals >= 0#i32
-                      then
-                        do
-                        let i20 ← libc_1.unix.linux_like.F_SEAL_WRITE
-                        let i21 ← lift (seals &&& i20)
-                        if i21 != 0#i32
-                        then
-                          let i22 ← lift (~~~ flags)
-                          let flags5 ← lift (flags3 &&& i22)
-                          ok (flags5 ||| i9)
-                        else ok flags3
-                      else ok flags3
-                    let offset1 ← lift (UScalar.hcast .I64 offset)
+              let o ← lift (Usize.checked_add size i8)
+              let r ←
+                core.option.Option.ok_or o base.mmap.Error.InvalidAlignment
+              let cf ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r
+              match cf with
+              | core.ops.control_flow.ControlFlow.Continue val =>
+                let p ← core.ptr.null_mut core.ffi.c_void
+                let i9 ← libc_1.unix.linux_like.MAP_PRIVATE
+                let i10 ← lift (i9 ||| i4)
+                let i11 ←
+                  libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_ANONYMOUS
+                let i12 ← lift (i10 ||| i11)
+                let orig_addr ←
+                  libc_1.unix.linux_like.mmap64 p val prot i12 (-1)#i32 0#i64
+                let p1 ← libc_1.unix.linux_like.MAP_FAILED
+                if orig_addr = p1
+                then
+                  let e ← base.errno.Error.last
+                  ok (core.result.Result.Err (base.mmap.Error.SystemCallFailed
+                    e))
+                else
+                  let flags3 ← lift (flags2 ||| i3)
+                  let mask ← align2 - 1#u64
+                  let i13 ← lift (UScalar.cast .Usize mask)
+                  let p2 ←
+                    core.ptr.mut_ptr.RawPtrMutT.wrapping_add orig_addr i13
+                  let i14 ← lift (RawPtr.toUScalar .U64 p2)
+                  let i15 ← lift (~~~ mask)
+                  let i16 ← lift (i14 &&& i15)
+                  let addr3 ←
+                    lift (RawPtr.ofUScalar core.ffi.c_void .Mut i16)
+                  match fd with
+                  | none =>
+                    let i17 ← lift (i11 ||| i4)
+                    let flags4 ← lift (flags3 ||| i17)
                     let addr4 ←
-                      libc_1.unix.linux_like.mmap64 addr3 size prot flags4 i18
-                        offset1
+                      libc_1.unix.linux_like.mmap64 addr3 size prot flags4
+                        (-1)#i32 0#i64
                     if addr4 = p1
                     then
                       let e ← base.errno.Error.last
@@ -826,31 +780,103 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
                         let _ ← libc_1.unix.munmap orig_addr unmap_size
                         ok ()
                       else ok ()
-                      let i20 ← lift (RawPtr.toUScalar .Usize addr4)
-                      let unmap_start1 ← i20 + size
-                      let i21 ← lift (RawPtr.toUScalar .Usize orig_addr)
-                      let i22 ← core.option.Option.unwrap (some orig_size)
-                      let unmap_end1 ← i21 + i22
+                      let i18 ← lift (RawPtr.toUScalar .Usize addr4)
+                      let unmap_start1 ← i18 + size
+                      let i19 ← lift (RawPtr.toUScalar .Usize orig_addr)
+                      let i20 ← core.option.Option.unwrap (some val)
+                      let unmap_end1 ← i19 + i20
                       let unmap_size1 ← unmap_end1 - unmap_start1
                       if unmap_size1 > 0#usize
                       then
                         do
-                        let p4 ←
+                        let p3 ←
                           lift (RawPtr.ofUScalar core.ffi.c_void .Mut
                             unmap_start1)
-                        let _ ← libc_1.unix.munmap p4 unmap_size1
+                        let _ ← libc_1.unix.munmap p3 unmap_size1
                         ok ()
                       else ok ()
-                      let i23 ← libc_1.unix.linux_like.MADV_DONTDUMP
+                      let i21 ← libc_1.unix.linux_like.MADV_DONTDUMP
                       let _ ←
                         libc_1.unix.linux_like.linux_l4re_shared.madvise addr4
-                          size i23
-                      let i24 ← libc_1.unix.linux_like.MADV_MERGEABLE
+                          size i21
+                      let i22 ← libc_1.unix.linux_like.MADV_MERGEABLE
                       let _ ←
                         libc_1.unix.linux_like.linux_l4re_shared.madvise addr4
-                          size i24
-                      let p4 ← lift (RawPtr.cast Std.U8 .Mut addr4)
-                      ok (core.result.Result.Ok { addr := p4, size })
+                          size i22
+                      let p3 ← lift (RawPtr.cast Std.U8 .Mut addr4)
+                      ok (core.result.Result.Ok { addr := p3, size })
+                  | some p3 =>
+                    let (fd1, offset) := p3
+                    let i17 ← lift (IScalar.hcast .U64 core.num.I64.MAX)
+                    if offset > i17
+                    then
+                      ok (core.result.Result.Err base.mmap.Error.InvalidOffset)
+                    else
+                      let i18 ← fd1.inst.as_raw_descriptor fd1.value
+                      let i19 ← libc_1.unix.linux_like.F_GET_SEALS
+                      let seals ← libc_1.unix.fcntl i18 i19
+                      let flags4 ←
+                        if seals >= 0#i32
+                        then
+                          do
+                          let i20 ← libc_1.unix.linux_like.F_SEAL_WRITE
+                          let i21 ← lift (seals &&& i20)
+                          if i21 != 0#i32
+                          then
+                            let i22 ← lift (~~~ flags)
+                            let flags5 ← lift (flags3 &&& i22)
+                            ok (flags5 ||| i9)
+                          else ok flags3
+                        else ok flags3
+                      let offset1 ← lift (UScalar.hcast .I64 offset)
+                      let addr4 ←
+                        libc_1.unix.linux_like.mmap64 addr3 size prot flags4
+                          i18 offset1
+                      if addr4 = p1
+                      then
+                        let e ← base.errno.Error.last
+                        ok (core.result.Result.Err
+                          (base.mmap.Error.SystemCallFailed e))
+                      else
+                        let unmap_start ←
+                          lift (RawPtr.toUScalar .Usize orig_addr)
+                        let unmap_end ← lift (RawPtr.toUScalar .Usize addr4)
+                        let unmap_size ← unmap_end - unmap_start
+                        if unmap_size > 0#usize
+                        then
+                          do
+                          let _ ← libc_1.unix.munmap orig_addr unmap_size
+                          ok ()
+                        else ok ()
+                        let i20 ← lift (RawPtr.toUScalar .Usize addr4)
+                        let unmap_start1 ← i20 + size
+                        let i21 ← lift (RawPtr.toUScalar .Usize orig_addr)
+                        let i22 ← core.option.Option.unwrap (some val)
+                        let unmap_end1 ← i21 + i22
+                        let unmap_size1 ← unmap_end1 - unmap_start1
+                        if unmap_size1 > 0#usize
+                        then
+                          do
+                          let p4 ←
+                            lift (RawPtr.ofUScalar core.ffi.c_void .Mut
+                              unmap_start1)
+                          let _ ← libc_1.unix.munmap p4 unmap_size1
+                          ok ()
+                        else ok ()
+                        let i23 ← libc_1.unix.linux_like.MADV_DONTDUMP
+                        let _ ←
+                          libc_1.unix.linux_like.linux_l4re_shared.madvise
+                            addr4 size i23
+                        let i24 ← libc_1.unix.linux_like.MADV_MERGEABLE
+                        let _ ←
+                          libc_1.unix.linux_like.linux_l4re_shared.madvise
+                            addr4 size i24
+                        let p4 ← lift (RawPtr.cast Std.U8 .Mut addr4)
+                        ok (core.result.Result.Ok { addr := p4, size })
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  base.sys.linux.mmap.MemoryMapping (core.convert.FromSame
+                  base.mmap.Error) residual
             else ok (core.result.Result.Err base.mmap.Error.InvalidAlignment)
           else ok (core.result.Result.Err base.mmap.Error.InvalidAlignment)
 
@@ -899,7 +925,7 @@ def base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
     (some (fd, offset)) populate
 
 /-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}::call_once]:
-    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
     Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once] -/
 @[rust_fun
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once"]
@@ -913,7 +939,7 @@ def
   ok (base.mmap.Error.SystemCallFailed e)
 
 /-- Trait implementation: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}]
-    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
     Name pattern: [core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>] -/
 @[reducible, rust_trait_impl
   "core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>"]
@@ -927,7 +953,7 @@ def
 }
 
 /-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap]:
-    Source: 'base/src/sys/linux/mmap.rs', lines 960:4-963:35
+    Source: 'base/src/sys/linux/mmap.rs', lines 962:4-965:35
     Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap] -/
 @[rust_fun
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap"]
@@ -958,7 +984,7 @@ def base.sys.linux.mmap.MemoryMappingBuilder.wrap
         residual
 
 /-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::build]:
-    Source: 'base/src/sys/linux/mmap.rs', lines 930:4-930:52
+    Source: 'base/src/sys/linux/mmap.rs', lines 932:4-932:52
     Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::build]
     Visibility: public -/
 @[rust_fun

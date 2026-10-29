@@ -76,7 +76,7 @@ def BuildOutcome (self : MemoryMappingBuilder) (pageSize : Usize)
     address is not `MAP_FAILED`, the mapped region `[addr, addr + size)` fits in the
     user address space without wrapping, and the address satisfies the requested or
     page alignment. -/
-theorem BuildOutcome.mapped_properties {self : MemoryMappingBuilder}
+theorem BuildOutcome.mapped_properties [Platform64] {self : MemoryMappingBuilder}
     {pageSize : Usize} {mapping : MemoryMapping}
     (hOut : BuildOutcome self pageSize (.Ok mapping)) :
     mapping.length = self.size ∧
@@ -162,9 +162,8 @@ private theorem unwrap_or_eq_getD {T : Type} (value : Option T) (fallback : T) :
 /-- Verify `MemoryMappingBuilder::build`: assuming `MmapSpec pageSize` and
     `MunmapSpec`, `build` satisfies `BuildOutcome`. -/
 @[step]
-theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
+theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
-    (hAlign : AlignSizeFits pageSize self.size self.align)
     (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
     (hMunmap : MunmapSpec
@@ -182,7 +181,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
       simp only [Bool.false_eq_true, ↓reduceIte]
       simp only [effective_protection_eq, bind_ok]
       step with new_protection_spec pageSize self.size self.align self.effectiveProtection
-        hPage hAlign hMmap hMunmap as ⟨created, hc⟩
+        hPage hMmap hMunmap as ⟨created, hc⟩
       cases created with
       | Ok mapping =>
         simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
@@ -200,7 +199,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize)
     simp only [effective_protection_eq, bind_ok]
     step with from_fd_offset_protection_populate_spec pageSize descriptor self.size
       (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate
-      hPage hAlign.of_getD_zero (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
+      hPage (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
     cases created with
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]

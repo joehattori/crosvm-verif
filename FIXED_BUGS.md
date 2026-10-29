@@ -14,3 +14,8 @@ alignment or an inclusive endpoint. Fixed in [CL 8548175](https://chromium-revie
 
 `SystemAllocator::new` could underflow or overflow `u64` when computing the
 reserved region and remaining `high_mmio` range. Fixed in [CL 8576268](https://chromium-review.googlesource.com/c/crosvm/crosvm/+/8576268).
+
+## BUG-004: Intermediate overflow in aligned memory mapping
+
+`MemoryMapping::try_mmap_populate` could overflow `usize` while computing the
+alignment reservation size `size + align`. Fixed in [CL 8664780](https://chromium-review.googlesource.com/c/crosvm/crosvm/+/8664780).

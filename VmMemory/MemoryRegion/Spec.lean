@@ -259,7 +259,7 @@ private theorem mapped_region_spec
 
 /-- A successfully built region stores the given fields and inherits the
     length, descriptor, and address-space fit of the mapping built from `builder`. -/
-theorem MappedRegionOutcome.ok_properties {builder : base.mmap.MemoryMappingBuilder}
+theorem MappedRegionOutcome.ok_properties [Platform64] {builder : base.mmap.MemoryMappingBuilder}
     {pageSize : Usize} {built : core.result.Result base.mmap.MemoryMapping base.mmap.Error}
     {guest_base : GuestAddress} {shared_obj : BackingObject} {offset : U64}
     {region : MemoryRegion}
@@ -291,12 +291,6 @@ theorem MappedRegionOutcome.err
   | Ok mapping => simp [MappedRegionOutcome] at h
   | Err mmapError => exact ⟨mmapError, by simpa [MappedRegionOutcome] using h⟩
 
-private theorem cast_usize_val_of_le (size : U64) (hSize : size.val ≤ Usize.max) :
-    (UScalar.cast .Usize size).val = size.val := by
-  rw [UScalar.cast_val_eq]
-  apply Nat.mod_eq_of_lt
-  scalar_tac
-
 /-! ### `new_from_shm` -/
 
 /-- Outcome of `MemoryRegion::new_from_shm`: configure a builder for `size as usize`
@@ -318,7 +312,7 @@ def NewFromShmOutcome (pageSize : Usize) (size : U64) (guest_base : GuestAddress
     vacuously. -/
 @[step]
 theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64)
-    (shm : alloc.sync.Arc base.shm.SharedMemory) (pageSize : Usize)
+    (shm : alloc.sync.Arc base.shm.SharedMemory) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hMmap : MmapSpec pageSize) :
     new_from_shm size guest_base offset shm ⦃ result =>
@@ -335,7 +329,6 @@ theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64
     rw [show withOffset = _ from hOff, show configured = _ from hConf,
       show builder = _ from hNew]
   step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage
-    (hNone ▸ AlignSizeFits.of_none _ _)
     (by rw [hDesc]; rintro d ⟨⟩; exact ⟨_, rfl⟩) hMmap (hNone ▸ MunmapSpec.of_none _ _ _)
     as ⟨built, hBuilt⟩
   apply WP.spec_mono (mapped_region_spec built guest_base (.Shm shm) offset)
@@ -346,7 +339,7 @@ theorem new_from_shm_spec (size : U64) (guest_base : GuestAddress) (offset : U64
     guest base, backing object, offset, and default options; its mapping has
     length `size as usize`, retains no duplicated descriptor, and fits in the
     address space without wrapping. -/
-theorem NewFromShmOutcome.ok_properties {pageSize : Usize} {size : U64}
+theorem NewFromShmOutcome.ok_properties [Platform64] {pageSize : Usize} {size : U64}
     {guest_base : GuestAddress} {offset : U64} {shm : alloc.sync.Arc base.shm.SharedMemory}
     {region : MemoryRegion}
     (h : NewFromShmOutcome pageSize size guest_base offset shm (.Ok region)) :
@@ -361,15 +354,13 @@ theorem NewFromShmOutcome.ok_properties {pageSize : Usize} {size : U64}
   subst hNew hConf hOff
   exact MappedRegionOutcome.ok_properties hBuilt hr
 
-/-- When `size` fits in `usize` (always on 64-bit targets), the mapping length
-    equals the requested size. -/
-theorem NewFromShmOutcome.length_val {pageSize : Usize} {size : U64}
+/-- On a 64-bit host, the mapping length equals the requested size. -/
+theorem NewFromShmOutcome.length_val [Platform64] {pageSize : Usize} {size : U64}
     {guest_base : GuestAddress} {offset : U64} {shm : alloc.sync.Arc base.shm.SharedMemory}
     {region : MemoryRegion}
-    (h : NewFromShmOutcome pageSize size guest_base offset shm (.Ok region))
-    (hSize : size.val ≤ Usize.max) :
+    (h : NewFromShmOutcome pageSize size guest_base offset shm (.Ok region)) :
     region.mapping.length.val = size.val := by
-  rw [h.ok_properties.2.2.2.2.1, cast_usize_val_of_le size hSize]
+  rw [h.ok_properties.2.2.2.2.1, Platform64.u64_cast_usize_val size]
 
 /-- Every failure of `new_from_shm` is a `MemoryMappingFailed` error. -/
 theorem NewFromShmOutcome.err {pageSize : Usize} {size : U64}
@@ -401,7 +392,7 @@ def NewFromFileOutcome (pageSize : Usize) (size : U64) (guest_base : GuestAddres
     vacuously. -/
 @[step]
 theorem new_from_file_spec (size : U64) (guest_base : GuestAddress) (offset : U64)
-    (file : alloc.sync.Arc std.fs.File) (pageSize : Usize)
+    (file : alloc.sync.Arc std.fs.File) (pageSize : Usize) [Platform64]
     (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
     (hMmap : MmapSpec pageSize) :
     new_from_file size guest_base offset file ⦃ result =>
@@ -418,7 +409,6 @@ theorem new_from_file_spec (size : U64) (guest_base : GuestAddress) (offset : U6
     rw [show withOffset = _ from hOff, show configured = _ from hConf,
       show builder = _ from hNew]
   step with base.mmap.MemoryMappingBuilder.build_spec withOffset pageSize hPage
-    (hNone ▸ AlignSizeFits.of_none _ _)
     (by rw [hDesc]; rintro d ⟨⟩; exact ⟨_, rfl⟩) hMmap (hNone ▸ MunmapSpec.of_none _ _ _)
     as ⟨built, hBuilt⟩
   apply WP.spec_mono (mapped_region_spec built guest_base (.File file) offset)
@@ -429,7 +419,7 @@ theorem new_from_file_spec (size : U64) (guest_base : GuestAddress) (offset : U6
     guest base, backing object, offset, and default options; its mapping has
     length `size as usize`, retains no duplicated descriptor, and fits in the
     address space without wrapping. -/
-theorem NewFromFileOutcome.ok_properties {pageSize : Usize} {size : U64}
+theorem NewFromFileOutcome.ok_properties [Platform64] {pageSize : Usize} {size : U64}
     {guest_base : GuestAddress} {offset : U64} {file : alloc.sync.Arc std.fs.File}
     {region : MemoryRegion}
     (h : NewFromFileOutcome pageSize size guest_base offset file (.Ok region)) :
@@ -444,15 +434,13 @@ theorem NewFromFileOutcome.ok_properties {pageSize : Usize} {size : U64}
   subst hNew hConf hOff
   exact MappedRegionOutcome.ok_properties hBuilt hr
 
-/-- When `size` fits in `usize` (always on 64-bit targets), the mapping length
-    equals the requested size. -/
-theorem NewFromFileOutcome.length_val {pageSize : Usize} {size : U64}
+/-- On a 64-bit host, the mapping length equals the requested size. -/
+theorem NewFromFileOutcome.length_val [Platform64] {pageSize : Usize} {size : U64}
     {guest_base : GuestAddress} {offset : U64} {file : alloc.sync.Arc std.fs.File}
     {region : MemoryRegion}
-    (h : NewFromFileOutcome pageSize size guest_base offset file (.Ok region))
-    (hSize : size.val ≤ Usize.max) :
+    (h : NewFromFileOutcome pageSize size guest_base offset file (.Ok region)) :
     region.mapping.length.val = size.val := by
-  rw [h.ok_properties.2.2.2.2.1, cast_usize_val_of_le size hSize]
+  rw [h.ok_properties.2.2.2.2.1, Platform64.u64_cast_usize_val size]
 
 /-- Every failure of `new_from_file` is a `MemoryMappingFailed` error. -/
 theorem NewFromFileOutcome.err {pageSize : Usize} {size : U64}

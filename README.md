@@ -27,9 +27,13 @@ function bodies are. `Arc<T>` is modeled by its contents, without reference
 counts, allocation identity, or drop timing. Resource lifetimes and leaks are
 outside the verified scope.
 
+crosvm supports only 64-bit hosts, but the generated Lean leaves the width of
+`usize` unspecified. Specifications that depend on 64-bit `usize` take the
+explicit assumption `[Platform64]` ([Utils/Platform.lean](Utils/Platform.lean)).
+
 ## Build and extraction
 
-Develop on Ubuntu or use the Docker workflow below. Run commands from the
+Develop on Linux or use the Docker workflow below. Run commands from the
 repository root. Initialize the pinned source submodules after cloning:
 
 ```sh

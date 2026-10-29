@@ -125,7 +125,7 @@ structure base.shm.SharedMemory where
   size : Std.U64
 
 /-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}]
-    Source: 'base/src/sys/linux/mmap.rs', lines 967:29-967:32
+    Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
     Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure] -/
 @[reducible, rust_type
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure"]
