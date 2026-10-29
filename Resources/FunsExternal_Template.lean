@@ -106,13 +106,6 @@ axiom U8.Insts.CoreHashHash.hash
 axiom U64.Insts.CoreHashHash.hash
   {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
 
-/-- [core::intrinsics::assume]:
-    Source: '/rustc/library/core/src/intrinsics/mod.rs', lines 452:0-452:35
-    Name pattern: [core::intrinsics::assume]
-    Visibility: public -/
-@[rust_fun "core::intrinsics::assume"]
-axiom core.intrinsics.assume : Bool → Result Unit
-
 /-- [core::iter::traits::iterator::Iterator::min]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
     Name pattern: [core::iter::traits::iterator::Iterator::min]

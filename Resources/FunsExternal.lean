@@ -23,11 +23,6 @@ noncomputable instance : DecidableEq resources.Alloc := Classical.decEq _
 macro "toStr" value:str : term =>
   `(Aeneas.Std.toStr $value (by simp only [Aeneas.Std.U32.max_eq]; decide +kernel))
 
-/-- A false optimizer assumption is undefined behavior, represented as failure. -/
-@[rust_fun "core::intrinsics::assume"]
-def core.intrinsics.assume (condition : Bool) : Result Unit :=
-  if condition then ok () else fail .undef
-
 /-- Rust's logical variant discriminants, independent of storage layout. -/
 instance {T : Type} : Discriminant (Option T) Isize where
   read_discriminant

@@ -29,6 +29,14 @@ if [[ ${1:-} == setup ]]; then
     docker exec "$task_container" mkdir -p "$task_source"
     git -C "$task_root/aeneas/charon" archive "$task_commit" | \
         docker exec --interactive "$task_container" tar -x -C "$task_source"
+    # Apply the local Charon fixes that the Aeneas Nix build also applies.
+    for task_patch in "$task_root"/aeneas/charon-patches/*.patch; do
+        [[ -e $task_patch ]] || continue
+        docker exec --interactive "$task_container" \
+            git -C "$task_source" apply --reverse --check - < "$task_patch" 2>/dev/null ||
+            docker exec --interactive "$task_container" \
+                git -C "$task_source" apply - < "$task_patch"
+    done
     task_toolchain=$(git -C "$task_root/aeneas/charon" \
         show "$task_commit:charon/rust-toolchain" | \
         sed -n 's/^channel = "\([^"]*\)"/\1/p')

@@ -17,7 +17,9 @@ The pinned crosvm revision includes the [upstream bug fixes](../FIXED_BUGS.md).
 See the top-level README for [commands](../README.md#build-and-extraction) and the
 project-wide [trust boundary](../README.md#trust-boundary).
 
-- Build Aeneas and Charon from the pinned checkouts; extraction depends on fixes
-  included there.
+- Build Aeneas and Charon from the pinned Aeneas checkout (`make aeneas-bin`);
+  extraction depends on fixes included there. Charon is the pinned upstream
+  commit plus the patches in `aeneas/charon-patches`; MMIO pool extraction needs
+  the closure-signature outlives recovery.
 - Initialize crosvm's nested dependency with
   `git -C crosvm submodule update --init third_party/minijail`.

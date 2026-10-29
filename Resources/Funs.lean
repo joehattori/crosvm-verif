@@ -142,10 +142,10 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
-  (T : Type) (o : Option Never) : Result (Option T) := do
-  let i := read_discriminant o
-  core.intrinsics.assume (i = 0#isize)
-  ok none
+  (T : Type) (residual : Option Never) : Result (Option T) := do
+  match residual with
+  | none => ok none
+  | some _ => fail panic
 
 /-- [core::option::{impl core::ops::try_trait::FromResidual<core::option::Option<!>> for core::option::Option<T>}::from_residual::<&_ mut _>]:
     Source: '/rustc/library/core/src/option.rs', lines 2889:4-2889:49
@@ -155,13 +155,13 @@ def
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
-  (T0 : Type) (o : Option Never) :
+  (T0 : Type) (residual : Option Never) :
   Result ((Option T0) × (Option T0 → Unit))
   := do
-  let i := read_discriminant o
-  core.intrinsics.assume (i = 0#isize)
-  let back := fun o1 => ()
-  ok (none, back)
+  match residual with
+  | none => let back := fun o => ()
+            ok (none, back)
+  | some _ => fail panic
 
 /-- Trait implementation: [std::collections::hash::map::{impl core::iter::traits::iterator::Iterator<(&'a K, &'a V)> for std::collections::hash::map::Iter<'a, K, V>}]
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 2101:0-2101:42
