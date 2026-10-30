@@ -1339,6 +1339,23 @@ def P.Insts.CoreOpsFunctionFnOnceTupleErrorError : core.ops.function.FnOnce
   call_once := P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
 }
 
+/-- [vm_memory::guest_memory::{impl core::convert::AsRef<(dyn base::descriptor::AsRawDescriptor + 'static)> for vm_memory::guest_memory::BackingObject}::as_ref]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 109:4-114:5
+    Visibility: public -/
+def guest_memory.BackingObject.Insts.CoreConvertAsRef.as_ref
+  (self : guest_memory.BackingObject) :
+  Result (Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  := do
+  match self with
+  | guest_memory.BackingObject.Shm shm =>
+    let sm ←
+      alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global shm
+    ok (Dyn.mk _ base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor sm)
+  | guest_memory.BackingObject.File f =>
+    let f1 ←
+      alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global f
+    ok (Dyn.mk _ std.fs.File.Insts.BaseDescriptorAsRawDescriptor f1)
+
 /-- [vm_memory::guest_memory::{impl core::default::Default for vm_memory::guest_memory::MemoryRegionPurpose}::default]:
     Source: 'vm_memory/src/guest_memory.rs', lines 129:29-129:36
     Visibility: public -/
@@ -2032,6 +2049,107 @@ def guest_memory.GuestMemory.find_region
       guest_addr)
   core.result.Result.map
     guest_memory.GuestMemory.find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64
+    r guest_addr
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), (&'_1 (dyn base::descriptor::AsRawDescriptor + '_2), u64)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure#1}<'_0, '_1, '_2, '_3>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 959:17-964:13 -/
+def
+  guest_memory.GuestMemory.offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64.call_once
+  (c : guest_memory.GuestMemory.offset_from_base.closure_1)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result ((Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn)) ×
+    Std.U64)
+  := do
+  let dyn ←
+    guest_memory.BackingObject.Insts.CoreConvertAsRef.as_ref
+      tupled_args.shared_obj
+  let ga ← guest_memory.MemoryRegion.start tupled_args
+  let i ← guest_address.GuestAddress.offset_from c ga
+  let i1 ← tupled_args.obj_offset + i
+  ok (dyn, i1)
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), (&'_1 (dyn base::descriptor::AsRawDescriptor + '_2), u64)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure#1}<'_0, '_1, '_2, '_3>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 959:17-964:13 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64
+  : core.ops.function.FnOnce
+  guest_memory.GuestMemory.offset_from_base.closure_1 guest_memory.MemoryRegion
+  ((Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn)) × Std.U64)
+  := {
+  call_once :=
+    guest_memory.GuestMemory.offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64.call_once
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnMut<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure}<'_0, '_1>}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 957:18-957:54 -/
+def
+  guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+  (c : guest_memory.GuestMemory.offset_from_base.closure)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (Bool × guest_memory.GuestMemory.offset_from_base.closure)
+  := do
+  let b ← guest_memory.MemoryRegion.contains tupled_args c
+  ok (b, c)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnOnce<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure}<'_0, '_1>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 957:18-957:54 -/
+def
+  guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool.call_once
+  (c : guest_memory.GuestMemory.offset_from_base.closure)
+  (mr : guest_memory.MemoryRegion) :
+  Result Bool
+  := do
+  let (b, _) ←
+    guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+      c mr
+  ok b
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnOnce<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure}<'_0, '_1>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 957:18-957:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool
+  : core.ops.function.FnOnce guest_memory.GuestMemory.offset_from_base.closure
+  guest_memory.MemoryRegion Bool := {
+  call_once :=
+    guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{impl core::ops::function::FnMut<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure}<'_0, '_1>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 957:18-957:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool
+  : core.ops.function.FnMut guest_memory.GuestMemory.offset_from_base.closure
+  guest_memory.MemoryRegion Bool := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool
+  call_mut :=
+    guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 951:4-965:5
+    Visibility: public -/
+def guest_memory.GuestMemory.offset_from_base
+  (self : guest_memory.GuestMemory) (guest_addr : guest_address.GuestAddress) :
+  Result (core.result.Result ((Dyn.{0, _} (fun _dyn =>
+    base.descriptor.AsRawDescriptor _dyn)) × Std.U64) guest_memory.Error)
+  := do
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
+  let i ← core.slice.Slice.iter s
+  let (o, _) ←
+    core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
+      guest_memory.GuestMemory.offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool
+      i guest_addr
+  let r ←
+    core.option.Option.ok_or o (guest_memory.Error.InvalidGuestAddress
+      guest_addr)
+  core.result.Result.map
+    guest_memory.GuestMemory.offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64
     r guest_addr
 
 end vm_memory

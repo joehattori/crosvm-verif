@@ -446,3 +446,18 @@ theorem NewFromFileOutcome.err {pageSize : Usize} {size : U64}
   exact hr.err
 
 end vm_memory.guest_memory.MemoryRegion
+
+namespace vm_memory.guest_memory.BackingObject
+
+/-- The backing object viewed as `&dyn AsRawDescriptor`. -/
+def descriptor : BackingObject → Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn)
+  | .Shm shm => Dyn.mk _ base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor shm.val
+  | .File file => Dyn.mk _ std.fs.File.Insts.BaseDescriptorAsRawDescriptor file.val
+
+@[step]
+theorem as_ref_spec (self : BackingObject) :
+    Insts.CoreConvertAsRef.as_ref self ⦃ d => d = self.descriptor ⦄ := by
+  cases self <;>
+    simp [Insts.CoreConvertAsRef.as_ref, descriptor, alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref]
+
+end vm_memory.guest_memory.BackingObject

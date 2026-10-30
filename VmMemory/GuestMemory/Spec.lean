@@ -598,53 +598,53 @@ theorem memory_size_overflow (self : GuestMemory) (h : U64.max < self.totalLengt
     (fun r => UScalar.cast .U64 r.mapping.length) hf self.regions.val
     0 0#u64 (by simpa [hmap, totalLength] using h)
 
-/-! ### `find_region` -/
+unseal Result in
+/-- A successful total-correctness spec pins down the result. -/
+private theorem spec_eq_ok {α : Type _} {m : Result α} {p : α → Prop} (h : m ⦃ x => p x ⦄) :
+    ∃ x, m = ok x ∧ p x := by
+  unfold WP.spec at h
+  exact h.induction (P := fun t _ => ∃ x, t = .ret x ∧ p x) (fun v _ hv => ⟨v, rfl, hv⟩)
+    (fun e _ _ hwp => by cases e; exact hwp.elim)
+
+/-! ### Region lookup -/
 
 open Classical in
-/-- The first region whose `contains` accepts the address yields its mapping,
-    the address's offset from the region start cast to `usize`, and its object
-    offset. If no region accepts it, the error carries the address. -/
-def FindRegionOutcome (self : GuestMemory) (addr : GuestAddress)
-    (result : core.result.Result (base.mmap.MemoryMapping × Usize × U64)
-      vm_memory.guest_memory.Error) : Prop :=
-  match self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
-  | none => result = .Err (.InvalidGuestAddress addr)
-  | some r => ∃ offset, GuestAddress.OffsetFromOutcome addr r.guest_base offset ∧
-      result = .Ok (r.mapping, UScalar.cast .Usize offset, r.obj_offset)
+/-- The first region whose `contains` accepts the address. `find_region` and
+    `offset_from_base` look it up with `Iter::find`. -/
+noncomputable def containingRegion (self : GuestMemory) (addr : GuestAddress) :
+    Option MemoryRegion :=
+  self.regionList.find? (fun r => decide (r.ContainsOutcome addr true))
 
-@[step]
-theorem find_region_spec (self : GuestMemory) (addr : GuestAddress) :
-    self.find_region addr ⦃ r => self.FindRegionOutcome addr r ⦄ := by
+theorem containingRegion_eq_some {self : GuestMemory} {addr : GuestAddress} {r : MemoryRegion}
+    (h : self.containingRegion addr = some r) :
+    r ∈ self.regionList ∧ r.ContainsOutcome addr true := by
   classical
-  unfold find_region
-  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
-  have hf : ∀ r,
-      find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
-        addr r ⦃ p => p.2 = addr ∧ (p.1 = true ↔ r.ContainsOutcome addr true) ⦄ := by
-    intro r
-    unfold find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
-    apply WP.spec_bind (MemoryRegion.contains_spec r addr)
-    intro b hb
-    simpa using hb.eq_true_iff
-  apply WP.spec_bind (core.slice.iter.Iter.find_spec _ _ addr hf _)
-  rintro ⟨o, _⟩ ho
-  simp only [List.drop_zero] at ho
-  subst ho
-  unfold FindRegionOutcome
-  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
-  | none => simp [core.option.Option.ok_or, core.result.Result.map]
-  | some r =>
-    have hp := List.find?_some hfind
-    simp only [decide_eq_true_eq] at hp
-    obtain ⟨endAddr, -, hc⟩ := hp
-    have hle : r.guest_base.val ≤ addr.val := (hc.mp rfl).1
-    simp only [core.option.Option.ok_or, core.result.Result.map,
-      find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64.call_once]
-    step as ⟨start, hstart⟩
-    subst hstart
-    step as ⟨offset, hoffset⟩
-    simp only [lift, bind_ok, WP.spec_ok]
-    exact ⟨offset, hoffset, rfl⟩
+  unfold containingRegion at h
+  have hp := List.find?_some h
+  simp only [decide_eq_true_eq] at hp
+  exact ⟨List.mem_of_find?_eq_some h, hp⟩
+
+/-- `Iter::find` with a closure whose result is `contains` returns the
+    containing region. -/
+private theorem find_containing_spec {F : Type} (self : GuestMemory) (addr : GuestAddress)
+    (fnMutInst : core.ops.function.FnMut F MemoryRegion Bool) (f : F)
+    (hf : ∀ r, fnMutInst.call_mut f r ⦃ p => p.2 = f ∧ (p.1 = true ↔ r.ContainsOutcome addr true) ⦄) :
+    core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find fnMutInst
+        ⟨self.regions.val, 0⟩ f
+      ⦃ r => r.1 = self.containingRegion addr ⦄ := by
+  classical
+  apply WP.spec_mono (core.slice.iter.Iter.find_spec fnMutInst _ f hf _)
+  intro r hr
+  rw [hr]
+  rfl
+
+/-- A closure that calls `contains` on its region argument. -/
+private theorem contains_closure_spec (addr : GuestAddress) (r : MemoryRegion) :
+    (do let b ← r.contains addr; ok (b, addr)) ⦃ p =>
+      p.2 = addr ∧ (p.1 = true ↔ r.ContainsOutcome addr true) ⦄ := by
+  apply WP.spec_bind (MemoryRegion.contains_spec r addr)
+  intro b hb
+  simpa using hb.eq_true_iff
 
 /-- For a region with representable end, `contains` accepts exactly the
     addresses in its mathematical half-open interval. -/
@@ -660,6 +660,82 @@ private theorem containsOutcome_true_iff {r : MemoryRegion} (hv : r.ValidBounds)
     obtain ⟨endAddr, he⟩ := MemoryRegion.EndOutcome.exists r
     exact ⟨endAddr, he, iff_of_true rfl (by rw [he.val_eq_of_valid hv]; exact hin)⟩
 
+/-- For well-formed memory, the containing region is the region whose
+    mathematical half-open interval contains the address. -/
+theorem WellFormed.containingRegion_eq_some_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {r : MemoryRegion} :
+    self.containingRegion addr = some r ↔ r ∈ self.regionList ∧
+      r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val := by
+  constructor
+  · intro hc
+    obtain ⟨hr, hcont⟩ := containingRegion_eq_some hc
+    exact ⟨hr, (containsOutcome_true_iff (h.validBounds hr) addr).mp hcont⟩
+  · rintro ⟨hr, hin⟩
+    cases hc : self.containingRegion addr with
+    | none =>
+      classical
+      unfold containingRegion at hc
+      have := List.find?_eq_none.mp hc r hr
+      simp only [decide_eq_true_eq] at this
+      exact absurd ((containsOutcome_true_iff (h.validBounds hr) addr).mpr hin) this
+    | some r' =>
+      obtain ⟨hr', hcont'⟩ := containingRegion_eq_some hc
+      have hin' := (containsOutcome_true_iff (h.validBounds hr') addr).mp hcont'
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hr
+      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hr'
+      obtain rfl := h.index_eq_of_mem hj hi hin' hin
+      rfl
+
+/-- For well-formed memory, there is no containing region exactly when no
+    region's mathematical half-open interval contains the address. -/
+theorem WellFormed.containingRegion_eq_none_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} :
+    self.containingRegion addr = none ↔ ∀ r ∈ self.regionList,
+      ¬ (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) := by
+  classical
+  unfold containingRegion
+  rw [List.find?_eq_none]
+  apply forall₂_congr
+  intro r hr
+  simp only [decide_eq_true_eq]
+  rw [containsOutcome_true_iff (h.validBounds hr) addr]
+
+/-! ### `find_region` -/
+
+/-- The containing region yields its mapping, the address's offset from the
+    region start cast to `usize`, and its object offset. Without one, the error
+    carries the address. -/
+def FindRegionOutcome (self : GuestMemory) (addr : GuestAddress)
+    (result : core.result.Result (base.mmap.MemoryMapping × Usize × U64)
+      vm_memory.guest_memory.Error) : Prop :=
+  match self.containingRegion addr with
+  | none => result = .Err (.InvalidGuestAddress addr)
+  | some r => ∃ offset, GuestAddress.OffsetFromOutcome addr r.guest_base offset ∧
+      result = .Ok (r.mapping, UScalar.cast .Usize offset, r.obj_offset)
+
+@[step]
+theorem find_region_spec (self : GuestMemory) (addr : GuestAddress) :
+    self.find_region addr ⦃ r => self.FindRegionOutcome addr r ⦄ := by
+  unfold find_region
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+  apply WP.spec_bind (find_containing_spec self addr _ addr fun r => contains_closure_spec addr r)
+  rintro ⟨o, _⟩ ho
+  change o = _ at ho
+  subst ho
+  unfold FindRegionOutcome
+  cases hc : self.containingRegion addr with
+  | none => simp [core.option.Option.ok_or, core.result.Result.map]
+  | some r =>
+    obtain ⟨-, endAddr, -, hcont⟩ := containingRegion_eq_some hc
+    have hle : r.guest_base.val ≤ addr.val := (hcont.mp rfl).1
+    simp only [core.option.Option.ok_or, core.result.Result.map,
+      find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64.call_once]
+    step as ⟨start, hstart⟩
+    subst hstart
+    step as ⟨offset, hoffset⟩
+    simp only [lift, bind_ok, WP.spec_ok]
+    exact ⟨offset, hoffset, rfl⟩
+
 /-- For well-formed memory, `find_region` succeeds exactly when some region's
     mathematical half-open interval contains the address, and then returns that
     region's mapping, the offset of the address within it, and its object
@@ -671,34 +747,27 @@ theorem WellFormed.findRegion_eq_ok_iff [Platform64] {self : GuestMemory} (h : s
       (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) ∧
       mapping = r.mapping ∧ offset.val = addr.val - r.guest_base.val ∧
       objOffset = r.obj_offset := by
-  classical
   unfold FindRegionOutcome at hOut
-  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  cases hc : self.containingRegion addr with
   | none =>
-    rw [hfind] at hOut
+    rw [hc] at hOut
     subst hOut
     simp only [reduceCtorEq, false_iff, not_exists, not_and]
     intro r hr hin
-    have := List.find?_eq_none.mp hfind r hr
-    simp only [decide_eq_true_eq] at this
-    exact absurd ((containsOutcome_true_iff (h.validBounds hr) addr).mpr hin) this
+    exact absurd hin (h.containingRegion_eq_none_iff.mp hc r hr)
   | some r =>
-    rw [hfind] at hOut
+    rw [hc] at hOut
     obtain ⟨o, ho, hres⟩ := hOut
     subst hres
-    have hr := List.mem_of_find?_eq_some hfind
-    have hp := List.find?_some hfind
-    simp only [decide_eq_true_eq] at hp
-    have hin := (containsOutcome_true_iff (h.validBounds hr) addr).mp hp
+    obtain ⟨hr, hin⟩ := h.containingRegion_eq_some_iff.mp hc
     unfold GuestAddress.OffsetFromOutcome at ho
     simp only [core.result.Result.Ok.injEq, Prod.mk.injEq]
     constructor
     · rintro ⟨rfl, rfl, rfl⟩
       exact ⟨r, hr, hin, rfl, by rw [Platform64.u64_cast_usize_val, ho], rfl⟩
     · rintro ⟨r', hr', hin', rfl, hoff, rfl⟩
-      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hr
-      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hr'
-      obtain rfl := h.index_eq_of_mem hi hj hin hin'
+      obtain rfl : r = r' :=
+        Option.some.inj (hc.symm.trans (h.containingRegion_eq_some_iff.mpr ⟨hr', hin'⟩))
       exact ⟨rfl, UScalar.eq_of_val_eq (by rw [Platform64.u64_cast_usize_val, ho, hoff]), rfl⟩
 
 /-- `find_region` fails only with `InvalidGuestAddress` for the given address,
@@ -709,35 +778,164 @@ theorem WellFormed.findRegion_eq_err_iff {self : GuestMemory} (h : self.WellForm
     (e : vm_memory.guest_memory.Error) :
     result = .Err e ↔ e = .InvalidGuestAddress addr ∧ ∀ r ∈ self.regionList,
       ¬ (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) := by
-  classical
   unfold FindRegionOutcome at hOut
-  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  cases hc : self.containingRegion addr with
   | none =>
-    rw [hfind] at hOut
+    rw [hc] at hOut
     subst hOut
-    have hnone := List.find?_eq_none.mp hfind
     simp only [core.result.Result.Err.injEq]
     constructor
     · rintro rfl
-      refine ⟨rfl, fun r hr hin => ?_⟩
-      have := hnone r hr
-      simp only [decide_eq_true_eq] at this
-      exact this ((containsOutcome_true_iff (h.validBounds hr) addr).mpr hin)
+      exact ⟨rfl, h.containingRegion_eq_none_iff.mp hc⟩
     · rintro ⟨rfl, -⟩
       rfl
   | some r =>
-    rw [hfind] at hOut
+    rw [hc] at hOut
     obtain ⟨o, -, hres⟩ := hOut
     subst hres
-    have hr := List.mem_of_find?_eq_some hfind
-    have hp := List.find?_some hfind
-    simp only [decide_eq_true_eq] at hp
-    have hin := (containsOutcome_true_iff (h.validBounds hr) addr).mp hp
+    obtain ⟨hr, hin⟩ := h.containingRegion_eq_some_iff.mp hc
     simp only [reduceCtorEq, false_iff]
     rintro ⟨-, hall⟩
     exact hall r hr hin
 
-/-! ### Iterator `max_by_key` -/
+/-! ### `offset_from_base` -/
+
+/-- The unchecked sum in `offset_from_base` fits in `u64`: the containing
+    region's object offset plus the address's offset into the region. -/
+def OffsetFromBaseFits (self : GuestMemory) (addr : GuestAddress) : Prop :=
+  match self.containingRegion addr with
+  | none => True
+  | some r => r.obj_offset.val + (addr.val - r.guest_base.val) ≤ U64.max
+
+/-- The containing region yields its backing object and the address's offset
+    into that object: the region's object offset plus the offset from the
+    region start. Without one, the error carries the address. -/
+def OffsetFromBaseOutcome (self : GuestMemory) (addr : GuestAddress)
+    (result : core.result.Result
+      (Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn) × U64)
+      vm_memory.guest_memory.Error) : Prop :=
+  match self.containingRegion addr with
+  | none => result = .Err (.InvalidGuestAddress addr)
+  | some r => ∃ delta, GuestAddress.OffsetFromOutcome addr r.guest_base delta ∧
+      ∃ offset : U64, offset.val = r.obj_offset.val + delta.val ∧
+        result = .Ok (r.shared_obj.descriptor, offset)
+
+@[step]
+theorem offset_from_base_spec (self : GuestMemory) (addr : GuestAddress)
+    (h : self.OffsetFromBaseFits addr) :
+    self.offset_from_base addr ⦃ r => self.OffsetFromBaseOutcome addr r ⦄ := by
+  unfold offset_from_base
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+  apply WP.spec_bind (find_containing_spec self addr _ addr fun r => contains_closure_spec addr r)
+  rintro ⟨o, _⟩ ho
+  change o = _ at ho
+  subst ho
+  unfold OffsetFromBaseOutcome
+  unfold OffsetFromBaseFits at h
+  cases hc : self.containingRegion addr with
+  | none => simp [core.option.Option.ok_or, core.result.Result.map]
+  | some r =>
+    rw [hc] at h
+    obtain ⟨-, endAddr, -, hcont⟩ := containingRegion_eq_some hc
+    have hle : r.guest_base.val ≤ addr.val := (hcont.mp rfl).1
+    simp only [core.option.Option.ok_or, core.result.Result.map,
+      offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64.call_once]
+    step as ⟨d, hd⟩
+    step as ⟨start, hstart⟩
+    subst hstart
+    step as ⟨delta, hdelta⟩
+    have hdv : delta.val = addr.val - r.guest_base.val := hdelta
+    step as ⟨offset, hoffset⟩
+    exact ⟨delta, hdelta, offset, hoffset, by rw [hd]⟩
+
+/-- For well-formed memory, `offset_from_base` succeeds exactly when some
+    region's mathematical half-open interval contains the address, and then
+    returns that region's backing object and the address's offset into it. -/
+theorem WellFormed.offsetFromBase_eq_ok_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {result} (hOut : self.OffsetFromBaseOutcome addr result)
+    (descriptor : Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+    (offset : U64) :
+    result = .Ok (descriptor, offset) ↔ ∃ r ∈ self.regionList,
+      (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) ∧
+      descriptor = r.shared_obj.descriptor ∧
+      offset.val = r.obj_offset.val + (addr.val - r.guest_base.val) := by
+  unfold OffsetFromBaseOutcome at hOut
+  cases hc : self.containingRegion addr with
+  | none =>
+    rw [hc] at hOut
+    subst hOut
+    simp only [reduceCtorEq, false_iff, not_exists, not_and]
+    intro r hr hin
+    exact absurd hin (h.containingRegion_eq_none_iff.mp hc r hr)
+  | some r =>
+    rw [hc] at hOut
+    obtain ⟨delta, hdelta, o, ho, hres⟩ := hOut
+    subst hres
+    obtain ⟨hr, hin⟩ := h.containingRegion_eq_some_iff.mp hc
+    unfold GuestAddress.OffsetFromOutcome at hdelta
+    simp only [core.result.Result.Ok.injEq, Prod.mk.injEq]
+    constructor
+    · rintro ⟨rfl, rfl⟩
+      exact ⟨r, hr, hin, rfl, by rw [ho, hdelta]⟩
+    · rintro ⟨r', hr', hin', rfl, hoff⟩
+      obtain rfl : r = r' :=
+        Option.some.inj (hc.symm.trans (h.containingRegion_eq_some_iff.mpr ⟨hr', hin'⟩))
+      exact ⟨rfl, UScalar.eq_of_val_eq (by rw [ho, hoff, hdelta])⟩
+
+/-- `offset_from_base` fails only with `InvalidGuestAddress` for the given
+    address, and for well-formed memory exactly when no region's mathematical
+    half-open interval contains it. -/
+theorem WellFormed.offsetFromBase_eq_err_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {result} (hOut : self.OffsetFromBaseOutcome addr result)
+    (e : vm_memory.guest_memory.Error) :
+    result = .Err e ↔ e = .InvalidGuestAddress addr ∧ ∀ r ∈ self.regionList,
+      ¬ (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) := by
+  unfold OffsetFromBaseOutcome at hOut
+  cases hc : self.containingRegion addr with
+  | none =>
+    rw [hc] at hOut
+    subst hOut
+    simp only [core.result.Result.Err.injEq]
+    constructor
+    · rintro rfl
+      exact ⟨rfl, h.containingRegion_eq_none_iff.mp hc⟩
+    · rintro ⟨rfl, -⟩
+      rfl
+  | some r =>
+    rw [hc] at hOut
+    obtain ⟨_, _, _, _, hres⟩ := hOut
+    subst hres
+    obtain ⟨hr, hin⟩ := h.containingRegion_eq_some_iff.mp hc
+    simp only [reduceCtorEq, false_iff]
+    rintro ⟨-, hall⟩
+    exact hall r hr hin
+
+/-- If the sum overflows, `offset_from_base` panics. -/
+theorem offset_from_base_overflow (self : GuestMemory) (addr : GuestAddress)
+    (h : ¬ self.OffsetFromBaseFits addr) :
+    self.offset_from_base addr = fail .integerOverflow := by
+  unfold OffsetFromBaseFits at h
+  cases hc : self.containingRegion addr with
+  | none => simp [hc] at h
+  | some r =>
+    rw [hc] at h
+    obtain ⟨-, endAddr, -, hcont⟩ := containingRegion_eq_some hc
+    have hle : r.guest_base.val ≤ addr.val := (hcont.mp rfl).1
+    unfold offset_from_base
+    simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+    obtain ⟨⟨o, it⟩, hfind, ho⟩ :=
+      spec_eq_ok (find_containing_spec self addr
+        offset_from_base.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool addr fun r => contains_closure_spec addr r)
+    change o = _ at ho
+    obtain ⟨d, hd, -⟩ := spec_eq_ok (BackingObject.as_ref_spec r.shared_obj)
+    obtain ⟨delta, hdelta, hdv⟩ := spec_eq_ok (GuestAddress.offset_from_spec addr r.guest_base hle)
+    unfold GuestAddress.OffsetFromOutcome at hdv
+    have hov := u64_add_overflow r.obj_offset delta (by omega)
+    rw [hfind, ho, hc]
+    simp only [bind_ok, uncurry, core.option.Option.ok_or, core.result.Result.map,
+      offset_from_base.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionPairShared1PU64.call_once,
+      MemoryRegion.start, hd, hdelta, hov]
+    simp
 
 /-- `m` is the last element of `l` with a maximal key: no element has a larger
     key, and every element after `m` has a smaller one. -/

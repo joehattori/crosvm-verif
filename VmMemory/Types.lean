@@ -290,4 +290,16 @@ def guest_memory.GuestMemory.find_region.closure_1 :=
 @[reducible]
 def guest_memory.GuestMemory.find_region.closure := guest_address.GuestAddress
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure#1}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 959:17-964:13 -/
+@[reducible]
+def guest_memory.GuestMemory.offset_from_base.closure_1 :=
+  guest_address.GuestAddress
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::offset_from_base::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 957:18-957:54 -/
+@[reducible]
+def guest_memory.GuestMemory.offset_from_base.closure :=
+  guest_address.GuestAddress
+
 end vm_memory
