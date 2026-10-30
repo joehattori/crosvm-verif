@@ -153,9 +153,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     (hPagePow : pageSize.val.isPowerOfTwo)
     (hFd : ∀ d, self.descriptor = some d → ValidDescriptor d)
     (hMmap : MmapSpec pageSize)
-    (hMunmap : MunmapSpec pageSize
-      (TryMmapTrimAllowed pageSize self.size self.align
-        (protectionFlags self.effectiveProtection))) :
+    (hMunmap : MunmapSpec) :
     base.sys.linux.mmap.MemoryMappingBuilder.build self ⦃ result =>
       BuildOutcome self pageSize result ⦄ := by
   unfold base.sys.linux.mmap.MemoryMappingBuilder.build
@@ -186,7 +184,7 @@ theorem build_spec (self : MemoryMappingBuilder) (pageSize : Usize) [Platform64]
     simp only [effective_protection_eq, bind_ok]
     step with from_fd_offset_protection_populate_spec pageSize descriptor self.size
       (self.offset.getD 0#u64) (self.align.getD 0#u64) self.effectiveProtection self.populate
-      hPage hPagePow (hFd descriptor hd) hMmap (MunmapSpec.of_getD_zero hMunmap) as ⟨created, hc⟩
+      hPage hPagePow (hFd descriptor hd) hMmap hMunmap as ⟨created, hc⟩
     cases created with
     | Ok mapping =>
       simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
