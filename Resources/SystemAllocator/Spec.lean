@@ -4,7 +4,7 @@ public import Resources.AddressAllocatorSet.Spec
 import all Resources.FunsExternal
 import all Aeneas.Std.Slice
 import all Aeneas.Std.SliceIter
-import all Aeneas.Std.VecIter
+import all Aeneas.Std.Alloc.Vec.IntoIter
 import all Aeneas.Std.Scalar.Ops.Add
 import all Aeneas.Std.String
 import all Init.Data.ByteArray.Basic
@@ -42,7 +42,7 @@ private theorem intersect_eq_spec (r s : AddressRange) :
 private abbrev mapIterator :=
   core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
     (core.iter.traits.iterator.IteratorSliceIter AddressRange)
-    new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
+    new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange
 
 private theorem collect_intersections (ranges : Slice AddressRange) (pool : AddressRange)
     (i : Nat) (acc : List AddressRange) (hi : i ≤ ranges.val.length) :
@@ -55,8 +55,8 @@ private theorem collect_intersections (ranges : Slice AddressRange) (pool : Addr
   split
   · rename_i hnext
     simp only [bind_ok,
-      new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut]
-    simp only [bind_tc_eq, Aeneas.Std.bind_assoc, bind_ok]
+      new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange.call_mut]
+    simp only [Aeneas.Std.bind_assoc, bind_ok]
     step with intersect_eq_spec ranges[i] pool as ⟨r, hr⟩
     subst r
     step with collect_intersections ranges pool (i + 1) (intersection ranges.val[i] pool :: acc)
@@ -80,7 +80,7 @@ private theorem intersect_mmio_spec (ranges : Slice AddressRange) (pool : Addres
     have hn : ranges.val ≠ [] := by simpa [Slice.length] using hn
     simp only [core.slice.Slice.iter, _root_.core.iter.traits.iterator.Iterator.map.default,
       core.iter.traits.iterator.Iterator.collect.default, alloc.vec.FromIteratorVec.from_iter,
-      core.iter.traits.collect.IntoIterator.Blanket.into_iter, bind_tc_eq, Aeneas.Std.bind_assoc, bind_ok]
+      core.iter.traits.collect.IntoIterator.Blanket.into_iter, Aeneas.Std.bind_assoc, bind_ok]
     step with collect_intersections ranges pool 0 [] (by omega) as ⟨rs, hrs⟩
     simp only [List.reverse_nil, List.drop_zero, List.nil_append] at hrs
     subst rs
@@ -239,7 +239,7 @@ private noncomputable def andThen {T : Type}
 
 private noncomputable def completeAllocator (config : SystemAllocatorConfig) (io : Option AddressAllocator)
     (low high : AddressAllocator) (platform : Option AddressAllocator) (reserved : Option AddressRange)
-    (pci : _root_.alloc.collections.btree.map.BTreeMap U8 AddressAllocator Global) :
+    (pci : _root_.alloc.collections.btree.map.BTreeMap U8 AddressAllocator alloc.alloc.Global) :
     Result (core.result.Result SystemAllocator resources.Error) := do
   let irqStart ← lift (UScalar.cast .U64 config.first_irq)
   andThen (AddressAllocator.new ⟨irqStart, 1023#u64⟩ (some 1#u64) none) fun irq =>
@@ -469,7 +469,7 @@ theorem new_spec (config : SystemAllocatorConfig) (reserve : Option U64)
     cases hio : config.io <;> cases hp : config.platform_mmio <;>
       simp only [afterReservation, afterIo, completeAllocator, andThen, lift, bind_ok, hio, hp] at h ⊢ <;>
       (convert h using 1; clear h;
-        repeat' first | rfl |
+        repeat' first |
           (funext x
            try (guard_hyp x : core.result.Result _ _; cases x)
            all_goals try simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok,
@@ -501,7 +501,7 @@ theorem new_spec (config : SystemAllocatorConfig) (reserve : Option U64)
           simp only [afterReservation, afterIo, completeAllocator, andThen, lift, bind_ok,
             core.result.Result.Insts.CoreOpsTry.branch, hio, hp] at h ⊢ <;>
           (convert h using 1; clear h;
-            repeat' first | rfl |
+            repeat' first |
               (funext x
                try (guard_hyp x : core.result.Result _ _; cases x)
                all_goals try simp only [bind_ok,
@@ -846,8 +846,8 @@ private theorem findEntryKey_u8 (bus : U8) (keys : List U8) :
       simp
     · simp [heq, he, ih]
 
-private theorem pci_entry_spec {V : Type} (allocator : core.alloc.AllocatorClone Global)
-    (m : _root_.alloc.collections.btree.map.BTreeMap U8 V Global) (bus : U8) :
+private theorem pci_entry_spec {V : Type} (allocator : core.alloc.AllocatorClone alloc.alloc.Global)
+    (m : _root_.alloc.collections.btree.map.BTreeMap U8 V alloc.alloc.Global) (bus : U8) :
     _root_.alloc.collections.btree.map.BTreeMap.entry
       allocator core.cmp.OrdU8 m bus
       ⦃ entry back =>
@@ -1173,7 +1173,7 @@ private abbrev poolIterator :=
   core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
     (core.iter.traits.iterator.IteratorSliceIter AddressAllocator)
     (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter AddressRange)
-    mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+    mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange
 
 private def remainingPools (inner : Option (core.slice.iter.Iter AddressRange)) : List AddressRange :=
   match inner with
@@ -1201,12 +1201,12 @@ private theorem collect_mmio_pools (spaces : Slice AddressAllocator) (i : Nat)
     simp only [slice_next_eq]
     split
     · rename_i hnext
-      simp only [bind_tc_eq, uncurry, bind_ok]
+      simp only [uncurry, bind_ok]
       rw [collect_mmio_pools spaces i (some { it with i := it.i + 1 }) (it.slice.val[it.i] :: acc)]
       simp only [remainingPools, List.reverse_cons, List.append_assoc, List.singleton_append]
       rw [List.drop_eq_getElem_cons hnext]
     · rename_i hdone
-      simp only [bind_tc_eq, uncurry, bind_ok]
+      simp only [uncurry, bind_ok]
       have ih := collect_mmio_pools spaces i none acc
       rw [alloc.vec.FromIteratorVec.iterToList.eq_def] at ih
       simpa only [poolIterator, remainingPools, uncurry, bind_tc_eq,
@@ -1215,8 +1215,8 @@ private theorem collect_mmio_pools (spaces : Slice AddressAllocator) (i : Nat)
     simp only [slice_next_eq]
     split
     · rename_i hnext
-      simp only [bind_tc_eq, uncurry, bind_ok,
-        mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut,
+      simp only [uncurry, bind_ok,
+        mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange.call_mut,
         AddressAllocator.impl.pools, alloc.vec.Vec.deref,
         SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter]
       have ih := collect_mmio_pools spaces (i + 1) (some ⟨alloc.vec.Vec.deref spaces.val[i].pools, 0⟩) acc
@@ -1228,7 +1228,7 @@ private theorem collect_mmio_pools (spaces : Slice AddressAllocator) (i : Nat)
       simp [remainingPools, List.drop_eq_nil_of_le (by omega : spaces.val.length ≤ i)]
 termination_by (spaces.val.length - i,
   match inner with | none => 0 | some it => it.slice.val.length - it.i + 1)
-decreasing_by all_goals simp_wf <;> omega
+decreasing_by all_goals (simp_wf; try omega)
 
 /-- The accessor returns the configured pools in low-then-high order. The bound
     ensures that the concatenated list fits the vector model. -/
@@ -1240,7 +1240,7 @@ theorem mmio_pools_spec (self : SystemAllocator) (hsize : (mmioPoolList self).le
     _root_.core.iter.traits.iterator.Iterator.flat_map.default,
     core.iter.traits.iterator.Iterator.collect.default, alloc.vec.FromIteratorVec.from_iter,
     core.iter.traits.collect.IntoIterator.Blanket.into_iter,
-    bind_tc_eq, bind_ok]
+    bind_ok]
   rw [collect_mmio_pools]
   simp [remainingPools, mmioPoolList] at hsize ⊢
   simp [hsize]
@@ -1630,7 +1630,7 @@ private theorem reservation_sort_spec (pools : Slice AddressRange) :
     simp only [hle, decide_eq_true_eq]
     exact fun _ _ _ => Nat.le_trans
   unfold alloc.slice.Slice.sort_by
-  rw [if_pos ⟨hpure, htrans⟩]
+  rw [ite_eq_left ⟨hpure, htrans⟩]
   simp only [WP.spec_ok, Slice.from_val, hle]
 
 private theorem copy_reservation_pools_spec (iter : alloc.vec.Vec AddressRange)
@@ -1639,8 +1639,8 @@ private theorem copy_reservation_pools_spec (iter : alloc.vec.Vec AddressRange)
     reserve_mmio_loop0 iter pools ⦃ copied => copied.val = pools.val ++ iter.val ⦄ := by
   unfold reserve_mmio_loop0
   rw [loop.eq_def]
-  dsimp only
-  rw [reserve_mmio_loop0.body, alloc.vec.into_iter.IteratorIntoIter.next]
+  dsimp only [uncurry]
+  unfold reserve_mmio_loop0.body alloc.vec.into_iter.IteratorIntoIter.next
   split
   · rename_i hi
     change iter.val = [] at hi
@@ -1751,7 +1751,7 @@ private theorem reserve_mmio_loop_spec (pools : Slice AddressRange) (i : Nat)
       · rename_i he
         have he := hempty.mp he
         have hoverlaps : reservationOverlaps (pools.val.drop i) range =
-            reservationOverlaps (pools.val.drop (i + 1)) range := by simp only [hdrop, reservationOverlaps_cons, if_pos he]
+            reservationOverlaps (pools.val.drop (i + 1)) range := by simp only [hdrop, reservationOverlaps_cons, ite_eq_left he]
         simp only [bind_ok]
         rw [hoverlaps] at hnext ⊢
         exact reserve_mmio_loop_spec pools (i + 1) self range hwf hsorted.2 hnext
@@ -1759,7 +1759,7 @@ private theorem reserve_mmio_loop_spec (pools : Slice AddressRange) (i : Nat)
         have hn : ¬(intersection pools.val[i] range).isEmptyModel := fun he => hn (hempty.mpr he)
         have hoverlaps : reservationOverlaps (pools.val.drop i) range =
             intersection pools.val[i] range :: reservationOverlaps (pools.val.drop (i + 1)) range := by
-          simp only [hdrop, reservationOverlaps_cons, if_neg hn]
+          simp only [hdrop, reservationOverlaps_cons, ite_eq_right hn]
         rw [hoverlaps] at hnext ⊢
         step with get_anon_alloc_spec self (by simp only [List.length_cons] at hnext; omega)
           as ⟨pair, hid, hnextstate⟩
@@ -1825,7 +1825,8 @@ theorem reserve_mmio_spec (self : SystemAllocator) (range : AddressRange)
       WellFormed a ∧ MmioReservationOutcome self range result a ⦄ := by
   unfold reserve_mmio
   step with mmio_pools_spec self hsize as ⟨original, horiginal⟩
-  simp only [alloc.vec.IntoIteratorVec.into_iter, bind_ok]
+  simp only [alloc.vec.IntoIteratorVec.into_iter]
+  erw [bind_ok]
   step with copy_reservation_pools_spec original (alloc.vec.Vec.new AddressRange)
     (by simpa [horiginal] using hsize) as ⟨copied, hcopied⟩
   have hcopied : copied.val = mmioPoolList self := by simpa [horiginal] using hcopied

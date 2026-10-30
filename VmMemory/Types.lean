@@ -11,6 +11,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -34,8 +35,8 @@ inductive core.ffi.c_void where
     Name pattern: [core::ops::bit::BitOr]
     Visibility: public -/
 @[rust_trait "core::ops::bit::BitOr"]
-structure core.ops.bit.BitOr (Self : Type) (Rhs : Type) (Self_Output : Type)
-  where
+structure core.ops.bit.BitOr (Self : Type _) (Rhs : Type _) (Self_Output :
+  Type _) where
   bitor : Self → Rhs → Result Self_Output
 
 /-- [base::descriptor::SafeDescriptor]
@@ -51,7 +52,7 @@ structure base.descriptor.SafeDescriptor where
     Name pattern: [base::descriptor::AsRawDescriptor]
     Visibility: public -/
 @[rust_trait "base::descriptor::AsRawDescriptor"]
-structure base.descriptor.AsRawDescriptor (Self : Type) where
+structure base.descriptor.AsRawDescriptor (Self : Type _) where
   as_raw_descriptor : Self → Result Std.I32
 
 /-- [base::mmap::Error]
@@ -107,7 +108,8 @@ structure base.mmap.MemoryMapping where
     Visibility: public -/
 @[rust_type "base::mmap::MemoryMappingBuilder"]
 structure base.mmap.MemoryMappingBuilder where
-  descriptor : Option (Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  descriptor : Option (Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor
+    _dyn))
   is_file_descriptor : Bool
   size : Std.Usize
   offset : Option Std.U64

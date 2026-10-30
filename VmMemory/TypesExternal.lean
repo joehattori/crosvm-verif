@@ -2,6 +2,7 @@ module
 public import Aeneas
 @[expose] public section
 open Aeneas Aeneas.Std
+set_option linter.dupNamespace false
 
 /-- Abstract identity of an I/O error. Only preservation through mapping errors
     is modeled; error inspection and formatting are outside this slice. -/
@@ -34,5 +35,5 @@ structure std.path.PathBuf where
     (`get_mut`, `try_unwrap`, `strong_count`), and drop timing are not modeled;
     model such operations explicitly before relying on them. -/
 @[rust_type "alloc::sync::Arc"]
-structure alloc.sync.Arc (T : Type) where
+structure alloc.sync.Arc (T : Type _) where
   val : T

@@ -12,6 +12,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -26,7 +27,7 @@ open vm_memory
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
 axiom core.iter.traits.iterator.Iterator.sum.default
-  {Self : Type} {S : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {S : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item) (accumSumInst :
   core.iter.traits.accum.Sum S Clause0_Item) :
   Self → Result S
@@ -37,7 +38,7 @@ axiom core.iter.traits.iterator.Iterator.sum.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::any"]
 axiom core.iter.traits.iterator.Iterator.any.default
-  {Self : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {F : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutFTupleClause0_ItemBoolInst : core.ops.function.FnMut F
   Clause0_Item Bool) :
@@ -49,8 +50,8 @@ axiom core.iter.traits.iterator.Iterator.any.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
 axiom core.iter.traits.iterator.Iterator.map.default
-  {Self : Type} {B : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
-  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+  (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
   Clause0_Item B) :
   Self → F → Result (core.iter.adapters.map.Map Self F)
@@ -62,7 +63,7 @@ axiom core.iter.traits.iterator.Iterator.map.default
 @[rust_fun
   "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
 axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
-  {B : Type} {I : Type} {F : Type} {Clause0_Item : Type}
+  {B : Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
   (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
   Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
   core.ops.function.FnMut F Clause0_Item B) :
@@ -70,13 +71,13 @@ axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
     (core.iter.adapters.map.Map I F))
 
 /-- [core::iter::traits::accum::{impl core::iter::traits::accum::Sum<u64> for u64}::sum]:
-    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 51:12-51:59
+    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 51:12-51:59; this code is generated from a macro invocation at: '/rustc/library/core/src/iter/traits/accum.rs', lines 206:0-206:76
     Name pattern: [core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum]
     Visibility: public -/
 @[rust_fun
   "core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum"]
 axiom U64.Insts.CoreIterTraitsAccumSumU64.sum
-  {I : Type} (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I
+  {I : Type _} (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I
   Std.U64) :
   I → Result Std.U64
 
@@ -86,7 +87,7 @@ axiom U64.Insts.CoreIterTraitsAccumSumU64.sum
     Visibility: public -/
 @[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
 axiom core.option.Option.and_then
-  {T : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTOptionInst :
+  {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTOptionInst :
   core.ops.function.FnOnce F T (Option U)) :
   Option T → F → Result (Option U)
 
@@ -97,14 +98,14 @@ axiom core.option.Option.and_then
 @[rust_fun
   "core::option::{core::default::Default<core::option::Option<@T>>}::default"]
 axiom core.option.Option.Insts.CoreDefaultDefault.default
-  (T : Type) : Result (Option T)
+  (T : Type _) : Result (Option T)
 
 /-- [core::ptr::null_mut]:
     Source: '/rustc/library/core/src/ptr/mod.rs', lines 902:0-902:57
     Name pattern: [core::ptr::null_mut]
     Visibility: public -/
 @[rust_fun "core::ptr::null_mut"]
-axiom core.ptr.null_mut (T : Type) : Result (MutRawPtr T)
+axiom core.ptr.null_mut (T : Type _) : Result (MutRawPtr T)
 
 /-- [core::ptr::mut_ptr::{*mut T}::is_null]:
     Source: '/rustc/library/core/src/ptr/mut_ptr.rs', lines 22:4-22:38
@@ -112,7 +113,7 @@ axiom core.ptr.null_mut (T : Type) : Result (MutRawPtr T)
     Visibility: public -/
 @[rust_fun "core::ptr::mut_ptr::{*mut @T}::is_null"]
 axiom core.ptr.mut_ptr.RawPtrMutT.is_null
-  {T : Type} : MutRawPtr T → Result Bool
+  {T : Type _} : MutRawPtr T → Result Bool
 
 /-- [core::ptr::mut_ptr::{*mut T}::wrapping_add]:
     Source: '/rustc/library/core/src/ptr/mut_ptr.rs', lines 1132:4-1134:17
@@ -120,16 +121,16 @@ axiom core.ptr.mut_ptr.RawPtrMutT.is_null
     Visibility: public -/
 @[rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
 axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
-  {T : Type} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
+  {T : Type _} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
 
 /-- [core::slice::iter::{impl core::iter::traits::iterator::Iterator<&'a T> for core::slice::iter::Iter<'a, T>}::any]:
-    Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 321:12-324:45
+    Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 321:12-324:45; this code is generated from a macro invocation at: '/rustc/library/core/src/slice/iter.rs', lines 140:0-148:2
     Name pattern: [core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any]
     Visibility: public -/
 @[rust_fun
   "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any"]
 axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
-  {T : Type} {F : Type} (opsfunctionFnMutFTupleSharedATBoolInst :
+  {T : Type _} {F : Type _} (opsfunctionFnMutFTupleSharedATBoolInst :
   core.ops.function.FnMut F T Bool) :
   core.slice.iter.Iter T → F → Result (Bool × (core.slice.iter.Iter T))
 
@@ -140,7 +141,7 @@ axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
 @[rust_fun
   "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
 axiom alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
-  {T : Type} (A : Type) : alloc.sync.Arc T → Result T
+  {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
 
 /-- [alloc::sync::{impl core::convert::AsRef<T> for alloc::sync::Arc<T>}::as_ref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 4383:4-4383:26
@@ -149,7 +150,7 @@ axiom alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
 @[rust_fun
   "alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref"]
 axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
-  {T : Type} (A : Type) : alloc.sync.Arc T → Result T
+  {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
 
 /-- [base::descriptor::{impl core::convert::TryFrom<&'_0 (dyn base::descriptor::AsRawDescriptor + '_0), core::io::error::Error> for base::descriptor::SafeDescriptor}::try_from]:
     Source: 'base/src/descriptor.rs', lines 114:4-114:83
@@ -160,7 +161,7 @@ axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
 axiom
   base.descriptor.SafeDescriptor.Insts.CoreConvertTryFromShared0PError.try_from
   :
-  Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Result
+  Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Result
     (core.result.Result base.descriptor.SafeDescriptor core.io.error.Error)
 
 /-- [base::errno::{base::errno::Error}::last]:
@@ -171,7 +172,7 @@ axiom
 axiom base.errno.Error.last : Result base.errno.Error
 
 /-- [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}::as_raw_descriptor]:
-    Source: 'base/src/sys/unix/descriptor.rs', lines 190:12-190:56
+    Source: 'base/src/sys/unix/descriptor.rs', lines 190:12-190:56; this code is generated from a macro invocation at: 'base/src/sys/unix/descriptor.rs', lines 221:0-221:22
     Name pattern: [base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor]
     Visibility: public -/
 @[rust_fun

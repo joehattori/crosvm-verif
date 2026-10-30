@@ -174,7 +174,7 @@ theorem checked_add_mask_alignUp  (x alignment mask : U64)
     have hle : alignUp x.val alignment.val ≤ U64.max := by
       apply hfit.mpr
       simpa only [hm] using h.1
-    simp only [Option.map_some, if_pos hle, Option.some.injEq]
+    simp only [Option.map_some, ite_eq_left hle, Option.some.injEq]
     rw [mask_alignDown added alignment mask ha hm, h.2.1, hm,
       round_up_eq _ _ (Nat.pos_of_isPowerOfTwo ha)]
 

@@ -148,10 +148,10 @@ theorem address_in_range_spec (self : GuestMemory) (addr : GuestAddress) :
   unfold address_in_range
   simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
   have hf : ∀ r,
-      address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+      address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
         addr r ⦃ p => p.2 = addr ∧ (p.1 = true ↔ r.ContainsOutcome addr true) ⦄ := by
     intro r
-    unfold address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+    unfold address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
     apply WP.spec_bind (MemoryRegion.contains_spec r addr)
     intro b hb
     simpa using hb.eq_true_iff
@@ -193,18 +193,19 @@ theorem range_overlap_spec (self : GuestMemory) (start «end» : GuestAddress) :
   unfold range_overlap
   simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
   have hf : ∀ r,
-      range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+      range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
         («end», start) r ⦃ p => p.2 = («end», start) ∧
           (p.1 = true ↔ r.guest_base.val < «end».val ∧
             ∃ regionEnd, r.EndOutcome regionEnd ∧ start.val < regionEnd.val) ⦄ := by
     intro r
-    unfold range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    unfold range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
     step as ⟨s, hs⟩
     step as ⟨b, hb⟩
     subst hs
     split
     · step as ⟨regionEnd, he⟩
       step as ⟨b1, hb1⟩
+      refine ⟨rfl, ?_⟩
       rw [hb1]
       constructor
       · intro hlt
@@ -212,6 +213,7 @@ theorem range_overlap_spec (self : GuestMemory) (start «end» : GuestAddress) :
       · rintro ⟨_, regionEnd', he', hlt⟩
         rwa [he'.trans he.symm] at hlt
     · simp_all
+      rfl
   apply WP.spec_bind (core.slice.iter.Iter.any_spec _ _ («end», start) hf _)
   rintro ⟨b, _⟩ hb
   simpa [RangeOverlapOutcome] using hb
@@ -266,18 +268,19 @@ theorem is_valid_range_spec (self : GuestMemory) (start : GuestAddress) (length 
     | none => simp
     | some lastAddr =>
       have hf : ∀ r,
-          is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+          is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
             (start, lastAddr) r ⦃ p => p.2 = (start, lastAddr) ∧
               (p.1 = true ↔ r.guest_base.val ≤ start.val ∧
                 ∃ regionEnd, r.EndOutcome regionEnd ∧ lastAddr.val < regionEnd.val) ⦄ := by
         intro r
-        unfold is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+        unfold is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
         step as ⟨s, hs⟩
         step as ⟨b, hb⟩
         subst hs
         split
         · step as ⟨regionEnd, he⟩
           step as ⟨b1, hb1⟩
+          refine ⟨rfl, ?_⟩
           rw [hb1]
           constructor
           · intro hlt
@@ -285,6 +288,7 @@ theorem is_valid_range_spec (self : GuestMemory) (start : GuestAddress) (length 
           · rintro ⟨_, regionEnd', he', hlt⟩
             rwa [he'.trans he.symm] at hlt
         · simp_all
+          rfl
       simp only [core.slice.Slice.iter, bind_ok]
       apply WP.spec_bind (core.slice.iter.Iter.any_spec _ _ (start, lastAddr) hf _)
       rintro ⟨b, _⟩ hb

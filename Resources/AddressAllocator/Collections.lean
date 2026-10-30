@@ -386,7 +386,8 @@ private theorem rangeList_sides_spec (rs : List AddressRange) (slot : AddressRan
       have htail := ih ht
       simp only [Bool.false_eq_true, ↓reduceIte, resources.core.borrow.Borrow.Blanket] at htail
       step with htail as ⟨entries, hentries⟩
-      cases o <;> simp_all [List.filter_cons, AddressRange.ltModel] <;> omega
+      cases o <;> simp_all [List.filter_cons, AddressRange.ltModel]
+      try omega
 
 private theorem validRegions_filter (rs : List AddressRange) (p : AddressRange → Bool)
     (hv : ValidRegions rs) : ValidRegions (rs.filter p) :=

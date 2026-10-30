@@ -12,6 +12,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -30,17 +31,17 @@ namespace vm_memory
 @[reducible, rust_trait_impl
   "core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>"]
 impl_def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator {B :
-  Type} {I : Type} {F : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst
-  : core.iter.traits.iterator.Iterator I Clause0_Item)
-  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
-  Clause0_Item B) : core.iter.traits.iterator.Iterator
-  (core.iter.adapters.map.Map I F) B := {
+  Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
+  core.ops.function.FnMut F Clause0_Item B) :
+  core.iter.traits.iterator.Iterator (core.iter.adapters.map.Map I F) B := {
   next := core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
     traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemBInst
 }
 
 /-- Trait implementation: [core::iter::traits::accum::{impl core::iter::traits::accum::Sum<u64> for u64}]
-    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 50:8-50:23
+    Source: '/rustc/library/core/src/iter/traits/accum.rs', lines 50:8-50:23; this code is generated from a macro invocation at: '/rustc/library/core/src/iter/traits/accum.rs', lines 206:0-206:76
     Name pattern: [core::iter::traits::accum::Sum<u64, u64>] -/
 @[reducible, rust_trait_impl "core::iter::traits::accum::Sum<u64, u64>"]
 def U64.Insts.CoreIterTraitsAccumSumU64 : core.iter.traits.accum.Sum Std.U64
@@ -56,7 +57,7 @@ def U64.Insts.CoreIterTraitsAccumSumU64 : core.iter.traits.accum.Sum Std.U64
     Visibility: public -/
 @[rust_fun "core::option::{core::option::Option<@T>}::unwrap_or_else"]
 def core.option.Option.unwrap_or_else
-  {T : Type} {F : Type} (opsfunctionFnOnceFTupleTInst :
+  {T : Type _} {F : Type _} (opsfunctionFnOnceFTupleTInst :
   core.ops.function.FnOnce F Unit T) (self : Option T) (f : F) :
   Result T
   := do
@@ -78,7 +79,7 @@ def core.option.Option.unwrap_or_else
 @[rust_fun
   "core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch"]
 def core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-  {T : Type} {E : Type} (self : core.result.Result T E) :
+  {T : Type _} {E : Type _} (self : core.result.Result T E) :
   Result (core.ops.control_flow.ControlFlow (core.result.Result Never E) T)
   := do
   match self with
@@ -147,7 +148,7 @@ def base.mmap.MemoryMappingBuilder.new
     }
 
 /-- Trait implementation: [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}]
-    Source: 'base/src/sys/unix/descriptor.rs', lines 189:8-189:38
+    Source: 'base/src/sys/unix/descriptor.rs', lines 189:8-189:38; this code is generated from a macro invocation at: 'base/src/sys/unix/descriptor.rs', lines 221:0-221:22
     Name pattern: [base::descriptor::AsRawDescriptor<std::fs::File>] -/
 @[reducible, rust_trait_impl
   "base::descriptor::AsRawDescriptor<std::fs::File>"]
@@ -253,8 +254,8 @@ def I32.Insts.CoreConvertFromProtection : core.convert.From Std.I32
 def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
   (addr : Option (MutRawPtr Std.U8)) (size : Std.Usize)
   (align : Option Std.U64) (prot : Std.I32)
-  (fd : Option ((Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn)) ×
-  Std.U64)) (populate : Bool) :
+  (fd : Option ((Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  × Std.U64)) (populate : Bool) :
   Result (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
   := do
   let flags ← libc_1.unix.linux_like.MAP_SHARED
@@ -888,8 +889,8 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
 def base.sys.linux.mmap.MemoryMapping.try_mmap
   (addr : Option (MutRawPtr Std.U8)) (size : Std.Usize)
   (align : Option Std.U64) (prot : Std.I32)
-  (fd : Option ((Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn)) ×
-  Std.U64)) :
+  (fd : Option ((Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  × Std.U64)) :
   Result (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
   := do
   base.sys.linux.mmap.MemoryMapping.try_mmap_populate addr size align prot fd
@@ -915,7 +916,7 @@ def base.sys.linux.mmap.MemoryMapping.new_protection
 @[rust_fun
   "base::sys::linux::mmap::{base::sys::linux::mmap::MemoryMapping}::from_fd_offset_protection_populate"]
 def base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
-  (fd : Dyn (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
+  (fd : Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn))
   (size : Std.Usize) (offset : Std.U64) (align : Std.U64)
   (prot : base.mmap.Protection) (populate : Bool) :
   Result (core.result.Result base.sys.linux.mmap.MemoryMapping base.mmap.Error)
@@ -924,11 +925,11 @@ def base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
   base.sys.linux.mmap.MemoryMapping.try_mmap_populate none size (some align) i
     (some (fd, offset)) populate
 
-/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}::call_once]:
+/-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a, '_1>}::call_once]:
     Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
-    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once] -/
+    Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a, '0>, (core::io::error::Error), base::mmap::Error>}::call_once] -/
 @[rust_fun
-  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>}::call_once"]
+  "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a, '0>, (core::io::error::Error), base::mmap::Error>}::call_once"]
 def
   base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
   (c : base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure)
@@ -938,11 +939,11 @@ def
   let e ← base.errno.Error.last
   ok (base.mmap.Error.SystemCallFailed e)
 
-/-- Trait implementation: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a>}]
+/-- Trait implementation: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{impl core::ops::function::FnOnce<(core::io::error::Error,), base::mmap::Error> for base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}<'a, '_1>}]
     Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
-    Name pattern: [core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>] -/
+    Name pattern: [core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a, '0>, (core::io::error::Error), base::mmap::Error>] -/
 @[reducible, rust_trait_impl
-  "core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a>, (core::io::error::Error), base::mmap::Error>"]
+  "core::ops::function::FnOnce<base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure<'a, '0>, (core::io::error::Error), base::mmap::Error>"]
 def
   base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError
   : core.ops.function.FnOnce
@@ -959,8 +960,8 @@ def
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap"]
 def base.sys.linux.mmap.MemoryMappingBuilder.wrap
   (mapping : base.sys.linux.mmap.MemoryMapping)
-  (file_descriptor : Option (Dyn (fun _dyn => base.descriptor.AsRawDescriptor
-  _dyn))) :
+  (file_descriptor : Option (Dyn.{0, _} (fun _dyn =>
+  base.descriptor.AsRawDescriptor _dyn))) :
   Result (core.result.Result base.mmap.MemoryMapping base.mmap.Error)
   := do
   match file_descriptor with
@@ -1371,7 +1372,8 @@ def guest_memory.MemoryRegion.new_from_shm
   := do
   let i ← lift (UScalar.cast .Usize size)
   let mmb ← base.mmap.MemoryMappingBuilder.new i
-  let sm ← alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref Global shm
+  let sm ←
+    alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global shm
   let mmb1 ← base.mmap.MemoryMappingBuilder.from_shared_memory mmb sm
   let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
   let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
@@ -1407,7 +1409,8 @@ def guest_memory.MemoryRegion.new_from_file
   := do
   let i ← lift (UScalar.cast .Usize size)
   let mmb ← base.mmap.MemoryMappingBuilder.new i
-  let f ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global file
+  let f ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global file
   let mmb1 ← base.mmap.MemoryMappingBuilder.from_file mmb f
   let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
   let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
@@ -1502,7 +1505,7 @@ def guest_memory.GuestMemory.impl.use_punchhole_locked
   (self : guest_memory.GuestMemory) : Result Bool := do
   ok self.use_punchhole_locked
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}::call_mut]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
 def
   guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut
@@ -1513,9 +1516,9 @@ def
   let i ←
     base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size tupled_args.mapping
   let i1 ← lift (UScalar.cast .U64 i)
-  ok (i1, c)
+  ok (i1, ())
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}::call_once]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
 def
   guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64.call_once
@@ -1525,10 +1528,10 @@ def
   := do
   let (i, _) ←
     guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64.call_mut
-      c mr
+      () mr
   ok i
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
 @[reducible]
 def
@@ -1539,7 +1542,7 @@ def
     guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionU64.call_once
 }
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
 @[reducible]
 def
@@ -1557,7 +1560,9 @@ def
     Visibility: public -/
 def guest_memory.GuestMemory.memory_size
   (self : guest_memory.GuestMemory) : Result Std.U64 := do
-  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
   let i ← core.slice.Slice.iter s
   let m ←
     core.iter.traits.iterator.Iterator.map.default
@@ -1570,10 +1575,10 @@ def guest_memory.GuestMemory.memory_size
     guest_memory.GuestMemory.memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64)
     U64.Insts.CoreIterTraitsAccumSumU64 m
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}::call_mut]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0, '_1>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
 def
-  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
   (c : guest_memory.GuestMemory.address_in_range.closure)
   (tupled_args : guest_memory.MemoryRegion) :
   Result (Bool × guest_memory.GuestMemory.address_in_range.closure)
@@ -1581,41 +1586,41 @@ def
   let b ← guest_memory.MemoryRegion.contains tupled_args c
   ok (b, c)
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}::call_once]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0, '_1>}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
 def
-  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool.call_once
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
   (c : guest_memory.GuestMemory.address_in_range.closure)
   (mr : guest_memory.MemoryRegion) :
   Result Bool
   := do
   let (b, _) ←
-    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
       c mr
   ok b
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0, '_1>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   : core.ops.function.FnOnce guest_memory.GuestMemory.address_in_range.closure
   guest_memory.MemoryRegion Bool := {
   call_once :=
-    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool.call_once
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
 }
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_1 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range::{closure}<'_0, '_1>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 487:32-487:62 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool
+  guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
   : core.ops.function.FnMut guest_memory.GuestMemory.address_in_range.closure
   guest_memory.MemoryRegion Bool := {
   FnOnceInst :=
-    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared1MemoryRegionBool
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   call_mut :=
-    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
 }
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::address_in_range]:
@@ -1625,18 +1630,20 @@ def guest_memory.GuestMemory.address_in_range
   (self : guest_memory.GuestMemory) (addr : guest_address.GuestAddress) :
   Result Bool
   := do
-  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
   let i ← core.slice.Slice.iter s
   let (b, _) ←
     core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
-      guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared1MemoryRegionBool
+      guest_memory.GuestMemory.address_in_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
       i addr
   ok b
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnMut<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1>}::call_mut]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1, '_2>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 495:17-495:70 -/
 def
-  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
   (c : guest_memory.GuestMemory.range_overlap.closure)
   (tupled_args : guest_memory.MemoryRegion) :
   Result (Bool × guest_memory.GuestMemory.range_overlap.closure)
@@ -1655,41 +1662,41 @@ def
     ok (b1, c)
   else ok (false, c)
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnOnce<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1>}::call_once]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1, '_2>}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 495:17-495:70 -/
 def
-  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool.call_once
+  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
   (c : guest_memory.GuestMemory.range_overlap.closure)
   (mr : guest_memory.MemoryRegion) :
   Result Bool
   := do
   let (b, _) ←
-    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
       c mr
   ok b
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnOnce<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1, '_2>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 495:17-495:70 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool
+  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   : core.ops.function.FnOnce guest_memory.GuestMemory.range_overlap.closure
   guest_memory.MemoryRegion Bool := {
   call_once :=
-    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool.call_once
+    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
 }
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnMut<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap::{closure}<'_0, '_1, '_2>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 495:17-495:70 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool
+  guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
   : core.ops.function.FnMut guest_memory.GuestMemory.range_overlap.closure
   guest_memory.MemoryRegion Bool := {
   FnOnceInst :=
-    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool
+    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   call_mut :=
-    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
 }
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::range_overlap]:
@@ -1700,11 +1707,13 @@ def guest_memory.GuestMemory.range_overlap
   («end» : guest_address.GuestAddress) :
   Result Bool
   := do
-  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
   let i ← core.slice.Slice.iter s
   let (b, _) ←
     core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
-      guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool
+      guest_memory.GuestMemory.range_overlap.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
       i («end», start)
   ok b
 
@@ -1745,10 +1754,10 @@ def guest_memory.GuestMemory.checked_offset
     guest_memory.GuestMemory.checked_offset.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressOptionGuestAddress
     o self
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnMut<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1>}::call_mut]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1, '_2>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 527:17-527:71 -/
 def
-  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
   (c : guest_memory.GuestMemory.is_valid_range.closure)
   (tupled_args : guest_memory.MemoryRegion) :
   Result (Bool × guest_memory.GuestMemory.is_valid_range.closure)
@@ -1767,41 +1776,41 @@ def
     ok (b1, c)
   else ok (false, c)
 
-/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnOnce<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1>}::call_once]:
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1, '_2>}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 527:17-527:71 -/
 def
-  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool.call_once
+  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
   (c : guest_memory.GuestMemory.is_valid_range.closure)
   (mr : guest_memory.MemoryRegion) :
   Result Bool
   := do
   let (b, _) ←
-    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
       c mr
   ok b
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnOnce<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1, '_2>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 527:17-527:71 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool
+  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   : core.ops.function.FnOnce guest_memory.GuestMemory.is_valid_range.closure
   guest_memory.MemoryRegion Bool := {
   call_once :=
-    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool.call_once
+    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool.call_once
 }
 
-/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnMut<(&'_2 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1>}]
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range::{closure}<'_0, '_1, '_2>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 527:17-527:71 -/
 @[reducible]
 def
-  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool
+  guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
   : core.ops.function.FnMut guest_memory.GuestMemory.is_valid_range.closure
   guest_memory.MemoryRegion Bool := {
   FnOnceInst :=
-    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared2MemoryRegionBool
+    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionBool
   call_mut :=
-    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool.call_mut
+    guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool.call_mut
 }
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::is_valid_range]:
@@ -1821,11 +1830,12 @@ def guest_memory.GuestMemory.is_valid_range
     | none => ok false
     | some «end» =>
       let s ←
-        alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+        alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+          self.regions
       let i1 ← core.slice.Slice.iter s
       let (b, _) ←
         core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
-          guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared2MemoryRegionBool
+          guest_memory.GuestMemory.is_valid_range.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionBool
           i1 (start, «end»)
       ok b
 
@@ -1834,7 +1844,9 @@ def guest_memory.GuestMemory.is_valid_range
     Visibility: public -/
 def guest_memory.GuestMemory.num_regions
   (self : guest_memory.GuestMemory) : Result Std.U64 := do
-  let s ← alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref Global self.regions
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
   let i := Slice.len s
   ok (UScalar.cast .U64 i)
 

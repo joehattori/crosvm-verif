@@ -43,7 +43,7 @@ theorem AlignDownOutcome.iff_alignDown (self : GuestAddress) (alignment : U64)
   · simp [AlignDownOutcome, h, alignDown, Nat.mod_one]
     scalar_tac
   · have hp : alignment.val.isPowerOfTwo := ha.resolve_left (by omega)
-    simp only [AlignDownOutcome, if_neg h, Nat.max_eq_left (by omega : 1 ≤ alignment.val)]
+    simp only [AlignDownOutcome, ite_eq_right h, Nat.max_eq_left (by omega : 1 ≤ alignment.val)]
     constructor
     · rintro ⟨mask, hm, rfl⟩
       exact mask_alignDown self alignment mask hp hm
@@ -68,7 +68,7 @@ theorem AlignOutcome.iff_alignUp (self : GuestAddress) (alignment : U64)
     have hm : mask.val = alignment.val - 1 := by simp [mask]
     have heq : AlignOutcome self alignment result ↔
         result = (U64.checked_add self mask).map (fun added => added &&& ~~~mask) := by
-      simp only [AlignOutcome, if_neg h]
+      simp only [AlignOutcome, ite_eq_right h]
       constructor
       · rintro ⟨mask', hm', hr⟩
         have he : mask' = mask := UScalar.eq_of_val_eq (hm'.trans hm.symm)
@@ -221,7 +221,7 @@ theorem align_down_spec (self : GuestAddress) (alignment : U64) :
   · have h : alignment.val ≤ 1 := by scalar_tac
     simp [h]
   · have h : ¬alignment.val ≤ 1 := by scalar_tac
-    simp only [if_neg h]
+    simp only [ite_eq_right h]
     step as ⟨mask, hm⟩
     simp only [lift, bind_ok]
     step as ⟨r, hr⟩
@@ -247,7 +247,7 @@ theorem align_spec (self : GuestAddress) (alignment : U64) :
   · have h : alignment.val ≤ 1 := by scalar_tac
     simp [h]
   · have h : 1 < alignment.val := by scalar_tac
-    simp only [if_neg (by omega : ¬alignment.val ≤ 1)]
+    simp only [ite_eq_right (by omega : ¬alignment.val ≤ 1)]
     step as ⟨mask, hm⟩
     have hmask : mask.val = alignment.val - 1 := by omega
     step as ⟨result, he⟩

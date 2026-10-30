@@ -7,37 +7,37 @@ open vm_memory
 
 /-- Null mutable raw pointer at address 0. -/
 @[reducible, rust_fun "core::ptr::null_mut"]
-def core.ptr.null_mut (T : Type) : Result (MutRawPtr T) :=
+def core.ptr.null_mut (T : Type _) : Result (MutRawPtr T) :=
   ok { addr := 0#usize }
 
 /-- Whether a mutable raw pointer's address is 0. -/
 @[reducible, rust_fun "core::ptr::mut_ptr::{*mut @T}::is_null"]
-def core.ptr.mut_ptr.RawPtrMutT.is_null {T : Type} (self : MutRawPtr T) : Result Bool :=
+def core.ptr.mut_ptr.RawPtrMutT.is_null {T : Type _} (self : MutRawPtr T) : Result Bool :=
   ok (self.addr == 0#usize)
 
 /-- Byte-offset wrapping pointer addition (used on `*mut c_void`, where pointee size is 1). -/
 @[reducible, rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
-def core.ptr.mut_ptr.RawPtrMutT.wrapping_add {T : Type}
+def core.ptr.mut_ptr.RawPtrMutT.wrapping_add {T : Type _}
     (self : MutRawPtr T) (count : Std.Usize) : Result (MutRawPtr T) :=
   ok { addr := core.num.Usize.wrapping_add self.addr count }
 
 /-- `Option::default` returns `None`. -/
 @[reducible, rust_fun
   "core::option::{core::default::Default<core::option::Option<@T>>}::default"]
-def core.option.Option.Insts.CoreDefaultDefault.default (T : Type) : Result (Option T) :=
+def core.option.Option.Insts.CoreDefaultDefault.default (T : Type _) : Result (Option T) :=
   ok none
 
 /-- Shared access to the `Arc` contents; the allocator parameter is ignored. -/
 @[reducible, rust_fun
   "alloc::sync::{core::convert::AsRef<alloc::sync::Arc<@T>, @T>}::as_ref"]
-def alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref {T : Type} (_A : Type)
+def alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref {T : Type _} (_A : Type _)
     (self : alloc.sync.Arc T) : Result T :=
   ok self.val
 
 /-- Shared dereference of the `Arc` contents; the allocator parameter is ignored. -/
 @[reducible, rust_fun
   "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
-def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type} (_A : Type)
+def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type _} (_A : Type _)
     (self : alloc.sync.Arc T) : Result T :=
   ok self.val
 
@@ -47,7 +47,7 @@ def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type} (_A : Type)
 @[rust_fun
   "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::any"]
 def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
-    {T F : Type} (fnMutInst : core.ops.function.FnMut F T Bool)
+    {T F : Type _} (fnMutInst : core.ops.function.FnMut F T Bool)
     (it : core.slice.iter.Iter T) (f : F) : Result (Bool × core.slice.iter.Iter T) :=
   if h : it.i < it.slice.val.length then do
     let call ← fnMutInst.call_mut f it.slice.val[it.i]
@@ -58,7 +58,7 @@ termination_by it.slice.val.length - it.i
 
 /-- `Iterator::sum` delegates to the `Sum` implementation of the result type. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
-def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type}
+def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type _}
     (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
     (accumSumInst : core.iter.traits.accum.Sum S Clause0_Item) (self : Self) : Result S :=
   accumSumInst.sum IteratorInst self
@@ -67,7 +67,7 @@ def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type}
     caller's overflow checks for this addition, and crosvm builds with
     `overflow-checks = true`, so an overflowing partial sum fails. A
     non-terminating iterator may diverge. -/
-def U64.Insts.CoreIterTraitsAccumSumU64.sumFrom {I : Type}
+def U64.Insts.CoreIterTraitsAccumSumU64.sumFrom {I : Type _}
     (iteratorInst : core.iter.traits.iterator.Iterator I U64) (acc : U64) (iter : I) :
     Result U64 := do
   let step ← iteratorInst.next iter
@@ -80,7 +80,7 @@ partial_fixpoint
 
 /-- `u64: Sum<u64>` folds the iterator from zero with checked addition. -/
 @[rust_fun "core::iter::traits::accum::{core::iter::traits::accum::Sum<u64, u64>}::sum"]
-def U64.Insts.CoreIterTraitsAccumSumU64.sum {I : Type}
+def U64.Insts.CoreIterTraitsAccumSumU64.sum {I : Type _}
     (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I U64) (iter : I) :
     Result U64 :=
   sumFrom iteratorIteratorIU64Inst 0#u64 iter

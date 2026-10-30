@@ -11,6 +11,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -26,7 +27,7 @@ namespace resources
     Visibility: public -/
 @[rust_trait "core::alloc::AllocatorClone"
   (parentClauses := ["cloneCloneInst"])]
-structure core.alloc.AllocatorClone (Self : Type) where
+structure core.alloc.AllocatorClone (Self : Type _) where
   cloneCloneInst : core.clone.Clone Self
 
 /-- Trait declaration: [core::borrow::Borrow]
@@ -34,7 +35,7 @@ structure core.alloc.AllocatorClone (Self : Type) where
     Name pattern: [core::borrow::Borrow]
     Visibility: public -/
 @[rust_trait "core::borrow::Borrow"]
-structure core.borrow.Borrow (Self : Type) (Borrowed : Type) where
+structure core.borrow.Borrow (Self : Type _) (Borrowed : Type _) where
   borrow : Self → Result Borrowed
 
 /-- Trait declaration: [core::hash::BuildHasher]
@@ -42,7 +43,7 @@ structure core.borrow.Borrow (Self : Type) (Borrowed : Type) where
     Name pattern: [core::hash::BuildHasher]
     Visibility: public -/
 @[rust_trait "core::hash::BuildHasher" (parentClauses := ["HasherInst"])]
-structure core.hash.BuildHasher (Self : Type) (Self_Hasher : Type) where
+structure core.hash.BuildHasher (Self : Type _) (Self_Hasher : Type _) where
   HasherInst : core.hash.Hasher Self_Hasher
   build_hasher : Self → Result Self_Hasher
 
@@ -51,7 +52,7 @@ structure core.hash.BuildHasher (Self : Type) (Self_Hasher : Type) where
     Name pattern: [core::ops::range::Bound]
     Visibility: public -/
 @[discriminant isize, rust_type "core::ops::range::Bound"]
-inductive core.ops.range.Bound (T : Type) where
+inductive core.ops.range.Bound (T : Type _) where
 | Included : T → core.ops.range.Bound T
 | Excluded : T → core.ops.range.Bound T
 | Unbounded : core.ops.range.Bound T
@@ -61,7 +62,7 @@ inductive core.ops.range.Bound (T : Type) where
     Name pattern: [core::ops::range::RangeBounds]
     Visibility: public -/
 @[rust_trait "core::ops::range::RangeBounds"]
-structure core.ops.range.RangeBounds (Self : Type) (T : Type) where
+structure core.ops.range.RangeBounds (Self : Type _) (T : Type _) where
   start_bound : Self → Result (core.ops.range.Bound T)
   end_bound : Self → Result (core.ops.range.Bound T)
 
@@ -71,8 +72,8 @@ structure core.ops.range.RangeBounds (Self : Type) (T : Type) where
     Visibility: public -/
 @[discriminant isize, rust_type "alloc::collections::btree::map::entry::Entry"
   (mutRegions := #[0])]
-inductive alloc.collections.btree.map.entry.Entry (K : Type) (V : Type) (A :
-  Type) where
+inductive alloc.collections.btree.map.entry.Entry (K : Type _) (V : Type _) (A
+  : Type _) where
 | Vacant :
   alloc.collections.btree.map.entry.VacantEntry K V A →
   alloc.collections.btree.map.entry.Entry K V A
@@ -109,9 +110,9 @@ structure address_allocator.AddressAllocator where
   min_align : Std.U64
   preferred_align : Std.U64
   allocs : std.collections.hash.map.HashMap Alloc (address_range.AddressRange
-    × String) std.hash.random.RandomState Global
+    × String) std.hash.random.RandomState alloc.alloc.Global
   regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
-    Global
+    alloc.alloc.Global
 
 /-- [resources::Error]
     Source: 'resources/src/lib.rs', lines 50:0-75:1
@@ -139,8 +140,8 @@ def address_range.OrdAddressRange.cmp.closure :=
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::new_from_list::{closure}]
     Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
 @[reducible]
-def address_allocator.AddressAllocator.new_from_list.closure (T : Type)
-  (Clause0_IntoIter : Type) :=
+def address_allocator.AddressAllocator.new_from_list.closure (T : Type _)
+  (Clause0_IntoIter : Type _) :=
 Unit
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}::{closure}]
@@ -240,7 +241,7 @@ structure system_allocator.SystemAllocator where
   mmio_platform_address_spaces : Option address_allocator.AddressAllocator
   reserved_region : Option address_range.AddressRange
   pci_allocator : alloc.collections.btree.map.BTreeMap Std.U8
-    address_allocator.AddressAllocator Global
+    address_allocator.AddressAllocator alloc.alloc.Global
   irq_allocator : address_allocator.AddressAllocator
   gpe_allocator : address_allocator.AddressAllocator
   next_anon_id : Std.Usize

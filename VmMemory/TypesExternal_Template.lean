@@ -11,6 +11,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -44,7 +45,7 @@ axiom std.path.PathBuf : Type
     Name pattern: [alloc::sync::Arc]
     Visibility: public -/
 @[rust_type "alloc::sync::Arc"]
-axiom alloc.sync.Arc (T : Type) : Type
+axiom alloc.sync.Arc (T : Type _) : Type
 
 /-- [base::errno::Error]
     Source: 'base/src/errno.rs', lines 23:0-23:16

@@ -11,6 +11,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -23,30 +24,30 @@ set_option maxRecDepth 2048
     Name pattern: [core::iter::adapters::filter::Filter]
     Visibility: public -/
 @[rust_type "core::iter::adapters::filter::Filter"]
-axiom core.iter.adapters.filter.Filter (I : Type) (P : Type) : Type
+axiom core.iter.adapters.filter.Filter (I : Type _) (P : Type _) : Type
 
 /-- [core::iter::adapters::flatten::FlatMap]
     Source: '/rustc/library/core/src/iter/adapters/flatten.rs', lines 17:0-17:41
     Name pattern: [core::iter::adapters::flatten::FlatMap]
     Visibility: public -/
 @[rust_type "core::iter::adapters::flatten::FlatMap"]
-axiom core.iter.adapters.flatten.FlatMap (I : Type) (U : Type) (F : Type)
-  (Clause0_Item : Type) (Clause0_IntoIter : Type) : Type
+axiom core.iter.adapters.flatten.FlatMap (I : Type _) (U : Type _) (F : Type _)
+  (Clause0_Item : Type _) (Clause0_IntoIter : Type _) : Type
 
 /-- [core::mem::maybe_uninit::MaybeUninit]
     Source: '/rustc/library/core/src/mem/maybe_uninit.rs', lines 355:0-355:24
     Name pattern: [core::mem::maybe_uninit::MaybeUninit]
     Visibility: public -/
 @[rust_type "core::mem::maybe_uninit::MaybeUninit"]
-axiom core.mem.maybe_uninit.MaybeUninit (T : Type) : Type
+axiom core.mem.maybe_uninit.MaybeUninit (T : Type _) : Type
 
 /-- [std::collections::hash::map::HashMap]
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 245:0-250:1
     Name pattern: [std::collections::hash::map::HashMap]
     Visibility: public -/
 @[rust_type "std::collections::hash::map::HashMap"]
-axiom std.collections.hash.map.HashMap (K : Type) (V : Type) (S : Type) (A :
-  Type) : Type
+axiom std.collections.hash.map.HashMap (K : Type _) (V : Type _) (S : Type _)
+  (A : Type _) : Type
 
 /-- [std::hash::random::RandomState]
     Source: '/rustc/library/std/src/hash/random.rs', lines 35:0-35:22
@@ -60,7 +61,7 @@ axiom std.hash.random.RandomState : Type
     Name pattern: [std::collections::hash::map::Iter]
     Visibility: public -/
 @[rust_type "std::collections::hash::map::Iter"]
-axiom std.collections.hash.map.Iter (K : Type) (V : Type) : Type
+axiom std.collections.hash.map.Iter (K : Type _) (V : Type _) : Type
 
 /-- [std::hash::random::DefaultHasher]
     Source: '/rustc/library/std/src/hash/random.rs', lines 94:0-94:24
@@ -75,8 +76,8 @@ axiom std.hash.random.DefaultHasher : Type
     Visibility: public -/
 @[rust_type "alloc::collections::btree::map::entry::OccupiedEntry"
   (mutRegions := #[0])]
-axiom alloc.collections.btree.map.entry.OccupiedEntry (K : Type) (V : Type) (A
-  : Type) : Type
+axiom alloc.collections.btree.map.entry.OccupiedEntry (K : Type _) (V : Type _)
+  (A : Type _) : Type
 
 /-- [alloc::collections::btree::map::entry::VacantEntry]
     Source: '/rustc/library/alloc/src/collections/btree/map/entry.rs', lines 47:0-52:1
@@ -84,35 +85,35 @@ axiom alloc.collections.btree.map.entry.OccupiedEntry (K : Type) (V : Type) (A
     Visibility: public -/
 @[rust_type "alloc::collections::btree::map::entry::VacantEntry"
   (mutRegions := #[0])]
-axiom alloc.collections.btree.map.entry.VacantEntry (K : Type) (V : Type) (A :
-  Type) : Type
+axiom alloc.collections.btree.map.entry.VacantEntry (K : Type _) (V : Type _)
+  (A : Type _) : Type
 
 /-- [alloc::collections::btree::map::BTreeMap]
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 189:0-193:1
     Name pattern: [alloc::collections::btree::map::BTreeMap]
     Visibility: public -/
 @[rust_type "alloc::collections::btree::map::BTreeMap"]
-axiom alloc.collections.btree.map.BTreeMap (K : Type) (V : Type) (A : Type) :
-  Type
+axiom alloc.collections.btree.map.BTreeMap (K : Type _) (V : Type _) (A :
+  Type _) : Type
 
 /-- [alloc::collections::btree::set::BTreeSet]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 78:0-81:1
     Name pattern: [alloc::collections::btree::set::BTreeSet]
     Visibility: public -/
 @[rust_type "alloc::collections::btree::set::BTreeSet"]
-axiom alloc.collections.btree.set.BTreeSet (T : Type) (A : Type) : Type
+axiom alloc.collections.btree.set.BTreeSet (T : Type _) (A : Type _) : Type
 
 /-- [alloc::collections::btree::set::Iter]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 135:0-135:26
     Name pattern: [alloc::collections::btree::set::Iter]
     Visibility: public -/
 @[rust_type "alloc::collections::btree::set::Iter"]
-axiom alloc.collections.btree.set.Iter (T : Type) : Type
+axiom alloc.collections.btree.set.Iter (T : Type _) : Type
 
 /-- [alloc::collections::btree::set::Range]
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 170:0-170:27
     Name pattern: [alloc::collections::btree::set::Range]
     Visibility: public -/
 @[rust_type "alloc::collections::btree::set::Range"]
-axiom alloc.collections.btree.set.Range (T : Type) : Type
+axiom alloc.collections.btree.set.Range (T : Type _) : Type
 

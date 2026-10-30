@@ -2,7 +2,7 @@ module
 public import Resources.AddressAllocator.Collections
 public import Utils.Alignment
 -- The pinned library does not export the unfolding equation for iterToList.
-import all Aeneas.Std.VecIter
+import all Aeneas.Std.Alloc.Vec.IntoIter
 import all Init.Data.Nat.Power2.Basic
 @[expose] public section
 open Aeneas Aeneas.Std Result
@@ -225,9 +225,12 @@ private theorem filter_next_empty :
       ok (none, filterState [] (by simp)) := by
   change _root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next _ _ _ = _
   rw [_root_.core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next.eq_def]
-  change (ok (none, (alloc.vec.Vec.from [] (by simp) : alloc.vec.into_iter.IntoIter AddressRange)) >>= _) = _
-  erw [bind_tc_ok]
-  rfl
+  simp [filterState, core.iter.traits.iterator.IteratorVecIntoIter,
+    alloc.vec.into_iter.IteratorIntoIter.next, alloc.vec.Vec.from, alloc.vec.Vec.val]
+  split
+  · simp [uncurry]
+  · rename_i heq
+    simp [Slice.from_val] at heq
 
 private theorem filter_next_cons (pool : AddressRange) (pools : List AddressRange)
     (h : (pool :: pools).length ≤ Usize.max) :
@@ -278,7 +281,7 @@ private theorem collect_pools (pools : List AddressRange)
       have htail := ih (by simp_all; omega) acc
       rw [alloc.vec.FromIteratorVec.iterToList.eq_def] at htail
       simpa [nonemptyPools, he] using htail
-    · simp only [he, ↓reduceIte, bind_tc_ok]
+    · simp only [he, ↓reduceIte, bind_ok, uncurry]
       rw [ih]
       simp [nonemptyPools, List.filter_cons, AddressRange.isEmptyModel,
         List.reverse_cons, List.append_assoc] at he ⊢
@@ -346,7 +349,7 @@ theorem new_from_list_spec (pools : alloc.vec.Vec AddressRange)
     alloc.vec.FromIteratorVec.from_iter,
     core.iter.traits.collect.IntoIterator.Blanket.into_iter]
   simp [hunwrap, lift, core.num.U64.is_power_of_two, UScalar.is_power_of_two]
-  erw [hcollect]
+  erw [bind_ok, hcollect]
   simp [hlen, _root_.alloc.collections.btree.set.BTreeSetTGlobal.new,
     core.slice.Slice.iter, alloc.vec.Vec.deref,
     _root_.std.collections.hash.map.HashMapKVRandomStateGlobal.new]
@@ -571,10 +574,10 @@ theorem fits_reverse_iff (slot : AddressRange) (size alignment : Nat) :
 @[step]
 theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
     (hs : 0 < size.val) (ha : 0 < alignment.val) :
-    internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
       (alignment, size) slot ⦃ b predicate => predicate = (alignment, size) ∧
         (b = true ↔ Fits slot size.val alignment.val) ⦄ := by
-  unfold internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  unfold internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
   step as ⟨r, hr⟩
   split
   · have hr0 : slot.start.val % alignment.val = 0 := by
@@ -586,7 +589,7 @@ theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
       simp [he] at hadd <;>
       simp [lift, core.option.Option.is_some_and,
         internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
-        fits_forward_iff slot _ _ ha, alignUp, hr0] <;> scalar_tac
+        fits_forward_iff slot _ _ ha, alignUp, hr0, WP.uncurry'] <;> (try refine ⟨rfl, ?_⟩) <;> scalar_tac
   · have hrne : slot.start.val % alignment.val ≠ 0 := by
       intro hz
       have hzero : r = 0#u64 := by scalar_tac
@@ -598,7 +601,8 @@ theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
     | none =>
       simp [he] at hchecked
       simp [lift, core.option.Option.and_then, core.option.Option.is_some_and,
-        fits_forward_iff slot _ _ ha, alignUp, hrne]
+        fits_forward_iff slot _ _ ha, alignUp, hrne, WP.uncurry']
+      (try refine ⟨rfl, ?_⟩)
       scalar_tac
     | some base =>
       simp [he] at hchecked
@@ -610,21 +614,22 @@ theorem forward_fit_spec (slot : AddressRange) (size alignment : U64)
         simp [he'] at hchecked' <;>
         simp [core.option.Option.is_some_and,
           internal_allocate_with_align.closure.closure_1.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once,
-          fits_forward_iff slot _ _ ha, alignUp, hrne] <;> scalar_tac
+          fits_forward_iff slot _ _ ha, alignUp, hrne, WP.uncurry'] <;> (try refine ⟨rfl, ?_⟩) <;> scalar_tac
 
 @[step]
 theorem reverse_fit_spec (slot : AddressRange) (size alignment : U64)
     (hs : 0 < size.val) (ha : alignment.val.isPowerOfTwo) :
-    internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
       (size, alignment) slot ⦃ b predicate => predicate = (size, alignment) ∧
         (b = true ↔ Fits slot size.val alignment.val) ⦄ := by
-  unfold internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  unfold internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
   step as ⟨n, hn⟩
   have hsub := U64.checked_sub_bv_spec slot.end n
   cases he : U64.checked_sub slot.end n with
   | none =>
     simp [he] at hsub
-    simp [lift, core.option.Option.is_some_and, fits_reverse_iff]
+    simp [lift, core.option.Option.is_some_and, fits_reverse_iff, WP.uncurry']
+    (try refine ⟨rfl, ?_⟩)
     scalar_tac
   | some value =>
     simp [he] at hsub
@@ -635,6 +640,7 @@ theorem reverse_fit_spec (slot : AddressRange) (size alignment : U64)
     have hmask := mask_alignDown value alignment mask ha hm
     simp only [UScalar.val_and] at hmask
     simp [fits_reverse_iff]
+    (try refine ⟨rfl, ?_⟩)
     rw [hmask, hsub.2.1, hn]
     omega
 
@@ -696,14 +702,14 @@ def findSlot (rs : List AddressRange) (size alignment : U64) (reverse : Bool) :
     let (result, _) ←
       _root_.core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
         (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT AddressRange)
-        internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+        internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
         ⟨rs⟩ (size, alignment)
     _root_.core.option.OptionShared0T.cloned AddressRange.Insts.CoreCloneClone result
   else
     let (result, _) ←
       _root_.core.iter.traits.iterator.Iterator.find.default
         (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
-        internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+        internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
         rs (alignment, size)
     _root_.core.option.OptionShared0T.cloned AddressRange.Insts.CoreCloneClone result
 
@@ -726,7 +732,7 @@ theorem findSlot_spec (rs : List AddressRange) (size alignment : U64) (reverse :
     simp only [Bool.false_eq_true, ↓reduceIte]
     step with find_spec
       (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
-      internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+      internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
       (fun xs => xs) (by intro xs; cases xs <;> rfl) (alignment, size)
       (fun slot => Fits slot size.val alignment.val) rs
       (fun slot _ => forward_fit_spec slot size alignment hs (Nat.pos_of_isPowerOfTwo ha))
@@ -748,7 +754,7 @@ theorem findSlot_spec (rs : List AddressRange) (size alignment : U64) (reverse :
         _root_.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT.next_back,
         repr]
     have hsearch := find_spec revIter
-      internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+      internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
       repr (by
         intro xs
         cases xs with
@@ -1280,12 +1286,12 @@ theorem find_overlapping_spec (self : AddressAllocator) (range : AddressRange) :
     step with find_spec
       (resources.std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
         resources.Alloc (AddressRange × String))
-      find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+      find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool
       (fun xs => xs) (by intro xs; cases xs <;> rfl) range
       (fun entry => ∃ addr, entry.2.1.containsModel addr ∧ range.containsModel addr) entries
       (by
         rintro ⟨key, allocated, tag⟩ _
-        simp only [find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut]
+        simp only [find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_mut]
         step with AddressRange.overlaps_spec allocated range
         simp_all) as ⟨entry, rest, hmatch⟩
     cases entry with
@@ -1386,12 +1392,12 @@ theorem allocate_at_spec (self : AddressAllocator) (range : AddressRange)
       simp only [_root_.alloc.collections.btree.set.BTreeSet.iter, bind_ok]
       step with find_spec
         (resources.alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT AddressRange)
-        allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+        allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool
         (fun xs => xs) (by intro xs; cases xs <;> rfl) range
         (fun slot => ∀ addr, range.containsModel addr → slot.containsModel addr) self.regions
         (by
           intro slot _
-          simp only [allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut]
+          simp only [allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool.call_mut]
           step with AddressRange.contains_range_spec slot range as ⟨b, hb⟩
           rw [hb]
           simp only [hn, not_false_eq_true, true_and]
@@ -1507,15 +1513,13 @@ private theorem insert_at_eq (self : AddressAllocator) (slot : AddressRange) :
       if empty then ok (.Err .AllocSizeZero, self) else insertBody self slot) := by
   simp only [insert_at, insertBody, neighbor, checkNeighbor, mergeSlot, removeMerge,
     core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch,
-    Aeneas.Std.bind_assoc, Bool.false_eq_true, ↓reduceIte, bind_ok, lift,
+    Aeneas.Std.bind_assoc, Bool.false_eq_true, ↓reduceIte, bind_ok, bind_tc_eq, lift,
     core.option.Option.ok_or, core.result.Result.Insts.CoreOpsTry.branch,
     core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
     core.convert.FromSame.from]
   repeat' first
-    | rfl
     | (apply congrArg (Std.bind _); funext x)
     | (rename_i x; rcases (x : Bool × List AddressRange) with ⟨added, rest⟩; simp)
-    | (simp only [bind_tc_ok])
     | (split <;> try simp_all only [Aeneas.Std.bind_assoc, bind_ok,
         Option.getD_none, Option.getD_some])
 

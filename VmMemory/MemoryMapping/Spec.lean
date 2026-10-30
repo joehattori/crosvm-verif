@@ -409,10 +409,10 @@ private theorem normalizeAlign_eval (pageSize : Usize) (align : Option U64) :
   cases align with
   | none =>
     simp only [normalizeAlign, core.option.Option.unwrap_or, Option.getD_none]
-    split <;> rfl
+    split <;> simp_all
   | some a =>
     simp only [normalizeAlign, core.option.Option.unwrap_or, Option.getD_some]
-    split <;> rfl
+    split <;> simp_all
 
 private theorem seal_flags_eval (f : I32) (rawFd : I32) :
     (if _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS ≥ 0#i32 then
@@ -726,7 +726,7 @@ private theorem trimGhost_spec (pageSize : Usize) (origAddr addr3 : VoidPtr)
         simp only [reservation, cast_addr]
         omega
       obtain ⟨ha, hs⟩ := Mapping.trim_prefix hend (by simp only [reservation]; omega) (by omega)
-      simp only [hpos, ↓reduceIte, munmapGhost, hret, bind_ok, if_pos hcan, WP.spec_ok]
+      simp only [hpos, ↓reduceIte, munmapGhost, hret, bind_ok, ite_eq_left hcan, WP.spec_ok]
       refine ⟨_, rfl, ?_⟩
       split
       · refine ⟨hcan.contains_trim (by simp only [reservation, cast_addr]; omega), ?_, ?_⟩ <;>
@@ -752,7 +752,7 @@ private theorem trimGhost_spec (pageSize : Usize) (origAddr addr3 : VoidPtr)
     have hcan : m.CanTrim pageSize (RawPtr.ofUScalar vm_memory.core.ffi.c_void .Mut suffixStart)
         suffixLen := ⟨by scalar_tac, by omega, Or.inr hsuffix⟩
     obtain ⟨ha, hs⟩ := Mapping.trim_suffix hsuffix (by omega)
-    simp only [hpos, ↓reduceIte, munmapGhost, hret, bind_ok, if_pos hcan, WP.spec_ok]
+    simp only [hpos, ↓reduceIte, munmapGhost, hret, bind_ok, ite_eq_left hcan, WP.spec_ok]
     refine ⟨trivial, _, rfl, ?_⟩
     split
     · refine ⟨hcontains.trans (hcan.contains_trim (by omega)), ?_⟩
@@ -828,7 +828,7 @@ private theorem alignedMmapGhost_spec (pageSize size origSize : Usize) (align : 
         (targetMmapFlags (addrMmapFlags addr populate ||| MAP_FIXED) none) (-1)#i32 0#i64
       have hm1 := hm.1
       simp only [targetMmapFlags] at hm1
-      simp only [mmapFixedGhost, hm1, bind_ok, if_pos htarget]
+      simp only [mmapFixedGhost, hm1, bind_ok, ite_eq_left htarget]
       by_cases hfail2 : ret = mapFailedPtr
       · simp only [hfail2, ↓reduceIte, _root_.base.errno.Error.last, bind_ok, WP.spec_ok]
         refine ⟨origAddr, hres, ?_⟩
@@ -860,7 +860,7 @@ private theorem alignedMmapGhost_spec (pageSize size origSize : Usize) (align : 
           rawFd (UScalar.hcast .I64 offset)
         have hm1 := hm.1
         simp only [hoff', ↓reduceIte, hdesc, bind_ok, seal_flags_eval, mmapFixedGhost, hm1,
-          if_pos htarget]
+          ite_eq_left htarget]
         by_cases hfail2 : ret = mapFailedPtr
         · simp only [hfail2, ↓reduceIte, _root_.base.errno.Error.last, bind_ok, WP.spec_ok]
           refine ⟨origAddr, hres, ?_⟩

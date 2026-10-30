@@ -12,6 +12,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -28,7 +29,7 @@ namespace resources
     Source: '/rustc/library/core/src/borrow.rs', lines 212:0-212:37
     Name pattern: [core::borrow::Borrow<@T, @T>] -/
 @[reducible, rust_trait_impl "core::borrow::Borrow<@T, @T>"]
-def core.borrow.Borrow.Blanket (T : Type) : core.borrow.Borrow T T := {
+def core.borrow.Borrow.Blanket (T : Type _) : core.borrow.Borrow T T := {
   borrow := core.borrow.Borrow.Blanket.borrow
 }
 
@@ -36,7 +37,7 @@ def core.borrow.Borrow.Blanket (T : Type) : core.borrow.Borrow T T := {
     Source: '/rustc/library/core/src/cmp.rs', lines 2525:4-2525:61
     Name pattern: [core::cmp::Eq<&'0 @A>] -/
 @[reducible, rust_trait_impl "core::cmp::Eq<&'0 @A>"]
-impl_def Shared0A.Insts.CoreCmpEq {A : Type} (EqInst : core.cmp.Eq A) :
+impl_def Shared0A.Insts.CoreCmpEq {A : Type _} (EqInst : core.cmp.Eq A) :
   core.cmp.Eq A := {
   partialEqInst := core.cmp.PartialEqShared EqInst.partialEqInst
   assert_fields_are_eq := core.cmp.Eq.assert_fields_are_eq.default
@@ -47,7 +48,7 @@ impl_def Shared0A.Insts.CoreCmpEq {A : Type} (EqInst : core.cmp.Eq A) :
     Source: '/rustc/library/core/src/cmp.rs', lines 2514:4-2516:23
     Name pattern: [core::cmp::Ord<&'0 @A>] -/
 @[reducible, rust_trait_impl "core::cmp::Ord<&'0 @A>"]
-def Shared0A.Insts.CoreCmpOrd {A : Type} (OrdInst : core.cmp.Ord A) :
+def Shared0A.Insts.CoreCmpOrd {A : Type _} (OrdInst : core.cmp.Ord A) :
   core.cmp.Ord A := {
   eqInst := Shared0A.Insts.CoreCmpEq OrdInst.eqInst
   partialOrdInst := core.cmp.PartialOrdShared OrdInst.partialOrdInst
@@ -63,7 +64,7 @@ def Str.Insts.CoreFmtDisplay : core.fmt.Display Str := {
 }
 
 /-- Trait implementation: [core::fmt::num::{impl core::fmt::LowerHex for u64}]
-    Source: '/rustc/library/core/src/fmt/num.rs', lines 12:8-12:38
+    Source: '/rustc/library/core/src/fmt/num.rs', lines 12:8-12:38; this code is generated from a macro invocation at: '/rustc/library/core/src/fmt/num.rs', lines 76:0-76:28
     Name pattern: [core::fmt::LowerHex<u64>] -/
 @[reducible, rust_trait_impl "core::fmt::LowerHex<u64>"]
 def U64.Insts.CoreFmtLowerHex : core.fmt.LowerHex Std.U64 := {
@@ -76,8 +77,8 @@ def U64.Insts.CoreFmtLowerHex : core.fmt.LowerHex Std.U64 := {
 @[reducible, rust_trait_impl
   "core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>"]
 impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
-  {I : Type} {P : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst :
-  core.iter.traits.iterator.Iterator I Clause0_Item)
+  {I : Type _} {P : Type _} {Clause0_Item : Type _} (traitsiteratorIteratorInst
+  : core.iter.traits.iterator.Iterator I Clause0_Item)
   (opsfunctionFnMutPTupleSharedClause0_ItemBoolInst : core.ops.function.FnMut P
   Clause0_Item Bool) : core.iter.traits.iterator.Iterator
   (core.iter.adapters.filter.Filter I P) Clause0_Item := {
@@ -93,8 +94,8 @@ impl_def core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator
   "core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>"]
 impl_def
   core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator {I :
-  Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item : Type}
-  {Clause1_IntoIter : Type} (traitsiteratorIteratorInst :
+  Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _} {Clause1_Item :
+  Type _} {Clause1_IntoIter : Type _} (traitsiteratorIteratorInst :
   core.iter.traits.iterator.Iterator I Clause0_Item)
   (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
   Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
@@ -113,11 +114,11 @@ impl_def
 @[reducible, rust_trait_impl
   "core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>"]
 impl_def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator {B :
-  Type} {I : Type} {F : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst
-  : core.iter.traits.iterator.Iterator I Clause0_Item)
-  (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
-  Clause0_Item B) : core.iter.traits.iterator.Iterator
-  (core.iter.adapters.map.Map I F) B := {
+  Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
+  (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
+  Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
+  core.ops.function.FnMut F Clause0_Item B) :
+  core.iter.traits.iterator.Iterator (core.iter.adapters.map.Map I F) B := {
   next := core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
     traitsiteratorIteratorInst opsfunctionFnMutFTupleClause0_ItemBInst
 }
@@ -127,7 +128,7 @@ impl_def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator {B :
     Name pattern: [core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>] -/
 @[reducible, rust_trait_impl
   "core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>"]
-def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
+def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type _) :
   core.ops.range.RangeBounds ((core.ops.range.Bound T) × (core.ops.range.Bound
   T)) T := {
   start_bound := PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
@@ -142,7 +143,7 @@ def PairBoundBound.Insts.CoreOpsRangeRangeBounds (T : Type) :
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.option.Option.Insts.CoreOpsTry_traitFromResidualOptionNever.from_residual
-  (T : Type) (residual : Option Never) : Result (Option T) := do
+  (T : Type _) (residual : Option Never) : Result (Option T) := do
   match residual with
   | none => ok none
   | some _ => fail panic
@@ -155,7 +156,7 @@ def
   "core::option::{core::ops::try_trait::FromResidual<core::option::Option<@T>, core::option::Option<!>>}::from_residual"]
 def
   core.ops.try_trait.FromResidualOptionMut0T0OptionNever.Blanket.from_residual
-  (T0 : Type) (residual : Option Never) :
+  (T0 : Type _) (residual : Option Never) :
   Result ((Option T0) × (Option T0 → Unit))
   := do
   match residual with
@@ -170,7 +171,7 @@ def
   "core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>"]
 impl_def
   std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
-  (K : Type) (V : Type) : core.iter.traits.iterator.Iterator
+  (K : Type _) (V : Type _) : core.iter.traits.iterator.Iterator
   (std.collections.hash.map.Iter K V) (K × V) := {
   next :=
     std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
@@ -206,7 +207,7 @@ def std.hash.random.RandomState.Insts.CoreHashBuildHasherDefaultHasher :
 @[reducible, rust_trait_impl
   "core::alloc::AllocatorClone<alloc::alloc::Global>"]
 def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
-  core.alloc.AllocatorClone Global := {
+  core.alloc.AllocatorClone alloc.alloc.Global := {
   cloneCloneInst := core.clone.CloneGlobal
 }
 
@@ -217,7 +218,7 @@ def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
   "core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>"]
 impl_def
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT
-  (T : Type) : core.iter.traits.iterator.Iterator
+  (T : Type _) : core.iter.traits.iterator.Iterator
   (alloc.collections.btree.set.Iter T) T := {
   next :=
     alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.next
@@ -230,7 +231,7 @@ impl_def
   "core::iter::traits::double_ended::DoubleEndedIterator<alloc::collections::btree::set::Iter<'a, @T>, &'_ @T>"]
 def
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT
-  (T : Type) : core.iter.traits.double_ended.DoubleEndedIterator
+  (T : Type _) : core.iter.traits.double_ended.DoubleEndedIterator
   (alloc.collections.btree.set.Iter T) T := {
   iteratorInst :=
     alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT
@@ -355,7 +356,7 @@ def address_range.AddressRange.Insts.CoreCmpOrd : core.cmp.Ord
     Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
 def
   address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool.call_mut
-  {T : Type} {Clause0_IntoIter : Type}
+  {T : Type _} {Clause0_IntoIter : Type _}
   (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
   core.iter.traits.collect.IntoIterator T address_range.AddressRange
   Clause0_IntoIter)
@@ -371,7 +372,7 @@ def
     Source: 'resources/src/address_allocator.rs', lines 67:64-67:81 -/
 def
   address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool.call_once
-  {T : Type} {Clause0_IntoIter : Type}
+  {T : Type _} {Clause0_IntoIter : Type _}
   (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
   core.iter.traits.collect.IntoIterator T address_range.AddressRange
   Clause0_IntoIter)
@@ -389,7 +390,7 @@ def
 @[reducible]
 def
   address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeBool
-  {T : Type} {Clause0_IntoIter : Type}
+  {T : Type _} {Clause0_IntoIter : Type _}
   (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
   core.iter.traits.collect.IntoIterator T address_range.AddressRange
   Clause0_IntoIter) : core.ops.function.FnOnce
@@ -405,7 +406,7 @@ def
 @[reducible]
 def
   address_allocator.AddressAllocator.new_from_list.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeBool
-  {T : Type} {Clause0_IntoIter : Type}
+  {T : Type _} {Clause0_IntoIter : Type _}
   (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
   core.iter.traits.collect.IntoIterator T address_range.AddressRange
   Clause0_IntoIter) : core.ops.function.FnMut
@@ -426,10 +427,11 @@ def
 def address_allocator.AddressAllocator.new_from_list_loop.body
   (iter : core.slice.iter.Iter address_range.AddressRange)
   (regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
-  Global) :
+  alloc.alloc.Global) :
   Result (ControlFlow ((core.slice.iter.Iter address_range.AddressRange) ×
-    (alloc.collections.btree.set.BTreeSet address_range.AddressRange Global))
-    (alloc.collections.btree.set.BTreeSet address_range.AddressRange Global))
+    (alloc.collections.btree.set.BTreeSet address_range.AddressRange
+    alloc.alloc.Global)) (alloc.collections.btree.set.BTreeSet
+    address_range.AddressRange alloc.alloc.Global))
   := do
   let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
   match o with
@@ -448,9 +450,9 @@ def address_allocator.AddressAllocator.new_from_list_loop.body
 def address_allocator.AddressAllocator.new_from_list_loop
   (iter : core.slice.iter.Iter address_range.AddressRange)
   (regions : alloc.collections.btree.set.BTreeSet address_range.AddressRange
-  Global) :
+  alloc.alloc.Global) :
   Result (alloc.collections.btree.set.BTreeSet address_range.AddressRange
-    Global)
+    alloc.alloc.Global)
   := do
   loop
     (fun (iter1, regions1) =>
@@ -462,7 +464,7 @@ def address_allocator.AddressAllocator.new_from_list_loop
     Source: 'resources/src/address_allocator.rs', lines 59:4-90:5
     Visibility: public -/
 def address_allocator.AddressAllocator.new_from_list
-  {T : Type} {Clause0_IntoIter : Type}
+  {T : Type _} {Clause0_IntoIter : Type _}
   (coreitertraitscollectIntoIteratorTAddressRangeClause0_IntoIterInst :
   core.iter.traits.collect.IntoIterator T address_range.AddressRange
   Clause0_IntoIter) (pools : T) (min_align : Option Std.U64)
@@ -548,7 +550,7 @@ def address_allocator.AddressAllocator.impl.pools
     Source: 'resources/src/lib.rs', lines 26:31-26:35
     Visibility: public -/
 def Alloc.Insts.CoreHashHash.hash
-  {__H : Type} (corehashHasherInst : core.hash.Hasher __H) (self : Alloc)
+  {__H : Type _} (corehashHasherInst : core.hash.Hasher __H) (self : Alloc)
   (state : __H) :
   Result __H
   := do
@@ -847,10 +849,10 @@ def
     address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.closure.Insts.CoreOpsFunctionFnOnceTupleU64Bool.call_once
 }
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}::call_mut]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1, '_2>}::call_mut]:
     Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
   (c :
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1)
   (tupled_args : address_range.AddressRange) :
@@ -866,44 +868,44 @@ def
       o (i1, tupled_args)
   ok (b, c)
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}::call_once]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1, '_2>}::call_once]:
     Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool.call_once
   (c :
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1)
   (ar : address_range.AddressRange) :
   Result Bool
   := do
   let (b, _) ←
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
       c ar
   ok b
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool
   : core.ops.function.FnOnce
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1
   address_range.AddressRange Bool := {
   call_once :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool.call_once
 }
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure#1}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 162:22-167:17 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
   : core.ops.function.FnMut
   address_allocator.AddressAllocator.internal_allocate_with_align.closure_1
   address_range.AddressRange Bool := {
   FnOnceInst :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool
   call_mut :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{impl core::ops::function::FnOnce<(u64,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}::{closure#1}<'_0>}::call_once]:
@@ -954,10 +956,10 @@ def
     address_allocator.AddressAllocator.internal_allocate_with_align.closure.closure.Insts.CoreOpsFunctionFnOnceTupleU64OptionU64.call_once
 }
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}::call_mut]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1, '_2>}::call_mut]:
     Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
   (c : address_allocator.AddressAllocator.internal_allocate_with_align.closure)
   (tupled_args : address_range.AddressRange) :
   Result (Bool ×
@@ -987,43 +989,43 @@ def
         o1 tupled_args
     ok (b, c)
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}::call_once]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1, '_2>}::call_once]:
     Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool.call_once
   (c : address_allocator.AddressAllocator.internal_allocate_with_align.closure)
   (ar : address_range.AddressRange) :
   Result Bool
   := do
   let (b, _) ←
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
       c ar
   ok b
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnOnce<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool
   : core.ops.function.FnOnce
   address_allocator.AddressAllocator.internal_allocate_with_align.closure
   address_range.AddressRange Bool := {
   call_once :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool.call_once
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool.call_once
 }
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_2 &'_3 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{impl core::ops::function::FnMut<(&'_3 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align::{closure}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 146:22-155:17 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+  address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
   : core.ops.function.FnMut
   address_allocator.AddressAllocator.internal_allocate_with_align.closure
   address_range.AddressRange Bool := {
   FnOnceInst :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared3AddressRangeBool
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnOnceTupleShared3Shared0AddressRangeBool
   call_mut :=
-    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool.call_mut
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::internal_allocate_with_align]:
@@ -1067,7 +1069,7 @@ def address_allocator.AddressAllocator.internal_allocate_with_align
               core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
                 (alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT
                 address_range.AddressRange)
-                address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+                address_allocator.AddressAllocator.internal_allocate_with_align.closure_1.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
                 r (size, alignment1)
             core.option.OptionShared0T.cloned
               address_range.AddressRange.Insts.CoreCloneClone o
@@ -1080,7 +1082,7 @@ def address_allocator.AddressAllocator.internal_allocate_with_align
               core.iter.traits.iterator.Iterator.find.default
                 (alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT
                 address_range.AddressRange)
-                address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared3AddressRangeBool
+                address_allocator.AddressAllocator.internal_allocate_with_align.closure.Insts.CoreOpsFunctionFnMutTupleShared3Shared0AddressRangeBool
                 i (alignment1, size)
             core.option.OptionShared0T.cloned
               address_range.AddressRange.Insts.CoreCloneClone o
@@ -1171,7 +1173,7 @@ def address_allocator.AddressAllocator.allocate
     address_allocator.AddressAllocator.allocate_with_align self1 size alloc1
       tag self1.min_align
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}::call_once]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}<'_0, '_1>}::call_once]:
     Source: 'resources/src/address_allocator.rs', lines 300:17-300:36 -/
 def
   address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc.call_once
@@ -1182,7 +1184,7 @@ def
   let (alloc1, _) := tupled_args
   ok alloc1
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<((&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), resources::Alloc> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure#1}<'_0, '_1>}]
     Source: 'resources/src/address_allocator.rs', lines 300:17-300:36 -/
 @[reducible]
 def
@@ -1216,10 +1218,10 @@ def address_range.AddressRange.overlaps
   let b ← address_range.AddressRange.is_empty ar
   ok (¬ b)
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_mut]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_3 (&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0, '_1, '_2>}::call_mut]:
     Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 def
-  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_mut
   (c : address_allocator.AddressAllocator.find_overlapping.closure)
   (tupled_args : (Alloc × (address_range.AddressRange × String))) :
   Result (Bool × address_allocator.AddressAllocator.find_overlapping.closure)
@@ -1228,43 +1230,43 @@ def
   let b ← address_range.AddressRange.overlaps alloc_range c
   ok (b, c)
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}::call_once]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_3 (&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0, '_1, '_2>}::call_once]:
     Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 def
-  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_once
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_once
   (c : address_allocator.AddressAllocator.find_overlapping.closure)
   (p : (Alloc × (address_range.AddressRange × String))) :
   Result Bool
   := do
   let (b, _) ←
-    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_mut
       c p
   ok b
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnOnce<(&'_3 (&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared3PairShared0AllocShared1PairAddressRangeStringBool
   : core.ops.function.FnOnce
   address_allocator.AddressAllocator.find_overlapping.closure (Alloc ×
   (address_range.AddressRange × String)) Bool := {
   call_once :=
-    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_once
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_once
 }
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_1 (&'_2 resources::Alloc, &'_3 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{impl core::ops::function::FnMut<(&'_3 (&'_0 resources::Alloc, &'_1 (resources::address_range::AddressRange, alloc::string::String)),), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping::{closure}<'_0, '_1, '_2>}]
     Source: 'resources/src/address_allocator.rs', lines 299:18-299:70 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+  address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool
   : core.ops.function.FnMut
   address_allocator.AddressAllocator.find_overlapping.closure (Alloc ×
   (address_range.AddressRange × String)) Bool := {
   FnOnceInst :=
-    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnOnceTupleShared3PairShared0AllocShared1PairAddressRangeStringBool
   call_mut :=
-    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool.call_mut
+    address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool.call_mut
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::find_overlapping]:
@@ -1283,7 +1285,7 @@ def address_allocator.AddressAllocator.find_overlapping
       core.iter.traits.iterator.Iterator.find.default
         (std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV
         Alloc (address_range.AddressRange × String))
-        address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared1PairShared2AllocShared3PairAddressRangeStringBool
+        address_allocator.AddressAllocator.find_overlapping.closure.Insts.CoreOpsFunctionFnMutTupleShared3PairShared0AllocShared1PairAddressRangeStringBool
         i range
     core.option.Option.map
       address_allocator.AddressAllocator.find_overlapping.closure_1.Insts.CoreOpsFunctionFnOnceTuplePairShared0AllocShared1PairAddressRangeStringAlloc
@@ -1304,10 +1306,10 @@ def address_range.AddressRange.contains_range
     then ok (other.end <= self.end)
     else ok false
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_mut]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_2 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0, '_1>}::call_mut]:
     Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 def
-  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool.call_mut
   (c : address_allocator.AddressAllocator.allocate_at.closure)
   (tupled_args : address_range.AddressRange) :
   Result (Bool × address_allocator.AddressAllocator.allocate_at.closure)
@@ -1315,43 +1317,43 @@ def
   let b ← address_range.AddressRange.contains_range tupled_args c
   ok (b, c)
 
-/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}::call_once]:
+/-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_2 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0, '_1>}::call_once]:
     Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 def
-  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool.call_once
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0AddressRangeBool.call_once
   (c : address_allocator.AddressAllocator.allocate_at.closure)
   (ar : address_range.AddressRange) :
   Result Bool
   := do
   let (b, _) ←
-    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool.call_mut
       c ar
   ok b
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnOnce<(&'_2 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0, '_1>}]
     Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0AddressRangeBool
   : core.ops.function.FnOnce
   address_allocator.AddressAllocator.allocate_at.closure
   address_range.AddressRange Bool := {
   call_once :=
-    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool.call_once
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0AddressRangeBool.call_once
 }
 
-/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_1 &'_2 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0>}]
+/-- Trait implementation: [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{impl core::ops::function::FnMut<(&'_2 &'_0 resources::address_range::AddressRange,), bool> for resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at::{closure}<'_0, '_1>}]
     Source: 'resources/src/address_allocator.rs', lines 251:18-251:65 -/
 @[reducible]
 def
-  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+  address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool
   : core.ops.function.FnMut
   address_allocator.AddressAllocator.allocate_at.closure
   address_range.AddressRange Bool := {
   FnOnceInst :=
-    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared2AddressRangeBool
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0AddressRangeBool
   call_mut :=
-    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool.call_mut
+    address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool.call_mut
 }
 
 /-- [resources::address_allocator::{resources::address_allocator::AddressAllocator}::allocate_at]:
@@ -1383,7 +1385,7 @@ def address_allocator.AddressAllocator.allocate_at
         core.iter.traits.iterator.Iterator.find.default
           (alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT
           address_range.AddressRange)
-          address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared2AddressRangeBool
+          address_allocator.AddressAllocator.allocate_at.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0AddressRangeBool
           i range
       match o with
       | none =>
@@ -2245,10 +2247,10 @@ def system_allocator.MmioType.Insts.CoreCmpPartialEqMmioType.eq
   let other1 := read_discriminant other
   ok (self1 = other1)
 
-/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_mut]:
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0, '_1>}::call_mut]:
     Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 def
-  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange.call_mut
   (c : system_allocator.SystemAllocator.new.closure.closure)
   (tupled_args : address_range.AddressRange) :
   Result (address_range.AddressRange ×
@@ -2257,43 +2259,43 @@ def
   let ar ← address_range.AddressRange.intersect tupled_args c
   ok (ar, c)
 
-/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}::call_once]:
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0, '_1>}::call_once]:
     Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 def
-  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange.call_once
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeAddressRange.call_once
   (c : system_allocator.SystemAllocator.new.closure.closure)
   (ar : address_range.AddressRange) :
   Result address_range.AddressRange
   := do
   let (ar1, _) ←
-    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange.call_mut
       c ar
   ok ar1
 
-/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnOnce<(&'_0 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0, '_1>}]
     Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 @[reducible]
 def
-  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeAddressRange
   : core.ops.function.FnOnce
   system_allocator.SystemAllocator.new.closure.closure
   address_range.AddressRange address_range.AddressRange := {
   call_once :=
-    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange.call_once
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeAddressRange.call_once
 }
 
-/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_1 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0>}]
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{impl core::ops::function::FnMut<(&'_0 resources::address_range::AddressRange,), resources::address_range::AddressRange> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}::{closure}<'_0, '_1>}]
     Source: 'resources/src/system_allocator.rs', lines 171:25-171:51 -/
 @[reducible]
 def
-  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
+  system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange
   : core.ops.function.FnMut
   system_allocator.SystemAllocator.new.closure.closure
   address_range.AddressRange address_range.AddressRange := {
   FnOnceInst :=
-    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared1AddressRangeAddressRange
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressRangeAddressRange
   call_mut :=
-    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange.call_mut
+    system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange.call_mut
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{impl core::ops::function::Fn<(resources::address_range::AddressRange,), core::result::Result<alloc::vec::Vec<resources::address_range::AddressRange>, resources::Error>> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::new::{closure}<'_0>}::call]:
@@ -2318,14 +2320,14 @@ def
       core.iter.traits.iterator.Iterator.map.default
         (core.iter.traits.iterator.IteratorSliceIter
         address_range.AddressRange)
-        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange
+        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange
         i tupled_args
     let ret ←
       core.iter.traits.iterator.Iterator.collect.default
         (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
         (core.iter.traits.iterator.IteratorSliceIter
         address_range.AddressRange)
-        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared1AddressRangeAddressRange)
+        system_allocator.SystemAllocator.new.closure.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressRangeAddressRange)
         (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) m
     ok (core.result.Result.Ok ret)
 
@@ -3393,54 +3395,54 @@ def system_allocator.SystemAllocator.allocate_mmio
       else ok (res1, self2)
     else ok (res, self1)
 
-/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}::call_mut]:
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_1 [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}<'_0, '_1>}::call_mut]:
     Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
 def
-  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange.call_mut
   (c : system_allocator.SystemAllocator.mmio_pools.closure)
   (tupled_args : address_allocator.AddressAllocator) :
   Result ((Slice address_range.AddressRange) ×
     system_allocator.SystemAllocator.mmio_pools.closure)
   := do
   let s ← address_allocator.AddressAllocator.impl.pools tupled_args
-  ok (s, c)
+  ok (s, ())
 
-/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}::call_once]:
+/-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_1 [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}<'_0, '_1>}::call_once]:
     Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
 def
-  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange.call_once
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorShared1SliceAddressRange.call_once
   (c : system_allocator.SystemAllocator.mmio_pools.closure)
   (aa : address_allocator.AddressAllocator) :
   Result (Slice address_range.AddressRange)
   := do
   let (s, _) ←
-    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
-      c aa
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange.call_mut
+      () aa
   ok s
 
-/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}]
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnOnce<(&'_0 resources::address_allocator::AddressAllocator,), &'_1 [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}<'_0, '_1>}]
     Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
 @[reducible]
 def
-  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorShared1SliceAddressRange
   : core.ops.function.FnOnce
   system_allocator.SystemAllocator.mmio_pools.closure
   address_allocator.AddressAllocator (Slice address_range.AddressRange) := {
   call_once :=
-    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange.call_once
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorShared1SliceAddressRange.call_once
 }
 
-/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_ [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}}]
+/-- Trait implementation: [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{impl core::ops::function::FnMut<(&'_0 resources::address_allocator::AddressAllocator,), &'_1 [resources::address_range::AddressRange]> for resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools::{closure}<'_0, '_1>}]
     Source: 'resources/src/system_allocator.rs', lines 444:22-444:47 -/
 @[reducible]
 def
-  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+  system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange
   : core.ops.function.FnMut system_allocator.SystemAllocator.mmio_pools.closure
   address_allocator.AddressAllocator (Slice address_range.AddressRange) := {
   FnOnceInst :=
-    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorSharedSliceAddressRange
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnOnceTupleShared0AddressAllocatorShared1SliceAddressRange
   call_mut :=
-    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange.call_mut
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange.call_mut
 }
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_pools]:
@@ -3458,7 +3460,7 @@ def system_allocator.SystemAllocator.mmio_pools
       address_allocator.AddressAllocator)
       (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter
       address_range.AddressRange)
-      system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange
+      system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange
       i ()
   core.iter.traits.iterator.Iterator.collect.default
     (core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator
@@ -3466,7 +3468,7 @@ def system_allocator.SystemAllocator.mmio_pools
     address_allocator.AddressAllocator)
     (SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter
     address_range.AddressRange)
-    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorSharedSliceAddressRange)
+    system_allocator.SystemAllocator.mmio_pools.closure.Insts.CoreOpsFunctionFnMutTupleShared0AddressAllocatorShared1SliceAddressRange)
     (core.iter.traits.collect.FromIteratorVec address_range.AddressRange) fm
 
 /-- [resources::system_allocator::{resources::system_allocator::SystemAllocator}::mmio_allocator_any]:
@@ -3654,7 +3656,7 @@ def system_allocator.SystemAllocator.reserve_mmio
   let pools1 := deref_mut_back s1
   let iter1 ←
     SharedAVec.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter.into_iter
-      Global pools1
+      alloc.alloc.Global pools1
   system_allocator.SystemAllocator.reserve_mmio_loop1 iter1 self range
 
 end resources

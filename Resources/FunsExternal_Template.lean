@@ -12,6 +12,7 @@ set_option linter.unusedVariables false
 set_option linter.style.whitespace false
 set_option linter.style.setOption false
 set_option linter.style.longLine false
+set_option linter.internalConstructors false
 
 /- You can set the `maxHeartbeats` value with the `-max-heartbeats` CLI option -/
 set_option maxHeartbeats 1000000
@@ -25,7 +26,7 @@ open resources
     Name pattern: [core::borrow::{core::borrow::Borrow<@T, @T>}::borrow]
     Visibility: public -/
 @[rust_fun "core::borrow::{core::borrow::Borrow<@T, @T>}::borrow"]
-axiom core.borrow.Borrow.Blanket.borrow {T : Type} : T → Result T
+axiom core.borrow.Borrow.Blanket.borrow {T : Type _} : T → Result T
 
 /-- [core::cmp::{impl core::cmp::PartialEq<core::cmp::Ordering> for core::cmp::Ordering}::eq]:
     Source: '/rustc/library/core/src/cmp.rs', lines 413:43-413:52
@@ -42,8 +43,8 @@ axiom core.cmp.Ordering.Insts.CoreCmpPartialEqOrdering.eq
     Visibility: public -/
 @[rust_fun "core::cmp::{core::cmp::Ordering}::then_with"]
 axiom core.cmp.Ordering.then_with
-  {F : Type} (opsfunctionFnOnceFTupleOrderingInst : core.ops.function.FnOnce F
-  Unit Ordering) :
+  {F : Type _} (opsfunctionFnOnceFTupleOrderingInst : core.ops.function.FnOnce
+  F Unit Ordering) :
   Ordering → F → Result Ordering
 
 /-- [core::cmp::impls::{impl core::cmp::Ord for &'_0 A}::cmp]:
@@ -52,7 +53,7 @@ axiom core.cmp.Ordering.then_with
     Visibility: public -/
 @[rust_fun "core::cmp::impls::{core::cmp::Ord<&'0 @A>}::cmp"]
 axiom Shared0A.Insts.CoreCmpOrd.cmp
-  {A : Type} (OrdInst : core.cmp.Ord A) : A → A → Result Ordering
+  {A : Type _} (OrdInst : core.cmp.Ord A) : A → A → Result Ordering
 
 /-- [core::fmt::{impl core::fmt::Display for str}::fmt]:
     Source: '/rustc/library/core/src/fmt/mod.rs', lines 2965:4-2965:50
@@ -65,7 +66,7 @@ axiom Str.Insts.CoreFmtDisplay.fmt
     core.fmt.Error) × core.fmt.Formatter)
 
 /-- [core::fmt::num::{impl core::fmt::LowerHex for u64}::fmt]:
-    Source: '/rustc/library/core/src/fmt/num.rs', lines 14:12-14:68
+    Source: '/rustc/library/core/src/fmt/num.rs', lines 14:12-14:68; this code is generated from a macro invocation at: '/rustc/library/core/src/fmt/num.rs', lines 76:0-76:28
     Name pattern: [core::fmt::num::{core::fmt::LowerHex<u64>}::fmt]
     Visibility: public -/
 @[rust_fun "core::fmt::num::{core::fmt::LowerHex<u64>}::fmt"]
@@ -75,36 +76,36 @@ axiom U64.Insts.CoreFmtLowerHex.fmt
     core.fmt.Error) × core.fmt.Formatter)
 
 /-- [core::hash::impls::{impl core::hash::Hash for isize}::hash]:
-    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56; this code is generated from a macro invocation at: '/rustc/library/core/src/hash/mod.rs', lines 831:4-844:5
     Name pattern: [core::hash::impls::{core::hash::Hash<isize>}::hash]
     Visibility: public -/
 @[rust_fun "core::hash::impls::{core::hash::Hash<isize>}::hash"]
 axiom Isize.Insts.CoreHashHash.hash
-  {H : Type} (HasherInst : core.hash.Hasher H) : Std.Isize → H → Result H
+  {H : Type _} (HasherInst : core.hash.Hasher H) : Std.Isize → H → Result H
 
 /-- [core::hash::impls::{impl core::hash::Hash for usize}::hash]:
-    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56; this code is generated from a macro invocation at: '/rustc/library/core/src/hash/mod.rs', lines 831:4-844:5
     Name pattern: [core::hash::impls::{core::hash::Hash<usize>}::hash]
     Visibility: public -/
 @[rust_fun "core::hash::impls::{core::hash::Hash<usize>}::hash"]
 axiom Usize.Insts.CoreHashHash.hash
-  {H : Type} (HasherInst : core.hash.Hasher H) : Std.Usize → H → Result H
+  {H : Type _} (HasherInst : core.hash.Hasher H) : Std.Usize → H → Result H
 
 /-- [core::hash::impls::{impl core::hash::Hash for u8}::hash]:
-    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56; this code is generated from a macro invocation at: '/rustc/library/core/src/hash/mod.rs', lines 831:4-844:5
     Name pattern: [core::hash::impls::{core::hash::Hash<u8>}::hash]
     Visibility: public -/
 @[rust_fun "core::hash::impls::{core::hash::Hash<u8>}::hash"]
 axiom U8.Insts.CoreHashHash.hash
-  {H : Type} (HasherInst : core.hash.Hasher H) : Std.U8 → H → Result H
+  {H : Type _} (HasherInst : core.hash.Hasher H) : Std.U8 → H → Result H
 
 /-- [core::hash::impls::{impl core::hash::Hash for u64}::hash]:
-    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56
+    Source: '/rustc/library/core/src/hash/mod.rs', lines 813:16-813:56; this code is generated from a macro invocation at: '/rustc/library/core/src/hash/mod.rs', lines 831:4-844:5
     Name pattern: [core::hash::impls::{core::hash::Hash<u64>}::hash]
     Visibility: public -/
 @[rust_fun "core::hash::impls::{core::hash::Hash<u64>}::hash"]
 axiom U64.Insts.CoreHashHash.hash
-  {H : Type} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
+  {H : Type _} (HasherInst : core.hash.Hasher H) : Std.U64 → H → Result H
 
 /-- [core::iter::traits::iterator::Iterator::min]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3297:4-3300:51
@@ -112,7 +113,7 @@ axiom U64.Insts.CoreHashHash.hash
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::min"]
 axiom core.iter.traits.iterator.Iterator.min.default
-  {Self : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item) (cmpOrdInst :
   core.cmp.Ord Clause0_Item) :
   Self → Result (Option Clause0_Item)
@@ -123,7 +124,7 @@ axiom core.iter.traits.iterator.Iterator.min.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max"]
 axiom core.iter.traits.iterator.Iterator.max.default
-  {Self : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item) (cmpOrdInst :
   core.cmp.Ord Clause0_Item) :
   Self → Result (Option Clause0_Item)
@@ -134,7 +135,7 @@ axiom core.iter.traits.iterator.Iterator.max.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
 axiom core.iter.traits.iterator.Iterator.find.default
-  {Self : Type} {P : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {P : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
   P Clause0_Item Bool) :
@@ -146,8 +147,8 @@ axiom core.iter.traits.iterator.Iterator.find.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::flat_map"]
 axiom core.iter.traits.iterator.Iterator.flat_map.default
-  {Self : Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item :
-  Type} {Clause1_IntoIter : Type} (IteratorInst :
+  {Self : Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _}
+  {Clause1_Item : Type _} {Clause1_IntoIter : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item)
   (collectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
   Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
@@ -161,7 +162,7 @@ axiom core.iter.traits.iterator.Iterator.flat_map.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::filter"]
 axiom core.iter.traits.iterator.Iterator.filter.default
-  {Self : Type} {P : Type} {Clause0_Item : Type} (IteratorInst :
+  {Self : Type _} {P : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutPTupleSharedClause0_ItemBoolInst : core.ops.function.FnMut P
   Clause0_Item Bool) :
@@ -173,8 +174,8 @@ axiom core.iter.traits.iterator.Iterator.filter.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
 axiom core.iter.traits.iterator.Iterator.map.default
-  {Self : Type} {B : Type} {F : Type} {Clause0_Item : Type} (IteratorInst :
-  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+  (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutFTupleClause0_ItemBInst : core.ops.function.FnMut F
   Clause0_Item B) :
   Self → F → Result (core.iter.adapters.map.Map Self F)
@@ -187,8 +188,8 @@ axiom core.iter.traits.iterator.Iterator.map.default
   "core::iter::adapters::filter::{core::iter::traits::iterator::Iterator<core::iter::adapters::filter::Filter<@I, @P>, @Clause0_Item>}::next"]
 axiom
   core.iter.adapters.filter.Filter.Insts.CoreIterTraitsIteratorIterator.next
-  {I : Type} {P : Type} {Clause0_Item : Type} (traitsiteratorIteratorInst :
-  core.iter.traits.iterator.Iterator I Clause0_Item)
+  {I : Type _} {P : Type _} {Clause0_Item : Type _} (traitsiteratorIteratorInst
+  : core.iter.traits.iterator.Iterator I Clause0_Item)
   (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
   P Clause0_Item Bool) :
   core.iter.adapters.filter.Filter I P → Result ((Option Clause0_Item) ×
@@ -202,8 +203,8 @@ axiom
   "core::iter::adapters::flatten::{core::iter::traits::iterator::Iterator<core::iter::adapters::flatten::FlatMap<@I, @U, @F, @Clause1_Item, @Clause1_IntoIter>, @Clause1_Item>}::next"]
 axiom
   core.iter.adapters.flatten.FlatMap.Insts.CoreIterTraitsIteratorIterator.next
-  {I : Type} {U : Type} {F : Type} {Clause0_Item : Type} {Clause1_Item : Type}
-  {Clause1_IntoIter : Type} (traitsiteratorIteratorInst :
+  {I : Type _} {U : Type _} {F : Type _} {Clause0_Item : Type _} {Clause1_Item
+  : Type _} {Clause1_IntoIter : Type _} (traitsiteratorIteratorInst :
   core.iter.traits.iterator.Iterator I Clause0_Item)
   (traitscollectIntoIteratorInst : core.iter.traits.collect.IntoIterator U
   Clause1_Item Clause1_IntoIter) (opsfunctionFnMutFTupleClause0_ItemUInst :
@@ -219,7 +220,7 @@ axiom
 @[rust_fun
   "core::iter::adapters::map::{core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>}::next"]
 axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
-  {B : Type} {I : Type} {F : Type} {Clause0_Item : Type}
+  {B : Type _} {I : Type _} {F : Type _} {Clause0_Item : Type _}
   (traitsiteratorIteratorInst : core.iter.traits.iterator.Iterator I
   Clause0_Item) (opsfunctionFnMutFTupleClause0_ItemBInst :
   core.ops.function.FnMut F Clause0_Item B) :
@@ -233,7 +234,7 @@ axiom core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
 @[rust_fun
   "core::iter::adapters::rev::{core::iter::traits::iterator::Iterator<core::iter::adapters::rev::Rev<@I>, @Clause0_Clause0_Item>}::find"]
 axiom core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
-  {I : Type} {P : Type} {Clause0_Clause0_Item : Type}
+  {I : Type _} {P : Type _} {Clause0_Clause0_Item : Type _}
   (traitsdouble_endedDoubleEndedIteratorInst :
   core.iter.traits.double_ended.DoubleEndedIterator I Clause0_Clause0_Item)
   (opsfunctionFnMutPTupleShared0Clause0_Clause0_ItemBoolInst :
@@ -247,7 +248,7 @@ axiom core.iter.adapters.rev.Rev.Insts.CoreIterTraitsIteratorIterator.find
     Visibility: public -/
 @[rust_fun "core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::start"]
 axiom core.ops.range.RangeInclusive.start
-  {Idx : Type} : core.ops.range.RangeInclusive Idx → Result Idx
+  {Idx : Type _} : core.ops.range.RangeInclusive Idx → Result Idx
 
 /-- [core::ops::range::{core::ops::range::RangeInclusive<Idx>}::end]:
     Source: '/rustc/library/core/src/ops/range.rs', lines 450:4-450:35
@@ -255,7 +256,7 @@ axiom core.ops.range.RangeInclusive.start
     Visibility: public -/
 @[rust_fun "core::ops::range::{core::ops::range::RangeInclusive<@Idx>}::end"]
 axiom core.ops.range.RangeInclusive.end
-  {Idx : Type} : core.ops.range.RangeInclusive Idx → Result Idx
+  {Idx : Type _} : core.ops.range.RangeInclusive Idx → Result Idx
 
 /-- [core::ops::range::{impl core::ops::range::RangeBounds<T> for (core::ops::range::Bound<T>, core::ops::range::Bound<T>)}::end_bound]:
     Source: '/rustc/library/core/src/ops/range.rs', lines 1202:4-1202:36
@@ -264,7 +265,7 @@ axiom core.ops.range.RangeInclusive.end
 @[rust_fun
   "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::end_bound"]
 axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
-  {T : Type} :
+  {T : Type _} :
   ((core.ops.range.Bound T) × (core.ops.range.Bound T)) → Result
     (core.ops.range.Bound T)
 
@@ -275,7 +276,7 @@ axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.end_bound
 @[rust_fun
   "core::ops::range::{core::ops::range::RangeBounds<(core::ops::range::Bound<@T>, core::ops::range::Bound<@T>), @T>}::start_bound"]
 axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
-  {T : Type} :
+  {T : Type _} :
   ((core.ops.range.Bound T) × (core.ops.range.Bound T)) → Result
     (core.ops.range.Bound T)
 
@@ -285,7 +286,7 @@ axiom PairBoundBound.Insts.CoreOpsRangeRangeBounds.start_bound
     Visibility: public -/
 @[rust_fun "core::option::{core::option::Option<@T>}::and_then"]
 axiom core.option.Option.and_then
-  {T : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTOptionInst :
+  {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTOptionInst :
   core.ops.function.FnOnce F T (Option U)) :
   Option T → F → Result (Option U)
 
@@ -295,7 +296,7 @@ axiom core.option.Option.and_then
     Visibility: public -/
 @[rust_fun "core::option::{core::option::Option<&'0 @T>}::cloned"]
 axiom core.option.OptionShared0T.cloned
-  {T : Type} (cloneCloneInst : core.clone.Clone T) :
+  {T : Type _} (cloneCloneInst : core.clone.Clone T) :
   Option T → Result (Option T)
 
 /-- [core::option::{impl core::ops::try_trait::Try<T, core::option::Option<!>> for core::option::Option<T>}::branch]:
@@ -305,7 +306,7 @@ axiom core.option.OptionShared0T.cloned
 @[rust_fun
   "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
 axiom core.option.Option.Insts.CoreOpsTry_traitTryTOptionNever.branch
-  {T : Type} :
+  {T : Type _} :
   Option T → Result (core.ops.control_flow.ControlFlow (Option Never) T)
 
 /-- [core::option::{impl core::ops::try_trait::Try<T, core::option::Option<!>> for core::option::Option<T>}::branch::<&_ mut _>]:
@@ -315,7 +316,7 @@ axiom core.option.Option.Insts.CoreOpsTry_traitTryTOptionNever.branch
 @[rust_fun
   "core::option::{core::ops::try_trait::Try<core::option::Option<@T>, @T, core::option::Option<!>>}::branch"]
 axiom core.ops.try_trait.TryOptionMut0T0Mut0T0OptionNever.Blanket.branch
-  {T0 : Type} :
+  {T0 : Type _} :
   Option T0 → Result ((core.ops.control_flow.ControlFlow (Option Never) T0)
     × (core.ops.control_flow.ControlFlow (Option Never) T0 → Option T0))
 
@@ -325,7 +326,7 @@ axiom core.ops.try_trait.TryOptionMut0T0Mut0T0OptionNever.Blanket.branch
     Visibility: public -/
 @[rust_fun "core::result::{core::result::Result<@T, @E>}::ok"]
 axiom core.result.Result.ok
-  {T : Type} {E : Type} : core.result.Result T E → Result (Option T)
+  {T : Type _} {E : Type _} : core.result.Result T E → Result (Option T)
 
 /-- [core::result::{core::result::Result<T, E>}::map]:
     Source: '/rustc/library/core/src/result.rs', lines 832:4-834:53
@@ -333,8 +334,8 @@ axiom core.result.Result.ok
     Visibility: public -/
 @[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
 axiom core.result.Result.map
-  {T : Type} {E : Type} {U : Type} {F : Type} (opsfunctionFnOnceFTupleTUInst :
-  core.ops.function.FnOnce F T U) :
+  {T : Type _} {E : Type _} {U : Type _} {F : Type _}
+  (opsfunctionFnOnceFTupleTUInst : core.ops.function.FnOnce F T U) :
   core.result.Result T E → F → Result (core.result.Result U E)
 
 /-- [core::result::{impl core::ops::try_trait::Try<T, core::result::Result<!, E>> for core::result::Result<T, E>}::branch]:
@@ -344,7 +345,7 @@ axiom core.result.Result.map
 @[rust_fun
   "core::result::{core::ops::try_trait::Try<core::result::Result<@T, @E>, @T, core::result::Result<!, @E>>}::branch"]
 axiom core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
-  {T : Type} {E : Type} :
+  {T : Type _} {E : Type _} :
   core.result.Result T E → Result (core.ops.control_flow.ControlFlow
     (core.result.Result Never E) T)
 
@@ -355,9 +356,9 @@ axiom core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, std::hash::random::RandomState, alloc::alloc::Global>}::new"]
 axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
-  (K : Type) (V : Type) :
+  (K : Type _) (V : Type _) :
   Result (std.collections.hash.map.HashMap K V std.hash.random.RandomState
-    Global)
+    alloc.alloc.Global)
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::iter]:
     Source: '/rustc/library/std/src/collections/hash/map.rs', lines 675:4-675:40
@@ -366,7 +367,7 @@ axiom std.collections.hash.map.HashMapKVRandomStateGlobal.new
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::iter"]
 axiom std.collections.hash.map.HashMap.iter
-  {K : Type} {V : Type} {S : Type} {A : Type} :
+  {K : Type _} {V : Type _} {S : Type _} {A : Type _} :
   std.collections.hash.map.HashMap K V S A → Result
     (std.collections.hash.map.Iter K V)
 
@@ -377,11 +378,11 @@ axiom std.collections.hash.map.HashMap.iter
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::get"]
 axiom std.collections.hash.map.HashMap.get
-  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
-  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
-  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
-  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
-  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  {K : Type _} {V : Type _} {S : Type _} {A : Type _} {Q : Type _}
+  {Clause2_Hasher : Type _} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst :
+  core.hash.Hash K) (corehashBuildHasherInst : core.hash.BuildHasher S
+  Clause2_Hasher) (coreborrowBorrowInst : core.borrow.Borrow K Q)
+  (corehashHashInst1 : core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
   std.collections.hash.map.HashMap K V S A → Q → Result (Option V)
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::contains_key]:
@@ -391,11 +392,11 @@ axiom std.collections.hash.map.HashMap.get
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::contains_key"]
 axiom std.collections.hash.map.HashMap.contains_key
-  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
-  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
-  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
-  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
-  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  {K : Type _} {V : Type _} {S : Type _} {A : Type _} {Q : Type _}
+  {Clause2_Hasher : Type _} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst :
+  core.hash.Hash K) (corehashBuildHasherInst : core.hash.BuildHasher S
+  Clause2_Hasher) (coreborrowBorrowInst : core.borrow.Borrow K Q)
+  (corehashHashInst1 : core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
   std.collections.hash.map.HashMap K V S A → Q → Result Bool
 
 /-- [std::collections::hash::map::{std::collections::hash::map::HashMap<K, V, S, A>}::insert]:
@@ -405,7 +406,7 @@ axiom std.collections.hash.map.HashMap.contains_key
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::insert"]
 axiom std.collections.hash.map.HashMap.insert
-  {K : Type} {V : Type} {S : Type} {A : Type} {Clause2_Hasher : Type}
+  {K : Type _} {V : Type _} {S : Type _} {A : Type _} {Clause2_Hasher : Type _}
   (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
   (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher) :
   std.collections.hash.map.HashMap K V S A → K → V → Result ((Option V)
@@ -418,11 +419,11 @@ axiom std.collections.hash.map.HashMap.insert
 @[rust_fun
   "std::collections::hash::map::{std::collections::hash::map::HashMap<@K, @V, @S, @A>}::remove"]
 axiom std.collections.hash.map.HashMap.remove
-  {K : Type} {V : Type} {S : Type} {A : Type} {Q : Type} {Clause2_Hasher :
-  Type} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst : core.hash.Hash K)
-  (corehashBuildHasherInst : core.hash.BuildHasher S Clause2_Hasher)
-  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corehashHashInst1 :
-  core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
+  {K : Type _} {V : Type _} {S : Type _} {A : Type _} {Q : Type _}
+  {Clause2_Hasher : Type _} (corecmpEqInst : core.cmp.Eq K) (corehashHashInst :
+  core.hash.Hash K) (corehashBuildHasherInst : core.hash.BuildHasher S
+  Clause2_Hasher) (coreborrowBorrowInst : core.borrow.Borrow K Q)
+  (corehashHashInst1 : core.hash.Hash Q) (corecmpEqInst1 : core.cmp.Eq Q) :
   std.collections.hash.map.HashMap K V S A → Q → Result ((Option V) ×
     (std.collections.hash.map.HashMap K V S A))
 
@@ -434,7 +435,7 @@ axiom std.collections.hash.map.HashMap.remove
   "std::collections::hash::map::{core::iter::traits::iterator::Iterator<std::collections::hash::map::Iter<'a, @K, @V>, (&'a @K, &'a @V)>}::next"]
 axiom
   std.collections.hash.map.Iter.Insts.CoreIterTraitsIteratorIteratorPairSharedAKSharedAV.next
-  {K : Type} {V : Type} :
+  {K : Type _} {V : Type _} :
   std.collections.hash.map.Iter K V → Result ((Option (K × V)) ×
     (std.collections.hash.map.Iter K V))
 
@@ -475,7 +476,7 @@ axiom
 @[rust_fun
   "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::VacantEntry<'a, @K, @V, @A>}::insert"]
 axiom alloc.collections.btree.map.entry.VacantEntry.insert
-  {K : Type} {V : Type} {A : Type} (corecmpOrdInst : core.cmp.Ord K)
+  {K : Type _} {V : Type _} {A : Type _} (corecmpOrdInst : core.cmp.Ord K)
   (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A) :
   alloc.collections.btree.map.entry.VacantEntry K V A → V → Result (V × (V
     → alloc.collections.btree.map.entry.VacantEntry K V A))
@@ -487,7 +488,7 @@ axiom alloc.collections.btree.map.entry.VacantEntry.insert
 @[rust_fun
   "alloc::collections::btree::map::entry::{alloc::collections::btree::map::entry::OccupiedEntry<'a, @K, @V, @A>}::into_mut"]
 axiom alloc.collections.btree.map.entry.OccupiedEntry.into_mut
-  {K : Type} {V : Type} {A : Type} (corecmpOrdInst : core.cmp.Ord K)
+  {K : Type _} {V : Type _} {A : Type _} (corecmpOrdInst : core.cmp.Ord K)
   (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A) :
   alloc.collections.btree.map.entry.OccupiedEntry K V A → Result (V × (V →
     alloc.collections.btree.map.entry.OccupiedEntry K V A))
@@ -499,8 +500,8 @@ axiom alloc.collections.btree.map.entry.OccupiedEntry.into_mut
 @[rust_fun
   "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, alloc::alloc::Global>}::new"]
 axiom alloc.collections.btree.map.BTreeMapKVGlobal.new
-  (K : Type) (V : Type) :
-  Result (alloc.collections.btree.map.BTreeMap K V Global)
+  (K : Type _) (V : Type _) :
+  Result (alloc.collections.btree.map.BTreeMap K V alloc.alloc.Global)
 
 /-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::contains_key]:
     Source: '/rustc/library/alloc/src/collections/btree/map.rs', lines 981:4-984:15
@@ -509,9 +510,10 @@ axiom alloc.collections.btree.map.BTreeMapKVGlobal.new
 @[rust_fun
   "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::contains_key"]
 axiom alloc.collections.btree.map.BTreeMap.contains_key
-  {K : Type} {V : Type} {A : Type} {Q : Type} (coreallocAllocatorCloneInst :
-  core.alloc.AllocatorClone A) (coreborrowBorrowInst : core.borrow.Borrow K Q)
-  (corecmpOrdInst : core.cmp.Ord K) (corecmpOrdInst1 : core.cmp.Ord Q) :
+  {K : Type _} {V : Type _} {A : Type _} {Q : Type _}
+  (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A)
+  (coreborrowBorrowInst : core.borrow.Borrow K Q) (corecmpOrdInst :
+  core.cmp.Ord K) (corecmpOrdInst1 : core.cmp.Ord Q) :
   alloc.collections.btree.map.BTreeMap K V A → Q → Result Bool
 
 /-- [alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<K, V, A>}::entry]:
@@ -521,7 +523,7 @@ axiom alloc.collections.btree.map.BTreeMap.contains_key
 @[rust_fun
   "alloc::collections::btree::map::{alloc::collections::btree::map::BTreeMap<@K, @V, @A>}::entry"]
 axiom alloc.collections.btree.map.BTreeMap.entry
-  {K : Type} {V : Type} {A : Type} (coreallocAllocatorCloneInst :
+  {K : Type _} {V : Type _} {A : Type _} (coreallocAllocatorCloneInst :
   core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord K) :
   alloc.collections.btree.map.BTreeMap K V A → K → Result
     ((alloc.collections.btree.map.entry.Entry K V A) ×
@@ -535,7 +537,8 @@ axiom alloc.collections.btree.map.BTreeMap.entry
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, alloc::alloc::Global>}::new"]
 axiom alloc.collections.btree.set.BTreeSetTGlobal.new
-  (T : Type) : Result (alloc.collections.btree.set.BTreeSet T Global)
+  (T : Type _) :
+  Result (alloc.collections.btree.set.BTreeSet T alloc.alloc.Global)
 
 /-- [alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<T, A>}::range]:
     Source: '/rustc/library/alloc/src/collections/btree/set.rs', lines 398:4-402:26
@@ -544,11 +547,11 @@ axiom alloc.collections.btree.set.BTreeSetTGlobal.new
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::range"]
 axiom alloc.collections.btree.set.BTreeSet.range
-  {T : Type} {A : Type} {K : Type} {R : Type} (coreallocAllocatorCloneInst :
-  core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord K)
-  (coreborrowBorrowInst : core.borrow.Borrow T K) (corecmpOrdInst1 :
-  core.cmp.Ord T) (coreopsrangeRangeBoundsInst : core.ops.range.RangeBounds R
-  K) :
+  {T : Type _} {A : Type _} {K : Type _} {R : Type _}
+  (coreallocAllocatorCloneInst : core.alloc.AllocatorClone A) (corecmpOrdInst :
+  core.cmp.Ord K) (coreborrowBorrowInst : core.borrow.Borrow T K)
+  (corecmpOrdInst1 : core.cmp.Ord T) (coreopsrangeRangeBoundsInst :
+  core.ops.range.RangeBounds R K) :
   alloc.collections.btree.set.BTreeSet T A → R → Result
     (alloc.collections.btree.set.Range T)
 
@@ -559,7 +562,7 @@ axiom alloc.collections.btree.set.BTreeSet.range
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::insert"]
 axiom alloc.collections.btree.set.BTreeSet.insert
-  {T : Type} {A : Type} (coreallocAllocatorCloneInst :
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
   core.alloc.AllocatorClone A) (corecmpOrdInst : core.cmp.Ord T) :
   alloc.collections.btree.set.BTreeSet T A → T → Result (Bool ×
     (alloc.collections.btree.set.BTreeSet T A))
@@ -571,7 +574,7 @@ axiom alloc.collections.btree.set.BTreeSet.insert
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::remove"]
 axiom alloc.collections.btree.set.BTreeSet.remove
-  {T : Type} {A : Type} {Q : Type} (coreallocAllocatorCloneInst :
+  {T : Type _} {A : Type _} {Q : Type _} (coreallocAllocatorCloneInst :
   core.alloc.AllocatorClone A) (coreborrowBorrowInst : core.borrow.Borrow T Q)
   (corecmpOrdInst : core.cmp.Ord T) (corecmpOrdInst1 : core.cmp.Ord Q) :
   alloc.collections.btree.set.BTreeSet T A → Q → Result (Bool ×
@@ -584,7 +587,7 @@ axiom alloc.collections.btree.set.BTreeSet.remove
 @[rust_fun
   "alloc::collections::btree::set::{alloc::collections::btree::set::BTreeSet<@T, @A>}::iter"]
 axiom alloc.collections.btree.set.BTreeSet.iter
-  {T : Type} {A : Type} (coreallocAllocatorCloneInst :
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
   core.alloc.AllocatorClone A) :
   alloc.collections.btree.set.BTreeSet T A → Result
     (alloc.collections.btree.set.Iter T)
@@ -597,7 +600,7 @@ axiom alloc.collections.btree.set.BTreeSet.iter
   "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::max"]
 axiom
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
-  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  {T : Type _} (corecmpOrdSharedATInst : core.cmp.Ord T) :
   alloc.collections.btree.set.Iter T → Result (Option T)
 
 /-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::min]:
@@ -608,7 +611,7 @@ axiom
   "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::min"]
 axiom
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
-  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  {T : Type _} (corecmpOrdSharedATInst : core.cmp.Ord T) :
   alloc.collections.btree.set.Iter T → Result (Option T)
 
 /-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Iter<'a, T>}::next]:
@@ -619,7 +622,7 @@ axiom
   "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Iter<'a, @T>, &'a @T>}::next"]
 axiom
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.next
-  {T : Type} :
+  {T : Type _} :
   alloc.collections.btree.set.Iter T → Result ((Option T) ×
     (alloc.collections.btree.set.Iter T))
 
@@ -631,7 +634,7 @@ axiom
   "alloc::collections::btree::set::{core::iter::traits::double_ended::DoubleEndedIterator<alloc::collections::btree::set::Iter<'a, @T>, &'_ @T>}::next_back"]
 axiom
   alloc.collections.btree.set.Iter.Insts.CoreIterTraitsDouble_endedDoubleEndedIteratorSharedT.next_back
-  {T : Type} :
+  {T : Type _} :
   alloc.collections.btree.set.Iter T → Result ((Option T) ×
     (alloc.collections.btree.set.Iter T))
 
@@ -643,7 +646,7 @@ axiom
   "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::min"]
 axiom
   alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.min
-  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  {T : Type _} (corecmpOrdSharedATInst : core.cmp.Ord T) :
   alloc.collections.btree.set.Range T → Result (Option T)
 
 /-- [alloc::collections::btree::set::{impl core::iter::traits::iterator::Iterator<&'a T> for alloc::collections::btree::set::Range<'a, T>}::max]:
@@ -654,7 +657,7 @@ axiom
   "alloc::collections::btree::set::{core::iter::traits::iterator::Iterator<alloc::collections::btree::set::Range<'a, @T>, &'a @T>}::max"]
 axiom
   alloc.collections.btree.set.Range.Insts.CoreIterTraitsIteratorIteratorSharedAT.max
-  {T : Type} (corecmpOrdSharedATInst : core.cmp.Ord T) :
+  {T : Type _} (corecmpOrdSharedATInst : core.cmp.Ord T) :
   alloc.collections.btree.set.Range T → Result (Option T)
 
 /-- [alloc::slice::{[T]}::sort_by]:
@@ -663,7 +666,8 @@ axiom
     Visibility: public -/
 @[rust_fun "alloc::slice::{[@T]}::sort_by"]
 axiom alloc.slice.Slice.sort_by
-  {T : Type} {F : Type} (coreopsfunctionFnMutFPairShared0TSharedTOrderingInst :
+  {T : Type _} {F : Type _}
+  (coreopsfunctionFnMutFPairShared0TSharedTOrderingInst :
   core.ops.function.FnMut F (T × T) Ordering) :
   Slice T → F → Result (Slice T)
 
@@ -680,7 +684,7 @@ axiom alloc.string.String.Insts.CoreCloneClone.clone : String → Result String
     Visibility: public -/
 @[rust_fun "alloc::string::{alloc::string::ToString<@T>}::to_string"]
 axiom alloc.string.ToString.Blanket.to_string
-  {T : Type} (corefmtDisplayInst : core.fmt.Display T) : T → Result String
+  {T : Type _} (corefmtDisplayInst : core.fmt.Display T) : T → Result String
 
 /-- [alloc::vec::{impl core::iter::traits::collect::IntoIterator<&'a T, core::slice::iter::Iter<'a, T>> for &'a alloc::vec::Vec<T>}::into_iter]:
     Source: '/rustc/library/alloc/src/vec/mod.rs', lines 4088:4-4088:40
@@ -689,7 +693,8 @@ axiom alloc.string.ToString.Blanket.to_string
 @[rust_fun
   "alloc::vec::{core::iter::traits::collect::IntoIterator<&'a alloc::vec::Vec<@T>, &'a @T, core::slice::iter::Iter<'a, @T>>}::into_iter"]
 axiom SharedAVec.Insts.CoreIterTraitsCollectIntoIteratorSharedATIter.into_iter
-  {T : Type} (A : Type) : alloc.vec.Vec T → Result (core.slice.iter.Iter T)
+  {T : Type _} (A : Type _) :
+  alloc.vec.Vec T → Result (core.slice.iter.Iter T)
 
 /-- [base::sys::unix::system_info::pagesize]:
     Source: 'base/src/sys/unix/system_info.rs', lines 32:0-32:26

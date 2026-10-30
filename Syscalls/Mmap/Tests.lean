@@ -43,7 +43,7 @@ example (ret : I32)
         else reservation)) := by
   have hcan : reservation.CanTrim 4096#usize { addr := 4096#usize } 4096#usize := by
     norm_num [Mapping.CanTrim, reservation]
-  simp only [munmapGhost, hm, bind_ok, if_pos hcan]
+  simp only [munmapGhost, hm, bind_ok, ite_eq_left hcan]
 
 -- The prefix is no longer owned after it was unmapped, so unmapping it again
 -- loses the token.
@@ -53,7 +53,7 @@ example (ret : I32)
       ok (ret, none) := by
   have hcan : ¬afterPrefix.CanTrim 4096#usize { addr := 4096#usize } 4096#usize := by
     norm_num [Mapping.CanTrim, afterPrefix]
-  simp only [munmapGhost, hm, bind_ok, if_neg hcan]
+  simp only [munmapGhost, hm, bind_ok, ite_eq_right hcan]
 
 -- A range in the middle would split the token, so it is not a valid trim.
 example : ¬reservation.CanTrim 4096#usize { addr := 8192#usize } 4096#usize := by
@@ -73,6 +73,6 @@ example (ret : VoidPtr)
   have hout : ¬kept.Contains
       { addr := RawPtr.cast _ .Mut ({ addr := 4096#usize } : VoidPtr), size := 4096#usize } := by
     norm_num [Mapping.Contains, kept]
-  simp only [mmapFixedGhost, hm, bind_ok, if_neg hout]
+  simp only [mmapFixedGhost, hm, bind_ok, ite_eq_right hout]
 
 end Syscalls.Mmap.Tests
