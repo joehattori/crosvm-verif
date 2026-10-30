@@ -14,7 +14,7 @@ descriptions in their respective READMEs rather than duplicating them here.
 | [Resources/](Resources/), [VmMemory/](VmMemory/) | One directory per extracted crate. `Types.lean` and `Funs.lean` are generated; `*External_Template.lean` are generated declarations for missing external models; `TypesExternal.lean` and `FunsExternal.lean` are the handwritten models. `<Item>/Spec.lean` modules (plus helpers such as `AddressAllocator/Collections.lean`) hold the specifications and proofs. Each `README.md` gives the verified scope and its exceptions. |
 | [Syscalls/](Syscalls/) | Trusted system call contracts and flag constants, e.g. `mmap(2)` and `munmap(2)` for the `MemoryMapping` proofs. |
 | [Utils/](Utils/) | Code shared by both crates: alignment arithmetic, models of Rust core items (`CoreExternal.lean`), and the `Platform64` assumption. |
-| [Resources.lean](Resources.lean), [lakefile.lean](lakefile.lean) | `Resources.lean` is the default build target and imports every specification module; the lakefile defines the `Resources`, `VmMemory`, `Utils`, and `Syscalls` libraries. |
+| [CrosvmVerif.lean](CrosvmVerif.lean), [lakefile.lean](lakefile.lean) | `CrosvmVerif.lean` is the default build target and imports every specification module. |
 | [Makefile](Makefile), [scripts/](scripts/) | Extraction (`make extract`, `make aeneas-bin`) and running Charon in crosvm's development container. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |
 
@@ -28,7 +28,7 @@ descriptions in their respective READMEs rather than duplicating them here.
   `Utils/CoreExternal.lean`; do not overwrite them with the generated templates.
   After extraction, reconcile any changed template signatures and inspect the
   generated diff before updating proofs.
-- Import new specification modules in `Resources.lean` so the default build
+- Import new specification modules in `CrosvmVerif.lean` so the default build
   checks them.
 - Use the pinned Lean dependencies; avoid incidental dependency upgrades.
   Use the Makefile's extraction flags rather than a separate invocation.
