@@ -1451,6 +1451,26 @@ def guest_memory.MemoryRegion.end
   let i1 ← lift (UScalar.cast .U64 i)
   guest_address.GuestAddress.unchecked_add self.guest_base i1
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for for<'_0_1> vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::end<'_0_1>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 267:4-270:5 -/
+def P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
+  (state : guest_memory.MemoryRegion → Result guest_address.GuestAddress)
+  (args : guest_memory.MemoryRegion) :
+  Result guest_address.GuestAddress
+  := do
+  guest_memory.MemoryRegion.end args
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for for<'_0_1> vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::end<'_0_1>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 267:4-270:5 -/
+@[reducible]
+def P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress :
+  core.ops.function.FnOnce (guest_memory.MemoryRegion → Result
+  guest_address.GuestAddress) guest_memory.MemoryRegion
+  guest_address.GuestAddress := {
+  call_once :=
+    P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
+}
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::contains]:
     Source: 'vm_memory/src/guest_memory.rs', lines 272:4-274:5 -/
 def guest_memory.MemoryRegion.contains
@@ -1504,6 +1524,74 @@ def guest_memory.GuestMemory.impl.locked
 def guest_memory.GuestMemory.impl.use_punchhole_locked
   (self : guest_memory.GuestMemory) : Result Bool := do
   ok self.use_punchhole_locked
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{impl core::ops::function::FnMut<(&'_1 &'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}<'_0>}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/
+def
+  guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress.call_mut
+  (c : guest_memory.GuestMemory.end_addr.closure)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (guest_address.GuestAddress ×
+    guest_memory.GuestMemory.end_addr.closure)
+  := do
+  let ga ← guest_memory.MemoryRegion.start tupled_args
+  ok (ga, ())
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{impl core::ops::function::FnOnce<(&'_1 &'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}<'_0>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/
+def
+  guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared0MemoryRegionGuestAddress.call_once
+  (c : guest_memory.GuestMemory.end_addr.closure)
+  (mr : guest_memory.MemoryRegion) :
+  Result guest_address.GuestAddress
+  := do
+  let (ga, _) ←
+    guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress.call_mut
+      () mr
+  ok ga
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{impl core::ops::function::FnOnce<(&'_1 &'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared0MemoryRegionGuestAddress
+  : core.ops.function.FnOnce guest_memory.GuestMemory.end_addr.closure
+  guest_memory.MemoryRegion guest_address.GuestAddress := {
+  call_once :=
+    guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared0MemoryRegionGuestAddress.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{impl core::ops::function::FnMut<(&'_1 &'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress
+  : core.ops.function.FnMut guest_memory.GuestMemory.end_addr.closure
+  guest_memory.MemoryRegion guest_address.GuestAddress := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnOnceTupleShared1Shared0MemoryRegionGuestAddress
+  call_mut :=
+    guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 470:4-475:5
+    Visibility: public -/
+def guest_memory.GuestMemory.end_addr
+  (self : guest_memory.GuestMemory) : Result guest_address.GuestAddress := do
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
+  let i ← core.slice.Slice.iter s
+  let o ←
+    core.iter.traits.iterator.Iterator.max_by_key.default
+      (core.iter.traits.iterator.IteratorSliceIter guest_memory.MemoryRegion)
+      guest_address.GuestAddress.Insts.CoreCmpOrd
+      guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress
+      i ()
+  core.option.Option.map_or
+    P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress o 0#u64
+    (guest_memory.MemoryRegion.end)
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/

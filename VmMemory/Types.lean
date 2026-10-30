@@ -248,6 +248,11 @@ structure guest_memory.GuestMemory where
   locked : Bool
   use_punchhole_locked : Bool
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/
+@[reducible]
+def guest_memory.GuestMemory.end_addr.closure := Unit
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}]
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/
 @[reducible]

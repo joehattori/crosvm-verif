@@ -6,8 +6,6 @@ contracts and preconditions. The root Makefile lists the extracted functions.
 [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
 
 Not verified:
-- `GuestMemory::end_addr`: the pinned translator rejects method items passed
-  as closures (higher-ranked signatures).
 - `GuestMemory::offset_from_base` and constructors, guest-memory access,
   descriptor cloning, formatting, and serialization.
 

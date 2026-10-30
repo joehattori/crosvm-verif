@@ -737,4 +737,206 @@ theorem WellFormed.findRegion_eq_err_iff {self : GuestMemory} (h : self.WellForm
     rintro ⟨-, hall⟩
     exact hall r hr hin
 
+/-! ### Iterator `max_by_key` -/
+
+/-- `m` is the last element of `l` with a maximal key: no element has a larger
+    key, and every element after `m` has a smaller one. -/
+def _root_.List.IsLastMaxBy {T : Type} (key : T → Nat) (l : List T) (m : T) : Prop :=
+  ∃ pre post, l = pre ++ m :: post ∧ (∀ y ∈ l, key y ≤ key m) ∧ ∀ y ∈ post, key y < key m
+
+theorem _root_.List.IsLastMaxBy.singleton {T : Type} (key : T → Nat) (x : T) :
+    [x].IsLastMaxBy key x :=
+  ⟨[], [], rfl, by simp, by simp⟩
+
+/-- One step of `max_by_key`: `x` is kept against the next element `y` only if
+    its key is strictly larger. -/
+theorem _root_.List.IsLastMaxBy.cons_cons {T : Type} {key : T → Nat} {x y m : T}
+    {rest : List T} (h : ((if key y < key x then x else y) :: rest).IsLastMaxBy key m) :
+    (x :: y :: rest).IsLastMaxBy key m := by
+  obtain ⟨pre, post, hl, hle, hlt⟩ := h
+  by_cases hxy : key y < key x
+  · simp only [hxy, ↓reduceIte] at hl hle
+    have hx := hle x (by simp)
+    cases pre with
+    | nil =>
+      simp only [List.nil_append, List.cons.injEq] at hl
+      obtain ⟨rfl, rfl⟩ := hl
+      refine ⟨[], y :: rest, rfl, ?_, ?_⟩
+      · intro z hz
+        simp only [List.mem_cons] at hz
+        rcases hz with rfl | rfl | hz
+        · exact le_refl _
+        · omega
+        · exact hle z (by simp [hz])
+      · intro z hz
+        simp only [List.mem_cons] at hz
+        rcases hz with rfl | hz
+        · exact hxy
+        · exact hlt z hz
+    | cons p pre =>
+      simp only [List.cons_append, List.cons.injEq] at hl
+      obtain ⟨rfl, rfl⟩ := hl
+      refine ⟨x :: y :: pre, post, rfl, ?_, hlt⟩
+      intro z hz
+      simp only [List.mem_cons] at hz
+      rcases hz with rfl | rfl | hz
+      · exact hx
+      · omega
+      · exact hle z (by simp [hz])
+  · simp only [hxy, ↓reduceIte] at hl hle
+    have hy := hle y (by simp)
+    refine ⟨x :: pre, post, by simp [hl], ?_, hlt⟩
+    intro z hz
+    simp only [List.mem_cons] at hz
+    rcases hz with rfl | hz
+    · omega
+    · exact hle z (List.mem_cons.mpr hz)
+
+/-- The `max_by_key` loop over a slice iterator, with a pure key closure `g`
+    and a comparison that agrees with `key`, returns the last element of `x`
+    followed by the remaining elements that has a maximal key. -/
+theorem _root_.core.iter.traits.iterator.Iterator.maxByKeyFrom_slice_spec {T F B : Type}
+    (ordInst : core.cmp.Ord B) (fInst : core.ops.function.FnMut F T B) (f : F) (g : T → B)
+    (key : B → Nat) (hf : ∀ x, fInst.call_mut f x = ok (g x, f))
+    (hcmp : ∀ a b, ordInst.cmp a b ⦃ o => o = .gt ↔ key b < key a ⦄) (s : Slice T) :
+    ∀ (i : Nat) (x : T),
+      core.iter.traits.iterator.Iterator.maxByKeyFrom
+          (core.iter.traits.iterator.IteratorSliceIter T) ordInst fInst (g x, x) ⟨s, i⟩ f
+        ⦃ r => ∃ m, r = some m ∧ (x :: s.val.drop i).IsLastMaxBy (fun y => key (g y)) m ⦄ := by
+  suffices ∀ n (i : Nat) (x : T), s.val.length - i = n →
+      core.iter.traits.iterator.Iterator.maxByKeyFrom
+          (core.iter.traits.iterator.IteratorSliceIter T) ordInst fInst (g x, x) ⟨s, i⟩ f
+        ⦃ r => ∃ m, r = some m ∧ (x :: s.val.drop i).IsLastMaxBy (fun y => key (g y)) m ⦄ from
+    fun i x => this _ i x rfl
+  intro n
+  induction n with
+  | zero =>
+    intro i x hn
+    have hge : s.val.length ≤ i := by omega
+    rw [core.iter.traits.iterator.Iterator.maxByKeyFrom.eq_def]
+    simp only [core.slice.iter.IteratorSliceIter.next, Slice.len_val, Nat.not_lt.mpr hge,
+      ↓reduceDIte, bind_ok, WP.spec_ok, List.drop_eq_nil_of_le hge]
+    exact ⟨x, rfl, List.IsLastMaxBy.singleton _ x⟩
+  | succ n ih =>
+    intro i x hn
+    have hlt : i < s.val.length := by omega
+    have hdrop : s.val.drop i = s.val[i] :: s.val.drop (i + 1) := List.drop_eq_getElem_cons hlt
+    rw [core.iter.traits.iterator.Iterator.maxByKeyFrom.eq_def]
+    simp only [sliceIter_next_of_lt s i hlt, bind_ok, hf]
+    apply WP.spec_bind (hcmp (g x) (g s.val[i]))
+    intro o ho
+    by_cases hgt : o = .gt
+    · simp only [hgt, ↓reduceIte]
+      have hk : key (g s.val[i]) < key (g x) := ho.mp hgt
+      apply WP.spec_mono (ih (i + 1) x (by omega))
+      rintro r ⟨m, rfl, hm⟩
+      refine ⟨m, rfl, ?_⟩
+      rw [hdrop]
+      apply List.IsLastMaxBy.cons_cons
+      simpa [hk] using hm
+    · simp only [hgt, ↓reduceIte]
+      have hk : ¬ key (g s.val[i]) < key (g x) := fun h => hgt (ho.mpr h)
+      apply WP.spec_mono (ih (i + 1) s.val[i] (by omega))
+      rintro r ⟨m, rfl, hm⟩
+      refine ⟨m, rfl, ?_⟩
+      rw [hdrop]
+      apply List.IsLastMaxBy.cons_cons
+      simpa [hk] using hm
+
+/-- `max_by_key` over a slice iterator returns `None` exactly when no elements
+    remain, and otherwise the last remaining element with a maximal key. -/
+theorem _root_.core.iter.traits.iterator.Iterator.max_by_key_slice_spec {T F B : Type}
+    (ordInst : core.cmp.Ord B) (fInst : core.ops.function.FnMut F T B) (f : F) (g : T → B)
+    (key : B → Nat) (hf : ∀ x, fInst.call_mut f x = ok (g x, f))
+    (hcmp : ∀ a b, ordInst.cmp a b ⦃ o => o = .gt ↔ key b < key a ⦄) (s : Slice T) (i : Nat) :
+    core.iter.traits.iterator.Iterator.max_by_key.default
+        (core.iter.traits.iterator.IteratorSliceIter T) ordInst fInst ⟨s, i⟩ f
+      ⦃ r => match r with
+        | none => s.val.drop i = []
+        | some m => (s.val.drop i).IsLastMaxBy (fun y => key (g y)) m ⦄ := by
+  unfold core.iter.traits.iterator.Iterator.max_by_key.default
+  by_cases hlt : i < s.val.length
+  · have hdrop : s.val.drop i = s.val[i] :: s.val.drop (i + 1) := List.drop_eq_getElem_cons hlt
+    simp only [sliceIter_next_of_lt s i hlt, bind_ok, hf]
+    apply WP.spec_mono (core.iter.traits.iterator.Iterator.maxByKeyFrom_slice_spec ordInst fInst
+      f g key hf hcmp s (i + 1) s.val[i])
+    rintro r ⟨m, rfl, hm⟩
+    show (s.val.drop i).IsLastMaxBy _ m
+    rw [hdrop]
+    exact hm
+  · have hge : s.val.length ≤ i := by omega
+    simp only [core.slice.iter.IteratorSliceIter.next, Slice.len_val, hlt, ↓reduceDIte, bind_ok,
+      WP.spec_ok, List.drop_eq_nil_of_le hge]
+
+/-! ### `end_addr` -/
+
+/-- The endpoint, as computed by `MemoryRegion::end`, of the last region with
+    a maximal start, or address 0 without regions. -/
+def EndAddrOutcome (self : GuestMemory) (result : GuestAddress) : Prop :=
+  if self.regionList = [] then result = 0#u64
+  else ∃ r, self.regionList.IsLastMaxBy (fun r => r.guest_base.val) r ∧ r.EndOutcome result
+
+@[step]
+theorem end_addr_spec (self : GuestMemory) :
+    self.end_addr ⦃ r => self.EndAddrOutcome r ⦄ := by
+  unfold end_addr
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+  have hf : ∀ r : MemoryRegion,
+      end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress.call_mut
+        () r = ok (r.guest_base, ()) := by
+    intro r
+    simp [end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress.call_mut,
+      MemoryRegion.start]
+  have hcmp : ∀ a b : GuestAddress,
+      guest_address.GuestAddress.Insts.CoreCmpOrd.cmp a b ⦃ o => o = .gt ↔ b.val < a.val ⦄ := by
+    intro a b
+    apply WP.spec_mono (GuestAddress.cmp_spec a b)
+    intro o ho
+    exact ho.2.2
+  apply WP.spec_bind (core.iter.traits.iterator.Iterator.max_by_key_slice_spec _ _ () _ _ hf hcmp
+    self.regions.val 0)
+  intro o ho
+  unfold EndAddrOutcome
+  cases o with
+  | none =>
+    simp only [List.drop_zero] at ho
+    simp [ho, core.option.Option.map_or]
+  | some m =>
+    simp only [List.drop_zero] at ho
+    have hne : self.regionList ≠ [] := by
+      obtain ⟨pre, post, hl, -⟩ := ho
+      simp [regionList, hl]
+    simp only [hne, ↓reduceIte, core.option.Option.map_or,
+      P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once]
+    apply WP.spec_mono (MemoryRegion.end_spec m)
+    intro r hr
+    exact ⟨m, ho, hr⟩
+
+/-- For well-formed memory, `end_addr` is the exclusive end of the last region,
+    or 0 without regions. -/
+theorem WellFormed.endAddr_val {self : GuestMemory} (h : self.WellFormed) {result : GuestAddress}
+    (hOut : self.EndAddrOutcome result) :
+    result.val = match self.regionList.getLast? with
+      | none => 0
+      | some r => r.guest_base.val + r.mapping.length.val := by
+  unfold EndAddrOutcome at hOut
+  split at hOut
+  · rename_i hnil
+    simp [hnil, hOut]
+  · obtain ⟨r, ⟨pre, post, hl, -, hlt⟩, hend⟩ := hOut
+    have hpost : post = [] := by
+      cases post with
+      | nil => rfl
+      | cons y post =>
+        have hs := h.sorted
+        rw [hl, List.pairwise_append] at hs
+        have h1 : r.guest_base.val ≤ y.guest_base.val :=
+          List.rel_of_pairwise_cons hs.2.1 (List.mem_cons_self (a := y) (l := post))
+        have h2 : y.guest_base.val < r.guest_base.val := hlt y List.mem_cons_self
+        omega
+    subst hpost
+    have hr : r ∈ self.regionList := by simp [hl]
+    rw [hl, List.getLast?_append_of_ne_nil _ (by simp)]
+    simpa using hend.val_eq_of_valid (h.validBounds hr)
+
 end vm_memory.guest_memory.GuestMemory

@@ -32,6 +32,18 @@ axiom core.iter.traits.iterator.Iterator.sum.default
   core.iter.traits.accum.Sum S Clause0_Item) :
   Self → Result S
 
+/-- [core::iter::traits::iterator::Iterator::max_by_key]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3320:4-3323:35
+    Name pattern: [core::iter::traits::iterator::Iterator::max_by_key]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max_by_key"]
+axiom core.iter.traits.iterator.Iterator.max_by_key.default
+  {Self : Type _} {B : Type _} {F : Type _} {Clause0_Item : Type _}
+  (IteratorInst : core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (cmpOrdInst : core.cmp.Ord B) (opsfunctionFnMutFTupleSharedClause0_ItemBInst
+  : core.ops.function.FnMut F Clause0_Item B) :
+  Self → F → Result (Option Clause0_Item)
+
 /-- [core::iter::traits::iterator::Iterator::find]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
     Name pattern: [core::iter::traits::iterator::Iterator::find]
@@ -92,6 +104,16 @@ axiom U64.Insts.CoreIterTraitsAccumSumU64.sum
   {I : Type _} (iteratorIteratorIU64Inst : core.iter.traits.iterator.Iterator I
   Std.U64) :
   I → Result Std.U64
+
+/-- [core::option::{core::option::Option<T>}::map_or]:
+    Source: '/rustc/library/core/src/option.rs', lines 1224:4-1227:28
+    Name pattern: [core::option::{core::option::Option<@T>}::map_or]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::map_or"]
+axiom core.option.Option.map_or
+  {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTUInst :
+  core.ops.function.FnOnce F T U) :
+  Option T → U → F → Result U
 
 /-- [core::option::{core::option::Option<T>}::and_then]:
     Source: '/rustc/library/core/src/option.rs', lines 1539:4-1541:61

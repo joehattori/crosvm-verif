@@ -72,6 +72,49 @@ def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
   else ok (none, it)
 termination_by it.slice.val.length - it.i
 
+/-- Keep the larger of `best` and each remaining item, comparing their keys
+    with `Ord::cmp`. As in Rust's `cmp::max_by`, a later item replaces `best`
+    unless `best`'s key is strictly greater, so ties select the last item. A
+    non-terminating iterator may diverge. -/
+def core.iter.traits.iterator.Iterator.maxByKeyFrom {Self B F Item : Type _}
+    (iteratorInst : core.iter.traits.iterator.Iterator Self Item) (ordInst : core.cmp.Ord B)
+    (fInst : core.ops.function.FnMut F Item B) (best : B × Item) (iter : Self) (f : F) :
+    Result (Option Item) := do
+  let step ← iteratorInst.next iter
+  match step.1 with
+  | none => ok (some best.2)
+  | some x =>
+    let call ← fInst.call_mut f x
+    let order ← ordInst.cmp best.1 call.1
+    let best := if order = .gt then best else (call.1, x)
+    maxByKeyFrom iteratorInst ordInst fInst best step.2 call.2
+partial_fixpoint
+
+/-- Rust's default `Iterator::max_by_key`: compute each item's key once, in
+    order, and return the last item with a maximal key, or `None` for an empty
+    iterator. -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::max_by_key"]
+def core.iter.traits.iterator.Iterator.max_by_key.default {Self B F Item : Type _}
+    (iteratorInst : core.iter.traits.iterator.Iterator Self Item) (ordInst : core.cmp.Ord B)
+    (fInst : core.ops.function.FnMut F Item B) (self : Self) (f : F) :
+    Result (Option Item) := do
+  let step ← iteratorInst.next self
+  match step.1 with
+  | none => ok none
+  | some x =>
+    let call ← fInst.call_mut f x
+    core.iter.traits.iterator.Iterator.maxByKeyFrom iteratorInst ordInst fInst
+      (call.1, x) step.2 call.2
+
+/-- `Option::map_or` applies the closure to a present value and returns
+    `default` otherwise. -/
+@[rust_fun "core::option::{core::option::Option<@T>}::map_or"]
+def core.option.Option.map_or {T U F : Type _} (fnInst : core.ops.function.FnOnce F T U)
+    (self : Option T) (default : U) (f : F) : Result U :=
+  match self with
+  | none => ok default
+  | some x => fnInst.call_once f x
+
 /-- `Iterator::sum` delegates to the `Sum` implementation of the result type. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
 def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type _}
