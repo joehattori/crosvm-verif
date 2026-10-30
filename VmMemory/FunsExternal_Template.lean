@@ -32,6 +32,18 @@ axiom core.iter.traits.iterator.Iterator.sum.default
   core.iter.traits.accum.Sum S Clause0_Item) :
   Self → Result S
 
+/-- [core::iter::traits::iterator::Iterator::find]:
+    Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2971:4-2974:38
+    Name pattern: [core::iter::traits::iterator::Iterator::find]
+    Visibility: public -/
+@[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
+axiom core.iter.traits.iterator.Iterator.find.default
+  {Self : Type _} {P1 : Type _} {Clause0_Item : Type _} (IteratorInst :
+  core.iter.traits.iterator.Iterator Self Clause0_Item)
+  (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
+  P1 Clause0_Item Bool) :
+  Self → P1 → Result ((Option Clause0_Item) × Self)
+
 /-- [core::iter::traits::iterator::Iterator::any]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2897:4-2900:37
     Name pattern: [core::iter::traits::iterator::Iterator::any]
@@ -122,6 +134,28 @@ axiom core.ptr.mut_ptr.RawPtrMutT.is_null
 @[rust_fun "core::ptr::mut_ptr::{*mut @T}::wrapping_add"]
 axiom core.ptr.mut_ptr.RawPtrMutT.wrapping_add
   {T : Type _} : MutRawPtr T → Std.Usize → Result (MutRawPtr T)
+
+/-- [core::result::{core::result::Result<T, E>}::map]:
+    Source: '/rustc/library/core/src/result.rs', lines 832:4-834:53
+    Name pattern: [core::result::{core::result::Result<@T, @E>}::map]
+    Visibility: public -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
+axiom core.result.Result.map
+  {T : Type _} {E : Type _} {U : Type _} {F : Type _}
+  (opsfunctionFnOnceFTupleTUInst : core.ops.function.FnOnce F T U) :
+  core.result.Result T E → F → Result (core.result.Result U E)
+
+/-- [core::slice::iter::{impl core::iter::traits::iterator::Iterator<&'a T> for core::slice::iter::Iter<'a, T>}::find]:
+    Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 338:12-341:46; this code is generated from a macro invocation at: '/rustc/library/core/src/slice/iter.rs', lines 140:0-148:2
+    Name pattern: [core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::find]
+    Visibility: public -/
+@[rust_fun
+  "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::find"]
+axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
+  {T : Type _} {P1 : Type _} (opsfunctionFnMutPTupleSharedASharedATBoolInst :
+  core.ops.function.FnMut P1 T Bool) :
+  core.slice.iter.Iter T → P1 → Result ((Option T) × (core.slice.iter.Iter
+    T))
 
 /-- [core::slice::iter::{impl core::iter::traits::iterator::Iterator<&'a T> for core::slice::iter::Iter<'a, T>}::any]:
     Source: '/rustc/library/core/src/slice/iter/macros.rs', lines 321:12-324:45; this code is generated from a macro invocation at: '/rustc/library/core/src/slice/iter.rs', lines 140:0-148:2

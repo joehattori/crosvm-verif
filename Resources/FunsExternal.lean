@@ -50,16 +50,6 @@ noncomputable def alloc.string.ToString.Blanket.to_string {T : Type _}
     else fail .panic
   else fail .panic
 
-/-- Apply the closure on success; preserve errors without calling it. -/
-@[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
-def core.result.Result.map {T E U F : Type _} (f : core.ops.function.FnOnce F T U)
-    (self : core.result.Result T E) (closure : F) : Result (core.result.Result U E) := do
-  match self with
-  | .Ok value =>
-    let mapped ← f.call_once closure value
-    ok (.Ok mapped)
-  | .Err error => ok (.Err error)
-
 /-- Discard the error while preserving a successful value. -/
 @[rust_fun "core::result::{core::result::Result<@T, @E>}::ok"]
 def core.result.Result.ok {T E : Type _} (self : core.result.Result T E) : Result (Option T) :=

@@ -16,6 +16,16 @@ def core.option.Option.and_then {T U F : Type _}
   | none => ok none
   | some x => fnInst.call_once f x
 
+/-- Apply the closure on success; preserve errors without calling it. -/
+@[rust_fun "core::result::{core::result::Result<@T, @E>}::map"]
+def core.result.Result.map {T E U F : Type _} (f : core.ops.function.FnOnce F T U)
+    (self : core.result.Result T E) (closure : F) : Result (core.result.Result U E) := do
+  match self with
+  | .Ok value =>
+    let mapped ← f.call_once closure value
+    ok (.Ok mapped)
+  | .Err error => ok (.Err error)
+
 /-- Rust's default lazy map adapter. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::map"]
 def core.iter.traits.iterator.Iterator.map.default {I F T B : Type _}

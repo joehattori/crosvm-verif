@@ -1850,4 +1850,100 @@ def guest_memory.GuestMemory.num_regions
   let i := Slice.len s
   ok (UScalar.cast .U64 i)
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), (&'_1 base::mmap::MemoryMapping, usize, u64)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure#1}<'_0, '_1, '_2>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 915:17-921:13 -/
+def
+  guest_memory.GuestMemory.find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64.call_once
+  (c : guest_memory.GuestMemory.find_region.closure_1)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (base.mmap.MemoryMapping × Std.Usize × Std.U64)
+  := do
+  let ga ← guest_memory.MemoryRegion.start tupled_args
+  let i ← guest_address.GuestAddress.offset_from c ga
+  let i1 ← lift (UScalar.cast .Usize i)
+  ok (tupled_args.mapping, i1, tupled_args.obj_offset)
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), (&'_1 base::mmap::MemoryMapping, usize, u64)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure#1}<'_0, '_1, '_2>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 915:17-921:13 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64
+  : core.ops.function.FnOnce guest_memory.GuestMemory.find_region.closure_1
+  guest_memory.MemoryRegion (base.mmap.MemoryMapping × Std.Usize × Std.U64)
+  := {
+  call_once :=
+    guest_memory.GuestMemory.find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64.call_once
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnMut<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure}<'_0, '_1>}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 913:18-913:54 -/
+def
+  guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+  (c : guest_memory.GuestMemory.find_region.closure)
+  (tupled_args : guest_memory.MemoryRegion) :
+  Result (Bool × guest_memory.GuestMemory.find_region.closure)
+  := do
+  let b ← guest_memory.MemoryRegion.contains tupled_args c
+  ok (b, c)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnOnce<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure}<'_0, '_1>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 913:18-913:54 -/
+def
+  guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool.call_once
+  (c : guest_memory.GuestMemory.find_region.closure)
+  (mr : guest_memory.MemoryRegion) :
+  Result Bool
+  := do
+  let (b, _) ←
+    guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+      c mr
+  ok b
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnOnce<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure}<'_0, '_1>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 913:18-913:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool
+  : core.ops.function.FnOnce guest_memory.GuestMemory.find_region.closure
+  guest_memory.MemoryRegion Bool := {
+  call_once :=
+    guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{impl core::ops::function::FnMut<(&'_2 &'_0 vm_memory::guest_memory::MemoryRegion,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure}<'_0, '_1>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 913:18-913:54 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool
+  : core.ops.function.FnMut guest_memory.GuestMemory.find_region.closure
+  guest_memory.MemoryRegion Bool := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnOnceTupleShared2Shared0MemoryRegionBool
+  call_mut :=
+    guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 910:4-922:5
+    Visibility: public -/
+def guest_memory.GuestMemory.find_region
+  (self : guest_memory.GuestMemory) (guest_addr : guest_address.GuestAddress) :
+  Result (core.result.Result (base.mmap.MemoryMapping × Std.Usize × Std.U64)
+    guest_memory.Error)
+  := do
+  let s ←
+    alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref alloc.alloc.Global
+      self.regions
+  let i ← core.slice.Slice.iter s
+  let (o, _) ←
+    core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
+      guest_memory.GuestMemory.find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool
+      i guest_addr
+  let r ←
+    core.option.Option.ok_or o (guest_memory.Error.InvalidGuestAddress
+      guest_addr)
+  core.result.Result.map
+    guest_memory.GuestMemory.find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64
+    r guest_addr
+
 end vm_memory

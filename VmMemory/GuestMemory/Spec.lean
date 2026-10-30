@@ -115,6 +115,48 @@ theorem _root_.core.slice.iter.Iter.any_spec {T F : Type}
       rw [hr, hdrop]
       simp only [List.mem_cons, exists_eq_or_imp, this, false_or]
 
+/-! ### Slice iterator `find` -/
+
+/-- `find` over a slice iterator returns the first remaining element that
+    satisfies `P`, for a pure predicate that leaves its state unchanged. -/
+theorem _root_.core.slice.iter.Iter.find_spec {T F : Type}
+    (fnMutInst : core.ops.function.FnMut F T Bool) (P : T → Prop) [DecidablePred P] (f : F)
+    (hf : ∀ x, fnMutInst.call_mut f x ⦃ r => r.2 = f ∧ (r.1 = true ↔ P x) ⦄)
+    (it : core.slice.iter.Iter T) :
+    core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find fnMutInst it f
+      ⦃ r => r.1 = (it.slice.val.drop it.i).find? (fun x => decide (P x)) ⦄ := by
+  suffices ∀ n (it : core.slice.iter.Iter T), it.slice.val.length - it.i = n →
+      core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find fnMutInst it f
+        ⦃ r => r.1 = (it.slice.val.drop it.i).find? (fun x => decide (P x)) ⦄ from this _ it rfl
+  intro n
+  induction n with
+  | zero =>
+    intro it hn
+    rw [core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find]
+    have : ¬ it.i < it.slice.val.length := by omega
+    simp [this, List.drop_eq_nil_of_le (by omega : it.slice.val.length ≤ it.i)]
+  | succ n ih =>
+    intro it hn
+    rw [core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find]
+    have hlt : it.i < it.slice.val.length := by omega
+    have hdrop : it.slice.val.drop it.i = it.slice.val[it.i] :: it.slice.val.drop (it.i + 1) :=
+      List.drop_eq_getElem_cons hlt
+    simp only [hlt, ↓reduceDIte]
+    apply WP.spec_bind (hf it.slice.val[it.i])
+    rintro ⟨b, f'⟩ ⟨hf', hb⟩
+    simp only at hf' hb
+    subst hf'
+    cases b with
+    | true =>
+      simp only [↓reduceIte, WP.spec_ok, hdrop]
+      rw [List.find?_cons_of_pos (by simpa using hb.mp rfl)]
+    | false =>
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      apply WP.spec_mono (ih { it with i := it.i + 1 } (by simp; omega))
+      intro r hr
+      have : ¬ P it.slice.val[it.i] := fun hp => by simpa using hb.mpr hp
+      rw [hr, hdrop, List.find?_cons_of_neg (by simpa using this)]
+
 /-! ### Accessors -/
 
 @[step]
@@ -555,5 +597,144 @@ theorem memory_size_overflow (self : GuestMemory) (h : U64.max < self.totalLengt
     memory_size.closure.Insts.CoreOpsFunctionFnMutTupleShared0MemoryRegionU64 ()
     (fun r => UScalar.cast .U64 r.mapping.length) hf self.regions.val
     0 0#u64 (by simpa [hmap, totalLength] using h)
+
+/-! ### `find_region` -/
+
+open Classical in
+/-- The first region whose `contains` accepts the address yields its mapping,
+    the address's offset from the region start cast to `usize`, and its object
+    offset. If no region accepts it, the error carries the address. -/
+def FindRegionOutcome (self : GuestMemory) (addr : GuestAddress)
+    (result : core.result.Result (base.mmap.MemoryMapping × Usize × U64)
+      vm_memory.guest_memory.Error) : Prop :=
+  match self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  | none => result = .Err (.InvalidGuestAddress addr)
+  | some r => ∃ offset, GuestAddress.OffsetFromOutcome addr r.guest_base offset ∧
+      result = .Ok (r.mapping, UScalar.cast .Usize offset, r.obj_offset)
+
+@[step]
+theorem find_region_spec (self : GuestMemory) (addr : GuestAddress) :
+    self.find_region addr ⦃ r => self.FindRegionOutcome addr r ⦄ := by
+  classical
+  unfold find_region
+  simp only [alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref, core.slice.Slice.iter, bind_ok]
+  have hf : ∀ r,
+      find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+        addr r ⦃ p => p.2 = addr ∧ (p.1 = true ↔ r.ContainsOutcome addr true) ⦄ := by
+    intro r
+    unfold find_region.closure.Insts.CoreOpsFunctionFnMutTupleShared2Shared0MemoryRegionBool.call_mut
+    apply WP.spec_bind (MemoryRegion.contains_spec r addr)
+    intro b hb
+    simpa using hb.eq_true_iff
+  apply WP.spec_bind (core.slice.iter.Iter.find_spec _ _ addr hf _)
+  rintro ⟨o, _⟩ ho
+  simp only [List.drop_zero] at ho
+  subst ho
+  unfold FindRegionOutcome
+  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  | none => simp [core.option.Option.ok_or, core.result.Result.map]
+  | some r =>
+    have hp := List.find?_some hfind
+    simp only [decide_eq_true_eq] at hp
+    obtain ⟨endAddr, -, hc⟩ := hp
+    have hle : r.guest_base.val ≤ addr.val := (hc.mp rfl).1
+    simp only [core.option.Option.ok_or, core.result.Result.map,
+      find_region.closure_1.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionTupleShared1MemoryMappingUsizeU64.call_once]
+    step as ⟨start, hstart⟩
+    subst hstart
+    step as ⟨offset, hoffset⟩
+    simp only [lift, bind_ok, WP.spec_ok]
+    exact ⟨offset, hoffset, rfl⟩
+
+/-- For a region with representable end, `contains` accepts exactly the
+    addresses in its mathematical half-open interval. -/
+private theorem containsOutcome_true_iff {r : MemoryRegion} (hv : r.ValidBounds)
+    (addr : GuestAddress) :
+    r.ContainsOutcome addr true ↔
+      r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val := by
+  constructor
+  · rintro ⟨endAddr, he, hc⟩
+    rw [← he.val_eq_of_valid hv]
+    exact hc.mp rfl
+  · intro hin
+    obtain ⟨endAddr, he⟩ := MemoryRegion.EndOutcome.exists r
+    exact ⟨endAddr, he, iff_of_true rfl (by rw [he.val_eq_of_valid hv]; exact hin)⟩
+
+/-- For well-formed memory, `find_region` succeeds exactly when some region's
+    mathematical half-open interval contains the address, and then returns that
+    region's mapping, the offset of the address within it, and its object
+    offset. -/
+theorem WellFormed.findRegion_eq_ok_iff [Platform64] {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {result} (hOut : self.FindRegionOutcome addr result)
+    (mapping : base.mmap.MemoryMapping) (offset : Usize) (objOffset : U64) :
+    result = .Ok (mapping, offset, objOffset) ↔ ∃ r ∈ self.regionList,
+      (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) ∧
+      mapping = r.mapping ∧ offset.val = addr.val - r.guest_base.val ∧
+      objOffset = r.obj_offset := by
+  classical
+  unfold FindRegionOutcome at hOut
+  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  | none =>
+    rw [hfind] at hOut
+    subst hOut
+    simp only [reduceCtorEq, false_iff, not_exists, not_and]
+    intro r hr hin
+    have := List.find?_eq_none.mp hfind r hr
+    simp only [decide_eq_true_eq] at this
+    exact absurd ((containsOutcome_true_iff (h.validBounds hr) addr).mpr hin) this
+  | some r =>
+    rw [hfind] at hOut
+    obtain ⟨o, ho, hres⟩ := hOut
+    subst hres
+    have hr := List.mem_of_find?_eq_some hfind
+    have hp := List.find?_some hfind
+    simp only [decide_eq_true_eq] at hp
+    have hin := (containsOutcome_true_iff (h.validBounds hr) addr).mp hp
+    unfold GuestAddress.OffsetFromOutcome at ho
+    simp only [core.result.Result.Ok.injEq, Prod.mk.injEq]
+    constructor
+    · rintro ⟨rfl, rfl, rfl⟩
+      exact ⟨r, hr, hin, rfl, by rw [Platform64.u64_cast_usize_val, ho], rfl⟩
+    · rintro ⟨r', hr', hin', rfl, hoff, rfl⟩
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hr
+      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hr'
+      obtain rfl := h.index_eq_of_mem hi hj hin hin'
+      exact ⟨rfl, UScalar.eq_of_val_eq (by rw [Platform64.u64_cast_usize_val, ho, hoff]), rfl⟩
+
+/-- `find_region` fails only with `InvalidGuestAddress` for the given address,
+    and for well-formed memory exactly when no region's mathematical half-open
+    interval contains it. -/
+theorem WellFormed.findRegion_eq_err_iff {self : GuestMemory} (h : self.WellFormed)
+    {addr : GuestAddress} {result} (hOut : self.FindRegionOutcome addr result)
+    (e : vm_memory.guest_memory.Error) :
+    result = .Err e ↔ e = .InvalidGuestAddress addr ∧ ∀ r ∈ self.regionList,
+      ¬ (r.guest_base.val ≤ addr.val ∧ addr.val < r.guest_base.val + r.mapping.length.val) := by
+  classical
+  unfold FindRegionOutcome at hOut
+  cases hfind : self.regionList.find? (fun r => decide (r.ContainsOutcome addr true)) with
+  | none =>
+    rw [hfind] at hOut
+    subst hOut
+    have hnone := List.find?_eq_none.mp hfind
+    simp only [core.result.Result.Err.injEq]
+    constructor
+    · rintro rfl
+      refine ⟨rfl, fun r hr hin => ?_⟩
+      have := hnone r hr
+      simp only [decide_eq_true_eq] at this
+      exact this ((containsOutcome_true_iff (h.validBounds hr) addr).mpr hin)
+    · rintro ⟨rfl, -⟩
+      rfl
+  | some r =>
+    rw [hfind] at hOut
+    obtain ⟨o, -, hres⟩ := hOut
+    subst hres
+    have hr := List.mem_of_find?_eq_some hfind
+    have hp := List.find?_some hfind
+    simp only [decide_eq_true_eq] at hp
+    have hin := (containsOutcome_true_iff (h.validBounds hr) addr).mp hp
+    simp only [reduceCtorEq, false_iff]
+    rintro ⟨-, hall⟩
+    exact hall r hr hin
 
 end vm_memory.guest_memory.GuestMemory

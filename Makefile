@@ -14,8 +14,8 @@ all: verify
 aeneas-bin:
 	nix build path:$(CURDIR)/aeneas#aeneas -o $(CURDIR)/aeneas-bin
 
-# SliceIter::find is an unused override with an unsupported higher-ranked
-# signature in the pinned translator. The mapped slice iterator uses next.
+# SliceIter::find is an unused override here; excluding it avoids modeling it.
+# The mapped slice iterator uses next.
 # Specialize functions instantiated with mutable references and extract Option's
 # residual conversion, including the return path of a mutable Option borrow.
 # The pinned Charon validates options before expanding the preset, so its
@@ -113,6 +113,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::GuestMemory::checked_offset' \
 		--start-from 'crate::guest_memory::GuestMemory::is_valid_range' \
 		--start-from 'crate::guest_memory::GuestMemory::memory_size' \
+		--start-from 'crate::guest_memory::GuestMemory::find_region' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \

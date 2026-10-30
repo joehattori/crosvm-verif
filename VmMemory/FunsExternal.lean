@@ -56,6 +56,22 @@ def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
   else ok (false, it)
 termination_by it.slice.val.length - it.i
 
+/-- `Iterator::find` for slice iterators: call the predicate on each remaining
+    element in order, and return the first accepted element together with the
+    iterator advanced past it. Predicate state is threaded between calls. -/
+@[rust_fun
+  "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::find"]
+def core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
+    {T P : Type _} (fnMutInst : core.ops.function.FnMut P T Bool)
+    (it : core.slice.iter.Iter T) (predicate : P) :
+    Result (Option T × core.slice.iter.Iter T) :=
+  if h : it.i < it.slice.val.length then do
+    let call ← fnMutInst.call_mut predicate it.slice.val[it.i]
+    if call.1 then ok (some it.slice.val[it.i], { it with i := it.i + 1 })
+    else find fnMutInst { it with i := it.i + 1 } call.2
+  else ok (none, it)
+termination_by it.slice.val.length - it.i
+
 /-- `Iterator::sum` delegates to the `Sum` implementation of the result type. -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::sum"]
 def core.iter.traits.iterator.Iterator.sum.default {Self S Clause0_Item : Type _}

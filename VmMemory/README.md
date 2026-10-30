@@ -6,11 +6,10 @@ contracts and preconditions. The root Makefile lists the extracted functions.
 [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
 
 Not verified:
-- `GuestMemory::find_region`, `offset_from_base`, and `end_addr`: the pinned
-  translator rejects `Iter::find` and method items passed as closures
-  (higher-ranked signatures), and closures that return borrows into regions.
-- `GuestMemory` constructors, guest-memory access, descriptor cloning,
-  formatting, and serialization.
+- `GuestMemory::end_addr`: the pinned translator rejects method items passed
+  as closures (higher-ranked signatures).
+- `GuestMemory::offset_from_base` and constructors, guest-memory access,
+  descriptor cloning, formatting, and serialization.
 
 See the root README for [build and extraction](../README.md#build-and-extraction)
 and the [trust boundary](../README.md#trust-boundary).

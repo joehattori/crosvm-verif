@@ -274,4 +274,15 @@ def guest_memory.GuestMemory.checked_offset.closure := guest_memory.GuestMemory
 def guest_memory.GuestMemory.is_valid_range.closure :=
   guest_address.GuestAddress × guest_address.GuestAddress
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure#1}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 915:17-921:13 -/
+@[reducible]
+def guest_memory.GuestMemory.find_region.closure_1 :=
+  guest_address.GuestAddress
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::find_region::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 913:18-913:54 -/
+@[reducible]
+def guest_memory.GuestMemory.find_region.closure := guest_address.GuestAddress
+
 end vm_memory
