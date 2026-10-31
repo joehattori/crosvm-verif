@@ -13,7 +13,7 @@ descriptions in their respective READMEs rather than duplicating them here.
 | [aeneas/](aeneas/) | Pinned toolchain submodule: our fork of Aeneas, which also pins and patches Charon. |
 | [Resources/](Resources/), [VmMemory/](VmMemory/) | One directory per extracted crate. `Types.lean` and `Funs.lean` are generated; `*External_Template.lean` are generated declarations for missing external models; `TypesExternal.lean` and `FunsExternal.lean` are the handwritten models. `<Item>/Spec.lean` modules (plus helpers such as `AddressAllocator/Collections.lean`) hold the specifications and proofs. Each `README.md` gives the verified scope and its exceptions. |
 | [Syscalls/](Syscalls/) | Trusted system call contracts and flag constants, e.g. `mmap(2)` and `munmap(2)` for the `MemoryMapping` proofs. |
-| [Utils/](Utils/) | Code shared by both crates: alignment arithmetic, models of Rust core items (`CoreExternal.lean`), and the `Platform64` assumption. |
+| [Utils/](Utils/) | Code shared by both crates: alignment arithmetic, models of Rust core items (`CoreExternal.lean`) and their specifications (`CoreSpec.lean`), and the `Platform64` assumption. |
 | [CrosvmVerif.lean](CrosvmVerif.lean), [lakefile.lean](lakefile.lean) | `CrosvmVerif.lean` is the default build target and imports every specification module. |
 | [Makefile](Makefile), [scripts/](scripts/) | Extraction (`make extract`, `make aeneas-bin`) and running Charon in crosvm's development container. |
 | [FIXED_BUGS.md](FIXED_BUGS.md) | Fixed crosvm bugs and their upstream CLs. |

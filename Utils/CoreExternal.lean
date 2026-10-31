@@ -44,3 +44,27 @@ def core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next
   | some x =>
     let (y, f) ← fInst.call_mut self.f x
     ok (some y, ⟨iter, f⟩)
+
+/-- The non-strict relation of a pure comparator, used by the stable-sort model. -/
+noncomputable def alloc.slice.sortLe {T F : Type _}
+    (cmp : core.ops.function.FnMut F (T × T) Ordering) (closure : F) (x y : T) : Bool := by
+  classical
+  exact decide (cmp.call_mut closure (x, y) ≠ ok (.gt, closure))
+
+/-- Stable sorting for pure, nonfailing total comparators. Stateful, failing, or
+    inconsistent comparators are unsupported and fail explicitly. Merge sort
+    preserves equal-key order, as Rust's `sort_by` requires; the Rust sorting
+    algorithm and allocation failures are abstracted away. -/
+@[rust_fun "alloc::slice::{[@T]}::sort_by"]
+noncomputable def alloc.slice.Slice.sort_by {T F : Type _}
+    (cmp : core.ops.function.FnMut F (T × T) Ordering) (self : Slice T) (closure : F) :
+    Result (Slice T) := by
+  classical
+  let le := alloc.slice.sortLe cmp closure
+  exact if
+    (∀ x y, ∃ order, cmp.call_mut closure (x, y) = ok (order, closure) ∧
+      cmp.call_mut closure (y, x) = ok (order.swap, closure)) ∧
+    (∀ x y z, le x y → le y z → le x z)
+  then ok (Slice.from (self.val.mergeSort le) (by simp))
+  else fail .panic
+

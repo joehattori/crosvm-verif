@@ -1,6 +1,7 @@
 module
 public import Utils.Alignment
 public import Utils.Platform
+public import Utils.CoreSpec
 public import Syscalls.Mmap
 public import Syscalls.Mmap.Tests
 public import Resources.Types

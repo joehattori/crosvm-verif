@@ -88,6 +88,16 @@ def core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
   | core.result.Result.Err e =>
     ok (core.ops.control_flow.ControlFlow.Break (core.result.Result.Err e))
 
+/-- Trait implementation: [alloc::alloc::{impl core::alloc::AllocatorClone for alloc::alloc::Global}]
+    Source: '/rustc/library/alloc/src/alloc.rs', lines 62:0-62:50
+    Name pattern: [core::alloc::AllocatorClone<alloc::alloc::Global>] -/
+@[reducible, rust_trait_impl
+  "core::alloc::AllocatorClone<alloc::alloc::Global>"]
+def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
+  core.alloc.AllocatorClone alloc.alloc.Global := {
+  cloneCloneInst := core.clone.CloneGlobal
+}
+
 /-- [base::descriptor::{impl base::descriptor::AsRawDescriptor for base::descriptor::SafeDescriptor}::as_raw_descriptor]:
     Source: 'base/src/descriptor.rs', lines 64:4-64:48
     Name pattern: [base::descriptor::{base::descriptor::AsRawDescriptor<base::descriptor::SafeDescriptor>}::as_raw_descriptor]
@@ -1300,6 +1310,8 @@ impl_def guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress :
     guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
   le := core.cmp.PartialOrd.le.trait_default
     guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
+  gt := core.cmp.PartialOrd.gt.trait_default
+    guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
   ge := core.cmp.PartialOrd.ge.trait_default
     guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress
 }
@@ -1527,6 +1539,169 @@ def guest_memory.MemoryRegion.contains_range
         guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress end_addr
         ga
     else ok false
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
+def
+  guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering.call_mut
+  (c : guest_memory.GuestMemory.from_regions.closure)
+  (tupled_args : (guest_memory.MemoryRegion × guest_memory.MemoryRegion)) :
+  Result (Ordering × guest_memory.GuestMemory.from_regions.closure)
+  := do
+  let (a, b) := tupled_args
+  let o ←
+    guest_address.GuestAddress.Insts.CoreCmpOrd.cmp a.guest_base b.guest_base
+  ok (o, c)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
+def
+  guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnOncePairShared0MemoryRegionShared1MemoryRegionOrdering.call_once
+  (c : guest_memory.GuestMemory.from_regions.closure)
+  (p : (guest_memory.MemoryRegion × guest_memory.MemoryRegion)) :
+  Result Ordering
+  := do
+  let (o, _) ←
+    guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering.call_mut
+      c p
+  ok o
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnOncePairShared0MemoryRegionShared1MemoryRegionOrdering
+  : core.ops.function.FnOnce guest_memory.GuestMemory.from_regions.closure
+  (guest_memory.MemoryRegion × guest_memory.MemoryRegion) Ordering := {
+  call_once :=
+    guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnOncePairShared0MemoryRegionShared1MemoryRegionOrdering.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering
+  : core.ops.function.FnMut guest_memory.GuestMemory.from_regions.closure
+  (guest_memory.MemoryRegion × guest_memory.MemoryRegion) Ordering := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnOncePairShared0MemoryRegionShared1MemoryRegionOrdering
+  call_mut :=
+    guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions]: loop body 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 426:12-444:5
+    Visibility: public -/
+@[rust_loop_body]
+def guest_memory.GuestMemory.from_regions_loop.body
+  (regions : alloc.vec.Vec guest_memory.MemoryRegion)
+  (iter : core.slice.iter.Iter guest_memory.MemoryRegion)
+  (prev_end : guest_address.GuestAddress) :
+  Result (ControlFlow ((core.slice.iter.Iter guest_memory.MemoryRegion) ×
+    guest_address.GuestAddress) (core.result.Result guest_memory.GuestMemory
+    guest_memory.Error))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none =>
+    let a ←
+      alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone regions
+    ok (done (core.result.Result.Ok
+      { regions := a, locked := false, use_punchhole_locked := false }))
+  | some region =>
+    let b ←
+      core.cmp.PartialOrd.gt.trait_default
+        guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress prev_end
+        region.guest_base
+    if b
+    then
+      ok (done (core.result.Result.Err guest_memory.Error.MemoryRegionOverlap))
+    else
+      let i ←
+        base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size region.mapping
+      let i1 ← lift (UScalar.cast .U64 i)
+      let o1 ← guest_address.GuestAddress.checked_add region.guest_base i1
+      let i2 := region.guest_base
+      let i3 ← lift (UScalar.cast .U128 i2)
+      let i4 ← lift (UScalar.cast .U128 i)
+      let i5 ← i3 + i4
+      let r ←
+        core.option.Option.ok_or o1 (guest_memory.Error.MemoryRegionTooLarge
+          i5)
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        ok (cont (iter1, val))
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        let r1 ←
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            guest_memory.GuestMemory (core.convert.FromSame guest_memory.Error)
+            residual
+        ok (done r1)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions]: loop 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 426:12-444:5
+    Visibility: public -/
+@[rust_loop]
+def guest_memory.GuestMemory.from_regions_loop
+  (iter : core.slice.iter.Iter guest_memory.MemoryRegion)
+  (regions : alloc.vec.Vec guest_memory.MemoryRegion)
+  (prev_end : guest_address.GuestAddress) :
+  Result (core.result.Result guest_memory.GuestMemory guest_memory.Error)
+  := do
+  loop
+    (fun (iter1, prev_end1) => guest_memory.GuestMemory.from_regions_loop.body
+      regions iter1 prev_end1)
+    (iter, prev_end)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 417:4-444:5
+    Visibility: public -/
+def guest_memory.GuestMemory.from_regions
+  (regions : alloc.vec.Vec guest_memory.MemoryRegion) :
+  Result (core.result.Result guest_memory.GuestMemory guest_memory.Error)
+  := do
+  let (s, deref_mut_back) ← lift (alloc.vec.Vec.deref_mut regions)
+  let s1 ←
+    alloc.slice.Slice.sort_by
+      guest_memory.GuestMemory.from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering
+      s ()
+  let regions1 := deref_mut_back s1
+  let i := alloc.vec.Vec.len regions1
+  if i > 1#usize
+  then
+    let mr ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+        guest_memory.MemoryRegion) regions1 0#usize
+    let i1 ←
+      base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size mr.mapping
+    let i2 ← lift (UScalar.cast .U64 i1)
+    let o ← guest_address.GuestAddress.checked_add mr.guest_base i2
+    let r ← core.option.Option.ok_or o guest_memory.Error.MemoryRegionOverlap
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let s2 ←
+        alloc.vec.Vec.index (core.slice.index.SliceIndexRangeFromUsizeSlice
+          guest_memory.MemoryRegion) regions1 { start := 1#usize }
+      let iter ←
+        SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter
+          s2
+      guest_memory.GuestMemory.from_regions_loop iter regions1 val
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        guest_memory.GuestMemory (core.convert.FromSame guest_memory.Error)
+        residual
+  else
+    let a ←
+      alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone regions1
+    ok (core.result.Result.Ok
+      { regions := a, locked := false, use_punchhole_locked := false })
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::locked]:
     Source: 'vm_memory/src/guest_memory.rs', lines 447:4-449:5

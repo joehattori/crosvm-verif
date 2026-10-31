@@ -41,6 +41,15 @@ def alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref {T : Type _} (_A : Type _)
     (self : alloc.sync.Arc T) : Result T :=
   ok self.val
 
+/-- `Arc<[T]>::from(Vec<T>)` moves the elements into a shared slice; the
+    allocator and allocation failure are abstracted away. -/
+@[reducible, rust_fun
+  "alloc::sync::{core::convert::From<alloc::sync::Arc<[@T]>, alloc::vec::Vec<@T>>}::from"]
+def alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from {T A : Type _}
+    (_allocatorCloneInst : core.alloc.AllocatorClone A) (v : alloc.vec.Vec T) :
+    Result (alloc.sync.Arc (Slice T)) :=
+  ok ⟨v.slice⟩
+
 /-- Short-circuiting `Iterator::any` for slice iterators: call the predicate on
     each remaining element in order, stop after the first accepted element, and
     return the advanced iterator. Predicate state is threaded between calls. -/

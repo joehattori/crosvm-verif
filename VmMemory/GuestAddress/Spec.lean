@@ -212,6 +212,17 @@ theorem ge_spec (self other : GuestAddress) :
   rw [horder.2.2, horder.2.1]
   omega
 
+@[step]
+theorem gt_spec (self other : GuestAddress) :
+    core.cmp.PartialOrd.gt.trait_default Insts.CoreCmpPartialOrdGuestAddress self other
+      ⦃ b => b = true ↔ other.val < self.val ⦄ := by
+  unfold core.cmp.PartialOrd.gt.trait_default core.cmp.PartialOrd.gt.default
+    core.cmp.PartialOrd.gt_body
+  step as ⟨o, h⟩
+  obtain ⟨order, ho, horder⟩ := h
+  simp [ho, CmpOutcome] at horder ⊢
+  exact horder.2.2
+
 /-- Exact bitwise behavior, including the identity branch for zero and one. -/
 @[step]
 theorem align_down_spec (self : GuestAddress) (alignment : U64) :

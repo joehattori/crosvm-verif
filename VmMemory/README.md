@@ -6,7 +6,7 @@ contracts and preconditions. The root Makefile lists the extracted functions.
 [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
 
 Not verified:
-- `GuestMemory` constructors, guest-memory access, descriptor cloning,
+- `GuestMemory::new` and `new_with_options`, guest-memory access, descriptor cloning,
   formatting, and serialization.
 
 See the root README for [build and extraction](../README.md#build-and-extraction)

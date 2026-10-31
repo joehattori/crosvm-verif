@@ -21,6 +21,15 @@ set_option maxRecDepth 2048
 
 namespace vm_memory
 
+/-- Trait declaration: [core::alloc::AllocatorClone]
+    Source: '/rustc/library/core/src/alloc/mod.rs', lines 541:0-541:50
+    Name pattern: [core::alloc::AllocatorClone]
+    Visibility: public -/
+@[rust_trait "core::alloc::AllocatorClone"
+  (parentClauses := ["cloneCloneInst"])]
+structure core.alloc.AllocatorClone (Self : Type _) where
+  cloneCloneInst : core.clone.Clone Self
+
 /-- [core::ffi::c_void]
     Source: '/rustc/library/core/src/ffi/mod.rs', lines 51:0-51:15
     Name pattern: [core::ffi::c_void]
@@ -247,6 +256,11 @@ structure guest_memory.GuestMemory where
   regions : alloc.sync.Arc (Slice guest_memory.MemoryRegion)
   locked : Bool
   use_punchhole_locked : Bool
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
+@[reducible]
+def guest_memory.GuestMemory.from_regions.closure := Unit
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::end_addr::{closure}]
     Source: 'vm_memory/src/guest_memory.rs', lines 473:24-473:47 -/

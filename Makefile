@@ -116,6 +116,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::GuestMemory::find_region' \
 		--start-from 'crate::guest_memory::GuestMemory::end_addr' \
 		--start-from 'crate::guest_memory::GuestMemory::offset_from_base' \
+		--start-from 'crate::guest_memory::GuestMemory::from_regions' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \

@@ -1,6 +1,7 @@
 module
 public import VmMemory.MemoryRegion.Spec
 import all Aeneas.Std.Scalar.Ops.Add
+import Utils.CoreSpec
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open vm_memory.guest_address
@@ -10,10 +11,14 @@ namespace vm_memory.guest_memory.GuestMemory
 /-- The regions in slice order. -/
 abbrev regionList (self : GuestMemory) : List MemoryRegion := self.regions.val.val
 
-/-- Well-formed guest memory: every region's exclusive end is representable, and
-    each region ends at or before every later region starts. -/
+/-- Every region's exclusive end is representable, and each region ends at or
+    before every later region starts. -/
+def RegionsWellFormed (regions : List MemoryRegion) : Prop :=
+  (∀ r ∈ regions, r.ValidBounds) ∧ regions.Pairwise MemoryRegion.EndsBefore
+
+/-- Well-formed guest memory: its regions are well-formed. -/
 def WellFormed (self : GuestMemory) : Prop :=
-  (∀ r ∈ self.regionList, r.ValidBounds) ∧ self.regionList.Pairwise MemoryRegion.EndsBefore
+  RegionsWellFormed self.regionList
 
 /-- Sum of the region lengths, as computed by `memory_size` without overflow. -/
 def totalLength (self : GuestMemory) : Nat :=
@@ -1136,5 +1141,358 @@ theorem WellFormed.endAddr_val {self : GuestMemory} (h : self.WellFormed) {resul
     have hr : r ∈ self.regionList := by simp [hl]
     rw [hl, List.getLast?_append_of_ne_nil _ (by simp)]
     simpa using hend.val_eq_of_valid (h.validBounds hr)
+
+/-! ### `from_regions` -/
+
+/-- The regions sorted stably by guest base, as `from_regions` sorts them. -/
+def sortedByBase (regions : List MemoryRegion) : List MemoryRegion :=
+  regions.mergeSort (fun a b => a.guest_base.val ≤ b.guest_base.val)
+
+open Classical in
+/-- The error for the first rejected region `r`, after the accepted regions
+    `pre`. The first region, and a region that starts before an earlier region
+    ends, give an overlap. Any other rejected region has an unrepresentable end,
+    which the error carries. -/
+def RejectionError (pre : List MemoryRegion) (r : MemoryRegion)
+    (e : vm_memory.guest_memory.Error) : Prop :=
+  if pre = [] ∨ ∃ x ∈ pre, ¬ x.EndsBefore r then e = .MemoryRegionOverlap
+  else ∃ size : U128, size.val = r.guest_base.val + r.mapping.length.val ∧
+    e = .MemoryRegionTooLarge size
+
+/-- A `GuestMemory` with exactly these regions, in this order, and no memory
+    policy. -/
+def Accepted (regions : List MemoryRegion)
+    (result : core.result.Result GuestMemory vm_memory.guest_memory.Error) : Prop :=
+  ∃ gm : GuestMemory, result = .Ok gm ∧ gm.regionList = regions ∧
+    gm.locked = false ∧ gm.use_punchhole_locked = false
+
+open Classical in
+/-- The regions are sorted by guest base. At most one region, and well-formed
+    regions, are accepted. Otherwise `r` is the first region that breaks
+    well-formedness, and the result is its rejection error. -/
+def FromRegionsOutcome (regions : alloc.vec.Vec MemoryRegion)
+    (result : core.result.Result GuestMemory vm_memory.guest_memory.Error) : Prop :=
+  let s := sortedByBase regions.val
+  if s.length ≤ 1 ∨ RegionsWellFormed s then Accepted s result
+  else ∃ pre r post, s = pre ++ r :: post ∧ RegionsWellFormed pre ∧
+    ¬ RegionsWellFormed (pre ++ [r]) ∧ ∃ e, RejectionError pre r e ∧ result = .Err e
+
+/-- The end computed by `guest_base.checked_add(mapping.size() as u64)`. -/
+private def checkedEnd (r : MemoryRegion) : Option GuestAddress :=
+  U64.checked_add r.guest_base (UScalar.cast .U64 r.mapping.length)
+
+private theorem checkedEnd_eq_none_iff (r : MemoryRegion) :
+    checkedEnd r = none ↔ ¬ r.ValidBounds := by
+  have h := U64.checked_add_bv_spec r.guest_base (UScalar.cast .U64 r.mapping.length)
+  unfold checkedEnd MemoryRegion.ValidBounds
+  rw [usize_cast_u64_val] at h
+  cases ho : U64.checked_add r.guest_base (UScalar.cast .U64 r.mapping.length) with
+  | none => simp only [ho] at h; simp; omega
+  | some e => simp only [ho] at h; simp; omega
+
+private theorem checkedEnd_eq_some {r : MemoryRegion} {e : GuestAddress}
+    (h : checkedEnd r = some e) : e.val = r.guest_base.val + r.mapping.length.val := by
+  have hs := U64.checked_add_bv_spec r.guest_base (UScalar.cast .U64 r.mapping.length)
+  unfold checkedEnd at h
+  rw [h, usize_cast_u64_val] at hs
+  exact hs.2.1
+
+private theorem validBounds_of_checkedEnd {r : MemoryRegion} {e : GuestAddress}
+    (h : checkedEnd r = some e) : r.ValidBounds := by
+  unfold MemoryRegion.ValidBounds
+  rw [← checkedEnd_eq_some h]
+  have := e.hBounds
+  scalar_tac
+
+private theorem endsBefore_trans {a b c : MemoryRegion} (hab : a.EndsBefore b)
+    (hbc : b.EndsBefore c) : a.EndsBefore c := by
+  unfold MemoryRegion.EndsBefore at *
+  omega
+
+/-- Every region of a well-formed list ending with `y` ends before any region
+    that `y` ends before. -/
+private theorem RegionsWellFormed.endsBefore_of_last {pre : List MemoryRegion}
+    {y r : MemoryRegion} (h : RegionsWellFormed (pre ++ [y])) (hy : y.EndsBefore r) :
+    ∀ x ∈ pre ++ [y], x.EndsBefore r := by
+  intro x hx
+  rcases List.mem_append.mp hx with hx | hx
+  · exact endsBefore_trans ((List.pairwise_append.mp h.2).2.2 x hx y (by simp)) hy
+  · simp only [List.mem_singleton] at hx
+    exact hx ▸ hy
+
+private theorem RegionsWellFormed.snoc {pre : List MemoryRegion} {r : MemoryRegion}
+    (h : RegionsWellFormed pre) (hall : ∀ x ∈ pre, x.EndsBefore r) (hv : r.ValidBounds) :
+    RegionsWellFormed (pre ++ [r]) := by
+  refine ⟨fun x hx => ?_, List.pairwise_append.mpr ⟨h.2, by simp, fun x hx y hy => ?_⟩⟩
+  · rcases List.mem_append.mp hx with hx | hx
+    · exact h.1 x hx
+    · simp only [List.mem_singleton] at hx
+      exact hx ▸ hv
+  · simp only [List.mem_singleton] at hy
+    exact hy ▸ hall x hx
+
+private theorem RegionsWellFormed.of_append {l₁ l₂ : List MemoryRegion}
+    (h : RegionsWellFormed (l₁ ++ l₂)) : RegionsWellFormed l₁ :=
+  ⟨fun x hx => h.1 x (List.mem_append_left _ hx), (List.pairwise_append.mp h.2).1⟩
+
+private theorem from_regions_compare (a b : MemoryRegion) :
+    from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering.call_mut
+      () (a, b) = ok (compare a.guest_base.val b.guest_base.val, ()) := by
+  simp only [from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering.call_mut,
+    guest_address.GuestAddress.Insts.CoreCmpOrd.cmp, core.cmp.impls.OrdU64.cmp, bind_ok,
+    uncurry]
+
+private theorem usize_cast_u128_val (x : Usize) : (UScalar.cast .U128 x).val = x.val := by
+  apply UScalar.cast_val_mod_pow_greater_numBits_eq
+  cases System.Platform.numBits_eq <;> simp_all [UScalarTy.numBits]
+
+private theorem u64_cast_u128_val (x : U64) : (UScalar.cast .U128 x).val = x.val := by
+  apply UScalar.cast_val_mod_pow_greater_numBits_eq
+  simp [UScalarTy.numBits]
+
+/-- What the loop over the sorted regions `s` establishes: either `s` is
+    well-formed and accepted, or a first region breaks well-formedness and the
+    result is its rejection error. -/
+private def ChecksResult (s : List MemoryRegion)
+    (result : core.result.Result GuestMemory vm_memory.guest_memory.Error) : Prop :=
+  (RegionsWellFormed s ∧ Accepted s result) ∨
+  ∃ pre r post, s = pre ++ r :: post ∧ RegionsWellFormed pre ∧
+    ¬ RegionsWellFormed (pre ++ [r]) ∧ ∃ e, RejectionError pre r e ∧ result = .Err e
+
+/-- The rejection of region `k + 1` after the well-formed regions `0..k`. -/
+private theorem ChecksResult.reject {s : List MemoryRegion} {k : Nat} (hk : k + 1 < s.length)
+    (hpre : RegionsWellFormed (s.take (k + 1)))
+    (hnot : ¬ RegionsWellFormed (s.take (k + 1) ++ [s[k + 1]]))
+    {e result} (he : RejectionError (s.take (k + 1)) s[k + 1] e) (hres : result = .Err e) :
+    ChecksResult s result := by
+  have hsplit : s = s.take (k + 1) ++ s[k + 1] :: s.drop (k + 2) := by
+    conv_lhs => rw [← List.take_append_drop (k + 1) s, List.drop_eq_getElem_cons hk]
+  exact Or.inr ⟨_, _, _, hsplit, hpre, hnot, e, he, hres⟩
+
+/-- The loop over the regions after the first, at the region after `k`: the
+    regions up to `k` are well-formed, and `prevEnd` is the end of region `k`. It
+    is stated for any loop body `F` that runs `from_regions_loop.body`. -/
+private theorem from_regions_loop_spec (s : List MemoryRegion)
+    (regions : alloc.vec.Vec MemoryRegion) (hregions : regions.val = s)
+    (s2 : Slice MemoryRegion) (hs2 : s2.val = s.drop 1)
+    (F : core.slice.iter.Iter MemoryRegion × GuestAddress →
+      Result (ControlFlow (core.slice.iter.Iter MemoryRegion × GuestAddress)
+        (core.result.Result GuestMemory vm_memory.guest_memory.Error)))
+    (hF : ∀ it prevEnd, F (it, prevEnd) = from_regions_loop.body regions it prevEnd) :
+    ∀ (k : Nat) (hk : k < s.length) (prevEnd : GuestAddress),
+      RegionsWellFormed (s.take (k + 1)) →
+      prevEnd.val = s[k].guest_base.val + s[k].mapping.length.val →
+      loop F (⟨s2, k⟩, prevEnd) ⦃ result => ChecksResult s result ⦄ := by
+  suffices ∀ n (k : Nat) (hk : k < s.length) (prevEnd : GuestAddress), s.length - k = n →
+      RegionsWellFormed (s.take (k + 1)) →
+      prevEnd.val = s[k].guest_base.val + s[k].mapping.length.val →
+      loop F (⟨s2, k⟩, prevEnd) ⦃ result => ChecksResult s result ⦄ from
+    fun k hk prevEnd => this _ k hk prevEnd rfl
+  intro n
+  induction n with
+  | zero =>
+    intro k hk _ hn
+    omega
+  | succ n ih =>
+    intro k hk prevEnd hn hpre hprev
+    have hs2len : s2.val.length = s.length - 1 := by rw [hs2, List.length_drop]
+    have hlastk : s.take (k + 1) = s.take k ++ [s[k]] := List.take_succ_eq_append_getElem hk
+    by_cases hnext : k + 1 < s.length
+    · have hlt : k < s2.val.length := by omega
+      have hget : s2.val[k] = s[k + 1] := by
+        simp only [hs2, List.getElem_drop, Nat.add_comm]
+      have htake : s.take (k + 1 + 1) = s.take (k + 1) ++ [s[k + 1]] :=
+        List.take_succ_eq_append_getElem hnext
+      rw [loop.eq_def, hF]
+      simp only [from_regions_loop.body, sliceIter_next_of_lt s2 k hlt, bind_ok, uncurry, hget]
+      step as ⟨b, hb⟩
+      by_cases hover : s[k + 1].guest_base.val < prevEnd.val
+      · have hbt : b = true := hb.mpr hover
+        simp only [hbt, ↓reduceIte, bind_ok, WP.spec_ok]
+        have hnot : ¬ s[k].EndsBefore s[k + 1] := by
+          unfold MemoryRegion.EndsBefore
+          omega
+        have hmem : s[k] ∈ s.take (k + 1) := by
+          rw [hlastk]
+          exact List.mem_append_right _ (List.mem_singleton_self _)
+        apply ChecksResult.reject hnext hpre ?_ ?_ rfl
+        ·
+          exact fun hwf => hnot ((List.pairwise_append.mp hwf.2).2.2 _ hmem _ (by simp))
+        · unfold RejectionError
+          rw [ite_eq_left (Or.inr ⟨s[k], hmem, hnot⟩)]
+      · have hbf : b = false := by
+          cases b
+          · rfl
+          · exact absurd (hb.mp rfl) hover
+        have hends : s[k].EndsBefore s[k + 1] := by
+          unfold MemoryRegion.EndsBefore
+          omega
+        have hall : ∀ x ∈ s.take (k + 1), x.EndsBefore s[k + 1] := by
+          rw [hlastk]
+          exact RegionsWellFormed.endsBefore_of_last (hlastk ▸ hpre) hends
+        simp only [hbf, Bool.false_eq_true, ↓reduceIte,
+          base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size, lift, bind_ok]
+        step as ⟨o1, ho1⟩
+        have hb128 : (UScalar.cast .U128 s[k + 1].guest_base).val +
+            (UScalar.cast .U128 s[k + 1].mapping.length).val ≤ U128.max := by
+          rw [u64_cast_u128_val, usize_cast_u128_val]
+          have h0 : s[k + 1].guest_base.val < 2 ^ 64 := by
+            have := s[k + 1].guest_base.hBounds
+            simpa [UScalarTy.numBits] using this
+          have h1 : s[k + 1].mapping.length.val < 2 ^ 64 := by
+            rw [← usize_cast_u64_val]
+            have := (UScalar.cast .U64 s[k + 1].mapping.length).hBounds
+            simpa [UScalarTy.numBits] using this
+          rw [U128.max_eq]
+          omega
+        step as ⟨size, hsize⟩
+        have hsizev : size.val = s[k + 1].guest_base.val + s[k + 1].mapping.length.val := by
+          rw [hsize, u64_cast_u128_val, usize_cast_u128_val]
+        cases hc : checkedEnd s[k + 1] with
+        | none =>
+          have hon : o1 = none := by rw [ho1]; exact hc
+          subst hon
+          simp only [core.option.Option.ok_or,
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok,
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+            core.convert.FromSame.from, bind_tc_ok, WP.spec_ok]
+          apply ChecksResult.reject hnext hpre ?_ ?_ rfl
+          ·
+            exact fun hwf => (checkedEnd_eq_none_iff _).mp hc (hwf.1 _ (List.mem_append_right _ (List.mem_singleton_self _)))
+          · unfold RejectionError
+            rw [ite_eq_right]
+            · exact ⟨size, hsizev, rfl⟩
+            · rintro (h | ⟨x, hx, hn⟩)
+              · rw [hlastk] at h
+                exact List.append_ne_nil_of_right_ne_nil _ (List.cons_ne_nil _ _) h
+              · exact hn (hall x hx)
+        | some regionEnd =>
+          have hos : o1 = some regionEnd := by rw [ho1]; exact hc
+          subst hos
+          simp only [core.option.Option.ok_or,
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
+          apply ih (k + 1) hnext regionEnd (by omega) ?_ (checkedEnd_eq_some hc)
+          rw [htake]
+          exact hpre.snoc hall (validBounds_of_checkedEnd hc)
+    · have hge : s2.val.length ≤ k := by omega
+      have hall : s.take (k + 1) = s := List.take_of_length_le (by omega)
+      rw [loop.eq_def, hF]
+      simp only [from_regions_loop.body, core.slice.iter.IteratorSliceIter.next, Slice.len_val,
+        Nat.not_lt.mpr hge, ↓reduceDIte, bind_ok, uncurry,
+        alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from, WP.spec_ok]
+      exact Or.inl ⟨hall ▸ hpre, _, rfl, hregions, rfl, rfl⟩
+
+/-- With at least two regions, `ChecksResult` establishes the outcome. -/
+private theorem ChecksResult.outcome {regions : alloc.vec.Vec MemoryRegion}
+    {s : List MemoryRegion} (hs : sortedByBase regions.val = s) (h2 : 1 < s.length) {result}
+    (h : ChecksResult s result) : FromRegionsOutcome regions result := by
+  subst hs
+  simp only [FromRegionsOutcome]
+  rcases h with ⟨hwf, hacc⟩ | ⟨pre, r, post, hsp, hpre, hnot, hrest⟩
+  · rw [ite_eq_left (Or.inr hwf)]
+    exact hacc
+  · rw [ite_eq_right]
+    · exact ⟨pre, r, post, hsp, hpre, hnot, hrest⟩
+    · rintro (hc | hwf)
+      · omega
+      · have happ : (pre ++ [r]) ++ post = sortedByBase regions.val := by rw [hsp]; simp
+        rw [← happ] at hwf
+        exact hnot hwf.of_append
+
+@[step]
+theorem from_regions_spec (regions : alloc.vec.Vec MemoryRegion) :
+    from_regions regions ⦃ result => FromRegionsOutcome regions result ⦄ := by
+  unfold from_regions
+  simp only [lift, alloc.vec.Vec.deref_mut, bind_ok, uncurry]
+  step with alloc.slice.Slice.sort_by_key_spec
+    from_regions.closure.Insts.CoreOpsFunctionFnMutPairShared0MemoryRegionShared1MemoryRegionOrdering
+    () (fun r => r.guest_base.val) from_regions_compare regions.slice as ⟨sorted, hsorted⟩
+  have hs : sortedByBase regions.val = sorted.val := hsorted.symm
+  have hlenv : (alloc.vec.Vec.len ({ slice := sorted } : alloc.vec.Vec MemoryRegion)).val =
+      sorted.val.length := alloc.vec.Vec.len_val _
+  by_cases hlen : 1 < sorted.val.length
+  · have hgt : alloc.vec.Vec.len ({ slice := sorted } : alloc.vec.Vec MemoryRegion) > 1#usize := by
+      scalar_tac
+    simp only [hgt, ↓reduceIte]
+    refine WP.spec_mono (P₀ := ChecksResult sorted.val) ?_ (fun _ h => h.outcome hs hlen)
+    step as ⟨mr, hmr⟩
+    have hmr' : mr = sorted.val[0] := by simpa [alloc.vec.Vec.val] using hmr
+    subst hmr'
+    simp only [base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size, bind_ok]
+    step as ⟨o, ho⟩
+    cases hc : checkedEnd sorted.val[0] with
+    | none =>
+      have hon : o = none := by rw [ho]; exact hc
+      subst hon
+      simp only [core.option.Option.ok_or,
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok,
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+        core.convert.FromSame.from, bind_tc_ok, WP.spec_ok]
+      refine Or.inr ⟨[], sorted.val[0], sorted.val.drop 1, ?_, ⟨by simp, by simp⟩, ?_,
+        .MemoryRegionOverlap, ?_, rfl⟩
+      · rw [List.nil_append]
+        exact List.drop_eq_getElem_cons (l := sorted.val) (i := 0) (by omega)
+      · exact fun hwf => (checkedEnd_eq_none_iff _).mp hc (hwf.1 _ (by simp))
+      · unfold RejectionError
+        rw [ite_eq_left (Or.inl rfl)]
+    | some firstEnd =>
+      have hos : o = some firstEnd := by rw [ho]; exact hc
+      subst hos
+      simp only [core.option.Option.ok_or,
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok]
+      step as ⟨s2, hs2, _⟩
+      step as ⟨it, hit1, hit2⟩
+      have hit : it = ⟨s2, 0⟩ := by
+        cases it
+        simp_all
+      subst hit
+      have hs2v : s2.val = sorted.val.drop 1 := by simpa [alloc.vec.Vec.val] using hs2
+      unfold from_regions_loop
+      refine from_regions_loop_spec sorted.val { slice := sorted } rfl s2 hs2v _ ?_ 0
+        (by omega) firstEnd ?_ (checkedEnd_eq_some hc)
+      · intro _ _
+        rfl
+      · rw [List.take_succ_eq_append_getElem (by omega), List.take_zero, List.nil_append]
+        exact ⟨by simpa using validBounds_of_checkedEnd hc, by simp⟩
+  · have hle : ¬ alloc.vec.Vec.len ({ slice := sorted } : alloc.vec.Vec MemoryRegion) > 1#usize := by
+      scalar_tac
+    simp only [hle, ↓reduceIte, WP.spec_ok, FromRegionsOutcome]
+    rw [ite_eq_left (Or.inl (show (sortedByBase regions.val).length ≤ 1 by rw [hs]; omega))]
+    exact ⟨_, rfl, hs.symm, rfl, rfl⟩
+
+private theorem eq_of_regionList {a b : GuestMemory} (h : a.regionList = b.regionList)
+    (hl : a.locked = b.locked) (hp : a.use_punchhole_locked = b.use_punchhole_locked) : a = b := by
+  obtain ⟨⟨sa⟩, _, _⟩ := a
+  obtain ⟨⟨sb⟩, _, _⟩ := b
+  have : sa = sb := Slice.ext sa sb h
+  simp_all
+
+/-- With at least two regions, `from_regions` returns `gm` exactly when `gm`
+    holds the regions sorted by guest base, has no memory policy, and is
+    well-formed. -/
+theorem FromRegionsOutcome.eq_ok_iff {regions : alloc.vec.Vec MemoryRegion} {result}
+    (hOut : FromRegionsOutcome regions result) (h2 : 1 < regions.val.length) (gm : GuestMemory) :
+    result = .Ok gm ↔ gm.regionList = sortedByBase regions.val ∧ gm.locked = false ∧
+      gm.use_punchhole_locked = false ∧ gm.WellFormed := by
+  have hlen : 1 < (sortedByBase regions.val).length := by simpa [sortedByBase] using h2
+  unfold FromRegionsOutcome at hOut
+  simp only at hOut
+  generalize sortedByBase regions.val = s at hOut hlen ⊢
+  split at hOut
+  · rename_i hc
+    have hwf : RegionsWellFormed s := hc.resolve_left (by omega)
+    obtain ⟨gm', rfl, hl, hlk, hp⟩ := hOut
+    simp only [core.result.Result.Ok.injEq]
+    constructor
+    · rintro rfl
+      exact ⟨hl, hlk, hp, by unfold WellFormed; rw [hl]; exact hwf⟩
+    · rintro ⟨hl', hlk', hp', -⟩
+      exact eq_of_regionList (hl.trans hl'.symm) (hlk.trans hlk'.symm) (hp.trans hp'.symm)
+  · rename_i hc
+    obtain ⟨_, _, _, _, _, _, e, _, rfl⟩ := hOut
+    simp only [reduceCtorEq, false_iff, not_and]
+    intro hl _ _ hwf
+    unfold WellFormed at hwf
+    exact hc (Or.inr (hl ▸ hwf))
 
 end vm_memory.guest_memory.GuestMemory

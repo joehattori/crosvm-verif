@@ -2,6 +2,7 @@ module
 public import Resources.AddressAllocator.Spec
 public import Resources.AddressAllocatorSet.Spec
 import all Resources.FunsExternal
+import Utils.CoreSpec
 import all Aeneas.Std.Slice
 import all Aeneas.Std.SliceIter
 import all Aeneas.Std.Alloc.Vec.IntoIter
@@ -1606,32 +1607,11 @@ private theorem reservation_compare (x y : AddressRange) :
   simp only [reserve_mmio.closure.Insts.CoreOpsFunctionFnMutPairShared0AddressRangeShared1AddressRangeOrdering.call_mut,
     core.cmp.impls.OrdU64.cmp, lift, bind_ok, uncurry]
 
-private theorem reservation_sort_le (x y : AddressRange) :
-    alloc.slice.sortLe reservationComparator () x y = decide (x.start.val ≤ y.start.val) := by
-  unfold alloc.slice.sortLe
-  rw [reservation_compare]
-  simp [Nat.compare_ne_gt]
-
 private theorem reservation_sort_spec (pools : Slice AddressRange) :
     alloc.slice.Slice.sort_by reservationComparator pools () ⦃ sorted =>
-      sorted.val = pools.val.mergeSort (fun a b => a.start.val ≤ b.start.val) ⦄ := by
-  have hpure : ∀ x y : AddressRange, ∃ order,
-      reservationComparator.call_mut () (x, y) = ok (order, ()) ∧
-      reservationComparator.call_mut () (y, x) = ok (order.swap, ()) := by
-    intro x y
-    exact ⟨compare x.start.val y.start.val, reservation_compare x y,
-      by rw [reservation_compare, Nat.compare_swap]⟩
-  have hle : alloc.slice.sortLe reservationComparator () =
-      (fun a b : AddressRange => decide (a.start.val ≤ b.start.val)) :=
-    funext fun x => funext fun y => reservation_sort_le x y
-  have htrans : ∀ x y z, alloc.slice.sortLe reservationComparator () x y →
-      alloc.slice.sortLe reservationComparator () y z →
-      alloc.slice.sortLe reservationComparator () x z := by
-    simp only [hle, decide_eq_true_eq]
-    exact fun _ _ _ => Nat.le_trans
-  unfold alloc.slice.Slice.sort_by
-  rw [ite_eq_left ⟨hpure, htrans⟩]
-  simp only [WP.spec_ok, Slice.from_val, hle]
+      sorted.val = pools.val.mergeSort (fun a b => a.start.val ≤ b.start.val) ⦄ :=
+  alloc.slice.Slice.sort_by_key_spec reservationComparator () (fun a => a.start.val)
+    reservation_compare pools
 
 private theorem copy_reservation_pools_spec (iter : alloc.vec.Vec AddressRange)
     (pools : alloc.vec.Vec AddressRange)

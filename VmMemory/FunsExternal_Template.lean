@@ -190,6 +190,17 @@ axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
   core.ops.function.FnMut F T Bool) :
   core.slice.iter.Iter T → F → Result (Bool × (core.slice.iter.Iter T))
 
+/-- [alloc::slice::{[T]}::sort_by]:
+    Source: '/rustc/library/alloc/src/slice.rs', lines 192:4-194:37
+    Name pattern: [alloc::slice::{[@T]}::sort_by]
+    Visibility: public -/
+@[rust_fun "alloc::slice::{[@T]}::sort_by"]
+axiom alloc.slice.Slice.sort_by
+  {T : Type _} {F : Type _}
+  (coreopsfunctionFnMutFPairShared0TSharedTOrderingInst :
+  core.ops.function.FnMut F (T × T) Ordering) :
+  Slice T → F → Result (Slice T)
+
 /-- [alloc::sync::{impl core::ops::deref::Deref<T> for alloc::sync::Arc<T>}::deref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 2570:4-2570:25
     Name pattern: [alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref]
@@ -198,6 +209,17 @@ axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
   "alloc::sync::{core::ops::deref::Deref<alloc::sync::Arc<@T>, @T>}::deref"]
 axiom alloc.sync.Arc.Insts.CoreOpsDerefDeref.deref
   {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
+
+/-- [alloc::sync::{impl core::convert::From<alloc::vec::Vec<T>> for alloc::sync::Arc<[T]>}::from]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 4212:4-4212:40
+    Name pattern: [alloc::sync::{core::convert::From<alloc::sync::Arc<[@T]>, alloc::vec::Vec<@T>>}::from]
+    Visibility: public -/
+@[rust_fun
+  "alloc::sync::{core::convert::From<alloc::sync::Arc<[@T]>, alloc::vec::Vec<@T>>}::from"]
+axiom alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.vec.Vec T → Result (alloc.sync.Arc (Slice T))
 
 /-- [alloc::sync::{impl core::convert::AsRef<T> for alloc::sync::Arc<T>}::as_ref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 4383:4-4383:26
