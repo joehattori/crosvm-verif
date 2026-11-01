@@ -68,9 +68,46 @@ noncomputable def alloc.slice.Slice.sort_by {T F : Type _}
   then ok (Slice.from (self.val.mergeSort le) (by simp))
   else fail .panic
 
+/-- Return `true` for `None`; apply the closure to a present value. -/
+@[rust_fun "core::option::{core::option::Option<@T>}::is_none_or"]
+def core.option.Option.is_none_or {T F : Type _} (fnInst : core.ops.function.FnOnce F T Bool)
+    (self : Option T) (f : F) : Result Bool :=
+  match self with
+  | none => ok true
+  | some x => fnInst.call_once f x
+
+/-- Clone a present value with the element's `Clone`. -/
+@[rust_fun "core::option::{core::clone::Clone<core::option::Option<@T>>}::clone"]
+def core.option.Option.Insts.CoreCloneClone.clone {T : Type _} (cloneInst : core.clone.Clone T)
+    (self : Option T) : Result (Option T) :=
+  match self with
+  | none => ok none
+  | some x => do
+    let y ← cloneInst.clone x
+    ok (some y)
+
+/-- The last element of a slice, if any. -/
+@[reducible, rust_fun "core::slice::{[@T]}::last"]
+def core.slice.Slice.last {T : Type _} (s : Slice T) : Result (Option T) :=
+  ok s.val.getLast?
+
 /-- The blanket `TryFrom<U> for T` where `U: Into<T>` never fails. -/
 @[rust_fun "core::convert::{core::convert::TryFrom<@T, @U, !>}::try_from"]
 def core.convert.TryFromTUNever.Blanket.try_from {T U : Type _} (intoInst : core.convert.Into U T)
     (u : U) : Result (core.result.Result T Never) := do
   let t ← intoInst.into u
   ok (.Ok t)
+
+/-- `usize::try_from(u64)` fails when the value doesn't fit in `usize`. -/
+@[reducible, rust_fun
+  "core::convert::num::ptr_try_from_impls::{core::convert::TryFrom<usize, u64, core::num::error::TryFromIntError>}::try_from"]
+def Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from (i : U64) :
+    Result (core.result.Result Usize core.num.error.TryFromIntError) :=
+  core.num.tryFromUScalar .Usize i
+
+/-- Formatting is not modeled: write nothing and succeed. -/
+@[reducible, rust_fun "core::num::error::{core::fmt::Debug<core::num::error::TryFromIntError>}::fmt"]
+def core.num.error.TryFromIntError.Insts.CoreFmtDebug.fmt (_ : core.num.error.TryFromIntError)
+    (fmt : core.fmt.Formatter) :
+    Result ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter) :=
+  ok (.Ok (), fmt)

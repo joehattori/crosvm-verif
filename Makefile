@@ -90,8 +90,8 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 
 # Unlike the resources slice, do not specialize mutable references: this slice
 # has no such calls, and that pass rejects wrap's trait objects.
-# The MFD_NOEXEC_SEAL_SUPPORTED lazy static, which probes the kernel, is modeled
-# in FunsExternal instead.
+# FileBackedMappingParameters::open and the MFD_NOEXEC_SEAL_SUPPORTED lazy
+# static, which probes the kernel, are modeled in FunsExternal instead.
 $(LLBC_DIR)/vm_memory.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -121,6 +121,8 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::GuestMemory::from_regions' \
 		--start-from 'crate::guest_memory::sys::linux::finalize_shm' \
 		--start-from 'crate::guest_memory::GuestMemory::create_shm' \
+		--start-from 'crate::guest_memory::GuestMemory::new_with_options' \
+		--opaque 'crate::guest_memory::sys::linux::_::open' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_shared_memory' \

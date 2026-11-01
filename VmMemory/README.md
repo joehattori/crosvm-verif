@@ -7,8 +7,9 @@ functions. `MemoryMapping` is verified against the `mmap(2)` and `munmap(2)`
 contracts in [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
 
 Not verified:
-- `GuestMemory::new` and `new_with_options`, guest-memory access, descriptor cloning,
-  formatting, and serialization.
+- `GuestMemory::new`, guest-memory access, descriptor cloning, formatting, and
+  serialization.
+- `FileBackedMappingParameters::open`, modeled by an opaque result.
 
 See the root README for [build and extraction](../README.md#build-and-extraction)
 and the [trust boundary](../README.md#trust-boundary).

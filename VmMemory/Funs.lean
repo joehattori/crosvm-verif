@@ -60,6 +60,16 @@ def U64.Insts.CoreIterTraitsAccumSumU64 : core.iter.traits.accum.Sum Std.U64
     U64.Insts.CoreIterTraitsAccumSumU64.sum iteratorIteratorPU64Inst
 }
 
+/-- Trait implementation: [core::num::error::{impl core::fmt::Debug for core::num::error::TryFromIntError}]
+    Source: '/rustc/library/core/src/num/error.rs', lines 8:9-8:14
+    Name pattern: [core::fmt::Debug<core::num::error::TryFromIntError>] -/
+@[reducible, rust_trait_impl
+  "core::fmt::Debug<core::num::error::TryFromIntError>"]
+def core.num.error.TryFromIntError.Insts.CoreFmtDebug : core.fmt.Debug
+  core.num.error.TryFromIntError := {
+  fmt := core.num.error.TryFromIntError.Insts.CoreFmtDebug.fmt
+}
+
 /-- [core::option::{core::option::Option<T>}::unwrap_or_else]:
     Source: '/rustc/library/core/src/option.rs', lines 1061:4-1063:52
     Name pattern: [core::option::{core::option::Option<@T>}::unwrap_or_else]
@@ -1633,6 +1643,60 @@ def guest_memory.sys.linux.finalize_shm
       r (guest_memory.Error.MemoryAddSealsFailed.constructor)
   ok (r1, shm1)
 
+/-- [vm_memory::guest_memory::Error::FiledBackedMemoryMappingFailed]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 53:4-53:55 -/
+def guest_memory.Error.FiledBackedMemoryMappingFailed.constructor
+  (e : base.mmap.Error) : Result guest_memory.Error := do
+  ok (guest_memory.Error.FiledBackedMemoryMappingFailed e)
+
+/-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::FiledBackedMemoryMappingFailed}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 53:4-53:55 -/
+def
+  guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (state : base.mmap.Error → Result guest_memory.Error)
+  (args : base.mmap.Error) :
+  Result guest_memory.Error
+  := do
+  guest_memory.Error.FiledBackedMemoryMappingFailed.constructor args
+
+/-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::FiledBackedMemoryMappingFailed}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 53:4-53:55 -/
+@[reducible]
+def
+  guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce (base.mmap.Error → Result guest_memory.Error)
+  base.mmap.Error guest_memory.Error := {
+  call_once :=
+    guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
+/-- [vm_memory::guest_memory::Error::FiledBackedOpenFailed]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 55:4-55:51 -/
+def guest_memory.Error.FiledBackedOpenFailed.constructor
+  (e : core.io.error.Error) : Result guest_memory.Error := do
+  ok (guest_memory.Error.FiledBackedOpenFailed e)
+
+/-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(core::io::error::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::FiledBackedOpenFailed}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 55:4-55:51 -/
+def
+  guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (state : core.io.error.Error → Result guest_memory.Error)
+  (args : core.io.error.Error) :
+  Result guest_memory.Error
+  := do
+  guest_memory.Error.FiledBackedOpenFailed.constructor args
+
+/-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(core::io::error::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::FiledBackedOpenFailed}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 55:4-55:51 -/
+@[reducible]
+def
+  guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce (core.io.error.Error → Result
+  guest_memory.Error) core.io.error.Error guest_memory.Error := {
+  call_once :=
+    guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
 /-- [vm_memory::guest_memory::Error::MemoryCreationFailed]:
     Source: 'vm_memory/src/guest_memory.rs', lines 69:4-69:44 -/
 def guest_memory.Error.MemoryCreationFailed.constructor
@@ -1704,12 +1768,72 @@ def guest_memory.BackingObject.Insts.CoreConvertAsRef.as_ref
       alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global f
     ok (Dyn.mk _ std.fs.File.Insts.BaseDescriptorAsRawDescriptor f1)
 
+/-- [vm_memory::guest_memory::{impl core::clone::Clone for vm_memory::guest_memory::MemoryRegionPurpose}::clone]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 129:9-129:14
+    Visibility: public -/
+def guest_memory.MemoryRegionPurpose.Insts.CoreCloneClone.clone
+  (self : guest_memory.MemoryRegionPurpose) :
+  Result guest_memory.MemoryRegionPurpose
+  := do
+  ok self
+
 /-- [vm_memory::guest_memory::{impl core::default::Default for vm_memory::guest_memory::MemoryRegionPurpose}::default]:
     Source: 'vm_memory/src/guest_memory.rs', lines 129:29-129:36
     Visibility: public -/
 def guest_memory.MemoryRegionPurpose.Insts.CoreDefaultDefault.default
   : Result guest_memory.MemoryRegionPurpose := do
   ok guest_memory.MemoryRegionPurpose.GuestMemoryRegion
+
+/-- [vm_memory::guest_memory::{impl core::clone::Clone for vm_memory::guest_memory::FileBackedMappingParameters}::clone]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 149:9-149:14
+    Visibility: public -/
+def guest_memory.FileBackedMappingParameters.Insts.CoreCloneClone.clone
+  (self : guest_memory.FileBackedMappingParameters) :
+  Result guest_memory.FileBackedMappingParameters
+  := do
+  let pb ← std.path.PathBuf.Insts.CoreCloneClone.clone self.path
+  let i ← lift (core.clone.impls.CloneU64.clone self.address)
+  let i1 ← lift (core.clone.impls.CloneU64.clone self.size)
+  let i2 ← lift (core.clone.impls.CloneU64.clone self.offset)
+  let b ← lift (core.clone.impls.CloneBool.clone self.writable)
+  let b1 ← lift (core.clone.impls.CloneBool.clone self.sync)
+  let b2 ← lift (core.clone.impls.CloneBool.clone self.align)
+  let b3 ← lift (core.clone.impls.CloneBool.clone self.ram)
+  ok
+    {
+      path := pb,
+      address := i,
+      size := i1,
+      offset := i2,
+      writable := b,
+      sync := b1,
+      align := b2,
+      ram := b3
+    }
+
+/-- Trait implementation: [vm_memory::guest_memory::{impl core::clone::Clone for vm_memory::guest_memory::FileBackedMappingParameters}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 149:9-149:14 -/
+@[reducible]
+def guest_memory.FileBackedMappingParameters.Insts.CoreCloneClone :
+  core.clone.Clone guest_memory.FileBackedMappingParameters := {
+  clone := guest_memory.FileBackedMappingParameters.Insts.CoreCloneClone.clone
+}
+
+/-- [vm_memory::guest_memory::{impl core::clone::Clone for vm_memory::guest_memory::MemoryRegionOptions}::clone]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 169:9-169:14
+    Visibility: public -/
+def guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone
+  (self : guest_memory.MemoryRegionOptions) :
+  Result guest_memory.MemoryRegionOptions
+  := do
+  let mrp ←
+    guest_memory.MemoryRegionPurpose.Insts.CoreCloneClone.clone self.purpose
+  let i ← lift (core.clone.impls.CloneU64.clone self.align)
+  let o ←
+    core.option.Option.Insts.CoreCloneClone.clone
+      guest_memory.FileBackedMappingParameters.Insts.CoreCloneClone
+      self.file_backed
+  ok { purpose := mrp, align := i, file_backed := o }
 
 /-- [vm_memory::guest_memory::{impl core::default::Default for vm_memory::guest_memory::MemoryRegionOptions}::default]:
     Source: 'vm_memory/src/guest_memory.rs', lines 169:23-169:30
@@ -1967,6 +2091,460 @@ def guest_memory.GuestMemory.create_shm
     SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter
       ranges
   guest_memory.GuestMemory.create_shm_loop iter 0#u64 pg_size
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{impl core::ops::function::FnOnce<(core::num::error::TryFromIntError,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure#1}<'_0>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 357:25-357:73 -/
+def
+  guest_memory.GuestMemory.new_with_options.closure_1.Insts.CoreOpsFunctionFnOnceTupleTryFromIntErrorError.call_once
+  (c : guest_memory.GuestMemory.new_with_options.closure_1)
+  (tupled_args : core.num.error.TryFromIntError) :
+  Result guest_memory.Error
+  := do
+  let (_, i, _) := c
+  let i1 ← lift (UScalar.cast .U128 i)
+  ok (guest_memory.Error.MemoryRegionTooLarge i1)
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{impl core::ops::function::FnOnce<(core::num::error::TryFromIntError,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure#1}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 357:25-357:73 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.new_with_options.closure_1.Insts.CoreOpsFunctionFnOnceTupleTryFromIntErrorError
+  : core.ops.function.FnOnce
+  guest_memory.GuestMemory.new_with_options.closure_1
+  core.num.error.TryFromIntError guest_memory.Error := {
+  call_once :=
+    guest_memory.GuestMemory.new_with_options.closure_1.Insts.CoreOpsFunctionFnOnceTupleTryFromIntErrorError.call_once
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{impl core::ops::function::FnOnce<(vm_memory::guest_address::GuestAddress,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure}<'_0>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 350:32-350:47 -/
+def
+  guest_memory.GuestMemory.new_with_options.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressBool.call_once
+  (c : guest_memory.GuestMemory.new_with_options.closure)
+  (tupled_args : guest_address.GuestAddress) :
+  Result Bool
+  := do
+  let (ga, _, _) := c
+  core.cmp.PartialOrd.gt.trait_default
+    guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress tupled_args
+    ga
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{impl core::ops::function::FnOnce<(vm_memory::guest_address::GuestAddress,), bool> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 350:32-350:47 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.new_with_options.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressBool
+  : core.ops.function.FnOnce guest_memory.GuestMemory.new_with_options.closure
+  guest_address.GuestAddress Bool := {
+  call_once :=
+    guest_memory.GuestMemory.new_with_options.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressBool.call_once
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options]: loop body 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 345:8-402:5
+    Visibility: public -/
+@[rust_loop_body]
+def guest_memory.GuestMemory.new_with_options_loop.body
+  (shm : alloc.sync.Arc base.shm.SharedMemory)
+  (iter : core.slice.iter.Iter (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions))
+  (regions : alloc.vec.Vec guest_memory.MemoryRegion) (shm_offset : Std.U64) :
+  Result (ControlFlow ((core.slice.iter.Iter (guest_address.GuestAddress ×
+    Std.U64 × guest_memory.MemoryRegionOptions)) × (alloc.vec.Vec
+    guest_memory.MemoryRegion) × Std.U64) (core.result.Result
+    guest_memory.GuestMemory guest_memory.Error))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none =>
+    let a ←
+      alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
+        alloc.alloc.Global.Insts.CoreAllocAllocatorClone regions
+    ok (done (core.result.Result.Ok
+      { regions := a, locked := false, use_punchhole_locked := false }))
+  | some range =>
+    let s := alloc.vec.Vec.deref regions
+    let o1 ← core.slice.Slice.last s
+    match o1 with
+    | none =>
+      let (ga, i, mro) := range
+      let r ← Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from i
+      let r1 ←
+        core.result.Result.map_err
+          guest_memory.GuestMemory.new_with_options.closure_1.Insts.CoreOpsFunctionFnOnceTupleTryFromIntErrorError
+          r range
+      let cf ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+      match cf with
+      | core.ops.control_flow.ControlFlow.Continue val =>
+        match mro.file_backed with
+        | none =>
+          let mmb ← base.mmap.MemoryMappingBuilder.new val
+          let sm ←
+            alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global shm
+          let mmb1 ← base.mmap.MemoryMappingBuilder.from_shared_memory mmb sm
+          let mmb2 ←
+            base.mmap.MemoryMappingBuilder.impl.offset mmb1 shm_offset
+          let mmb3 ← base.mmap.MemoryMappingBuilder.impl.align mmb2 mro.align
+          let r2 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb3
+          let r3 ←
+            core.result.Result.map_err
+              guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+              r2 (guest_memory.Error.MemoryMappingFailed.constructor)
+          let cf1 ←
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r3
+          match cf1 with
+          | core.ops.control_flow.ControlFlow.Continue val1 =>
+            let a ←
+              alloc.sync.Arc.Insts.CoreCloneClone.clone
+                alloc.alloc.Global.Insts.CoreAllocAllocatorClone shm
+            let mro1 ←
+              guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone mro
+            let regions1 ←
+              alloc.vec.Vec.push regions
+                ({
+                   mapping := val1,
+                   guest_base := ga,
+                   shared_obj := (guest_memory.BackingObject.Shm a),
+                   obj_offset := shm_offset,
+                   options := mro1
+                 } : guest_memory.MemoryRegion)
+            let i1 ← lift (UScalar.cast .U64 val)
+            let shm_offset1 ← shm_offset + i1
+            ok (cont (iter1, regions1, shm_offset1))
+          | core.ops.control_flow.ControlFlow.Break residual =>
+            let r4 ←
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                guest_memory.GuestMemory (core.convert.FromSame
+                guest_memory.Error) residual
+            ok (done r4)
+        | some file_backed =>
+          let r2 ←
+            Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from
+              file_backed.size
+          let left_val ←
+            core.result.Result.unwrap
+              core.num.error.TryFromIntError.Insts.CoreFmtDebug r2
+          massert (left_val = val)
+          let r3 ←
+            guest_memory.sys.linux.FileBackedMappingParameters.open file_backed
+          let r4 ←
+            core.result.Result.map_err
+              guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+              r3 (guest_memory.Error.FiledBackedOpenFailed.constructor)
+          let cf1 ←
+            core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r4
+          match cf1 with
+          | core.ops.control_flow.ControlFlow.Continue val1 =>
+            let mmb ← base.mmap.MemoryMappingBuilder.new val
+            let mmb1 ← base.mmap.MemoryMappingBuilder.from_file mmb val1
+            let mmb2 ←
+              base.mmap.MemoryMappingBuilder.impl.offset mmb1
+                file_backed.offset
+            let mmb3 ←
+              base.mmap.MemoryMappingBuilder.impl.align mmb2 mro.align
+            if file_backed.writable
+            then
+              let p ← base.mmap.Protection.read_write
+              let mmb4 ←
+                base.mmap.MemoryMappingBuilder.impl.protection mmb3 p
+              let r5 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb4
+              let r6 ←
+                core.result.Result.map_err
+                  guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                  r5
+                  (guest_memory.Error.FiledBackedMemoryMappingFailed.constructor)
+              let cf2 ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r6
+              match cf2 with
+              | core.ops.control_flow.ControlFlow.Continue val2 =>
+                let a ← alloc.sync.Arc.new val1
+                let mro1 ←
+                  guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone
+                    mro
+                let regions1 ←
+                  alloc.vec.Vec.push regions
+                    ({
+                       mapping := val2,
+                       guest_base := ga,
+                       shared_obj := (guest_memory.BackingObject.File a),
+                       obj_offset := file_backed.offset,
+                       options := mro1
+                     } : guest_memory.MemoryRegion)
+                ok (cont (iter1, regions1, shm_offset))
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                let r7 ←
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    guest_memory.GuestMemory (core.convert.FromSame
+                    guest_memory.Error) residual
+                ok (done r7)
+            else
+              let p ← base.mmap.Protection.impl.read
+              let mmb4 ←
+                base.mmap.MemoryMappingBuilder.impl.protection mmb3 p
+              let r5 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb4
+              let r6 ←
+                core.result.Result.map_err
+                  guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                  r5
+                  (guest_memory.Error.FiledBackedMemoryMappingFailed.constructor)
+              let cf2 ←
+                core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                  r6
+              match cf2 with
+              | core.ops.control_flow.ControlFlow.Continue val2 =>
+                let a ← alloc.sync.Arc.new val1
+                let mro1 ←
+                  guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone
+                    mro
+                let regions1 ←
+                  alloc.vec.Vec.push regions
+                    ({
+                       mapping := val2,
+                       guest_base := ga,
+                       shared_obj := (guest_memory.BackingObject.File a),
+                       obj_offset := file_backed.offset,
+                       options := mro1
+                     } : guest_memory.MemoryRegion)
+                ok (cont (iter1, regions1, shm_offset))
+              | core.ops.control_flow.ControlFlow.Break residual =>
+                let r7 ←
+                  core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                    guest_memory.GuestMemory (core.convert.FromSame
+                    guest_memory.Error) residual
+                ok (done r7)
+          | core.ops.control_flow.ControlFlow.Break residual =>
+            let r5 ←
+              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                guest_memory.GuestMemory (core.convert.FromSame
+                guest_memory.Error) residual
+            ok (done r5)
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        let r2 ←
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            guest_memory.GuestMemory (core.convert.FromSame guest_memory.Error)
+            residual
+        ok (done r2)
+    | some last =>
+      let i ←
+        base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size last.mapping
+      let i1 ← lift (UScalar.cast .U64 i)
+      let o2 ← guest_address.GuestAddress.checked_add last.guest_base i1
+      let b ←
+        core.option.Option.is_none_or
+          guest_memory.GuestMemory.new_with_options.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressBool
+          o2 range
+      if b
+      then
+        ok (done (core.result.Result.Err
+          guest_memory.Error.MemoryRegionOverlap))
+      else
+        let (ga, i2, mro) := range
+        let r ← Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from i2
+        let r1 ←
+          core.result.Result.map_err
+            guest_memory.GuestMemory.new_with_options.closure_1.Insts.CoreOpsFunctionFnOnceTupleTryFromIntErrorError
+            r range
+        let cf ←
+          core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue val =>
+          match mro.file_backed with
+          | none =>
+            let mmb ← base.mmap.MemoryMappingBuilder.new val
+            let sm ←
+              alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref alloc.alloc.Global
+                shm
+            let mmb1 ←
+              base.mmap.MemoryMappingBuilder.from_shared_memory mmb sm
+            let mmb2 ←
+              base.mmap.MemoryMappingBuilder.impl.offset mmb1 shm_offset
+            let mmb3 ←
+              base.mmap.MemoryMappingBuilder.impl.align mmb2 mro.align
+            let r2 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb3
+            let r3 ←
+              core.result.Result.map_err
+                guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                r2 (guest_memory.Error.MemoryMappingFailed.constructor)
+            let cf1 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r3
+            match cf1 with
+            | core.ops.control_flow.ControlFlow.Continue val1 =>
+              let a ←
+                alloc.sync.Arc.Insts.CoreCloneClone.clone
+                  alloc.alloc.Global.Insts.CoreAllocAllocatorClone shm
+              let mro1 ←
+                guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone mro
+              let regions1 ←
+                alloc.vec.Vec.push regions
+                  ({
+                     mapping := val1,
+                     guest_base := ga,
+                     shared_obj := (guest_memory.BackingObject.Shm a),
+                     obj_offset := shm_offset,
+                     options := mro1
+                   } : guest_memory.MemoryRegion)
+              let i3 ← lift (UScalar.cast .U64 val)
+              let shm_offset1 ← shm_offset + i3
+              ok (cont (iter1, regions1, shm_offset1))
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              let r4 ←
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  guest_memory.GuestMemory (core.convert.FromSame
+                  guest_memory.Error) residual
+              ok (done r4)
+          | some file_backed =>
+            let r2 ←
+              Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from
+                file_backed.size
+            let left_val ←
+              core.result.Result.unwrap
+                core.num.error.TryFromIntError.Insts.CoreFmtDebug r2
+            massert (left_val = val)
+            let r3 ←
+              guest_memory.sys.linux.FileBackedMappingParameters.open
+                file_backed
+            let r4 ←
+              core.result.Result.map_err
+                guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                r3 (guest_memory.Error.FiledBackedOpenFailed.constructor)
+            let cf1 ←
+              core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                r4
+            match cf1 with
+            | core.ops.control_flow.ControlFlow.Continue val1 =>
+              let mmb ← base.mmap.MemoryMappingBuilder.new val
+              let mmb1 ← base.mmap.MemoryMappingBuilder.from_file mmb val1
+              let mmb2 ←
+                base.mmap.MemoryMappingBuilder.impl.offset mmb1
+                  file_backed.offset
+              let mmb3 ←
+                base.mmap.MemoryMappingBuilder.impl.align mmb2 mro.align
+              if file_backed.writable
+              then
+                let p ← base.mmap.Protection.read_write
+                let mmb4 ←
+                  base.mmap.MemoryMappingBuilder.impl.protection mmb3 p
+                let r5 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb4
+                let r6 ←
+                  core.result.Result.map_err
+                    guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                    r5
+                    (guest_memory.Error.FiledBackedMemoryMappingFailed.constructor)
+                let cf2 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r6
+                match cf2 with
+                | core.ops.control_flow.ControlFlow.Continue val2 =>
+                  let a ← alloc.sync.Arc.new val1
+                  let mro1 ←
+                    guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone
+                      mro
+                  let regions1 ←
+                    alloc.vec.Vec.push regions
+                      ({
+                         mapping := val2,
+                         guest_base := ga,
+                         shared_obj := (guest_memory.BackingObject.File a),
+                         obj_offset := file_backed.offset,
+                         options := mro1
+                       } : guest_memory.MemoryRegion)
+                  ok (cont (iter1, regions1, shm_offset))
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  let r7 ←
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      guest_memory.GuestMemory (core.convert.FromSame
+                      guest_memory.Error) residual
+                  ok (done r7)
+              else
+                let p ← base.mmap.Protection.impl.read
+                let mmb4 ←
+                  base.mmap.MemoryMappingBuilder.impl.protection mmb3 p
+                let r5 ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb4
+                let r6 ←
+                  core.result.Result.map_err
+                    guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+                    r5
+                    (guest_memory.Error.FiledBackedMemoryMappingFailed.constructor)
+                let cf2 ←
+                  core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch
+                    r6
+                match cf2 with
+                | core.ops.control_flow.ControlFlow.Continue val2 =>
+                  let a ← alloc.sync.Arc.new val1
+                  let mro1 ←
+                    guest_memory.MemoryRegionOptions.Insts.CoreCloneClone.clone
+                      mro
+                  let regions1 ←
+                    alloc.vec.Vec.push regions
+                      ({
+                         mapping := val2,
+                         guest_base := ga,
+                         shared_obj := (guest_memory.BackingObject.File a),
+                         obj_offset := file_backed.offset,
+                         options := mro1
+                       } : guest_memory.MemoryRegion)
+                  ok (cont (iter1, regions1, shm_offset))
+                | core.ops.control_flow.ControlFlow.Break residual =>
+                  let r7 ←
+                    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                      guest_memory.GuestMemory (core.convert.FromSame
+                      guest_memory.Error) residual
+                  ok (done r7)
+            | core.ops.control_flow.ControlFlow.Break residual =>
+              let r5 ←
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+                  guest_memory.GuestMemory (core.convert.FromSame
+                  guest_memory.Error) residual
+              ok (done r5)
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          let r2 ←
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+              guest_memory.GuestMemory (core.convert.FromSame
+              guest_memory.Error) residual
+          ok (done r2)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options]: loop 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 345:8-402:5
+    Visibility: public -/
+@[rust_loop]
+def guest_memory.GuestMemory.new_with_options_loop
+  (iter : core.slice.iter.Iter (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions))
+  (shm : alloc.sync.Arc base.shm.SharedMemory)
+  (regions : alloc.vec.Vec guest_memory.MemoryRegion) (shm_offset : Std.U64) :
+  Result (core.result.Result guest_memory.GuestMemory guest_memory.Error)
+  := do
+  loop
+    (fun (iter1, regions1, shm_offset1) =>
+      guest_memory.GuestMemory.new_with_options_loop.body shm iter1 regions1
+      shm_offset1)
+    (iter, regions, shm_offset)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 335:4-402:5
+    Visibility: public -/
+def guest_memory.GuestMemory.new_with_options
+  (ranges : Slice (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions)) :
+  Result (core.result.Result guest_memory.GuestMemory guest_memory.Error)
+  := do
+  let r ← guest_memory.GuestMemory.create_shm ranges
+  let cf ← core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let shm ← alloc.sync.Arc.new val
+    let iter ←
+      SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter
+        ranges
+    guest_memory.GuestMemory.new_with_options_loop iter shm (alloc.vec.Vec.new
+      guest_memory.MemoryRegion) 0#u64
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+      guest_memory.GuestMemory (core.convert.FromSame guest_memory.Error)
+      residual
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/

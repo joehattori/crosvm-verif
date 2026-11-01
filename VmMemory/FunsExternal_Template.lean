@@ -30,6 +30,17 @@ axiom core.convert.TryFromTUNever.Blanket.try_from
   {T : Type _} {U : Type _} (IntoInst : core.convert.Into U T) :
   U → Result (core.result.Result T Never)
 
+/-- [core::convert::num::ptr_try_from_impls::{impl core::convert::TryFrom<u64, core::num::error::TryFromIntError> for usize}::try_from]:
+    Source: '/rustc/library/core/src/convert/num.rs', lines 341:12-341:68; this code is generated from a macro invocation at: '/rustc/library/core/src/convert/num.rs', lines 571:4-571:52
+    Name pattern: [core::convert::num::ptr_try_from_impls::{core::convert::TryFrom<usize, u64, core::num::error::TryFromIntError>}::try_from]
+    Visibility: public -/
+@[rust_fun
+  "core::convert::num::ptr_try_from_impls::{core::convert::TryFrom<usize, u64, core::num::error::TryFromIntError>}::try_from"]
+axiom Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from
+  :
+  Std.U64 → Result (core.result.Result Std.Usize
+    core.num.error.TryFromIntError)
+
 /-- [core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr]:
     Source: '/rustc/library/core/src/ffi/c_str.rs', lines 484:4-484:47
     Name pattern: [core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr]
@@ -122,6 +133,27 @@ axiom U64.Insts.CoreIterTraitsAccumSumU64.sum
   Std.U64) :
   I → Result Std.U64
 
+/-- [core::num::error::{impl core::fmt::Debug for core::num::error::TryFromIntError}::fmt]:
+    Source: '/rustc/library/core/src/num/error.rs', lines 8:9-8:14
+    Name pattern: [core::num::error::{core::fmt::Debug<core::num::error::TryFromIntError>}::fmt]
+    Visibility: public -/
+@[rust_fun
+  "core::num::error::{core::fmt::Debug<core::num::error::TryFromIntError>}::fmt"]
+axiom core.num.error.TryFromIntError.Insts.CoreFmtDebug.fmt
+  :
+  core.num.error.TryFromIntError → core.fmt.Formatter → Result
+    ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter)
+
+/-- [core::option::{core::option::Option<T>}::is_none_or]:
+    Source: '/rustc/library/core/src/option.rs', lines 708:4-708:95
+    Name pattern: [core::option::{core::option::Option<@T>}::is_none_or]
+    Visibility: public -/
+@[rust_fun "core::option::{core::option::Option<@T>}::is_none_or"]
+axiom core.option.Option.is_none_or
+  {T : Type _} {T1 : Type _} (opsfunctionFnOnceT1TupleTBoolInst :
+  core.ops.function.FnOnce T1 T Bool) :
+  Option T → T1 → Result Bool
+
 /-- [core::option::{core::option::Option<T>}::map_or]:
     Source: '/rustc/library/core/src/option.rs', lines 1224:4-1227:28
     Name pattern: [core::option::{core::option::Option<@T>}::map_or]
@@ -141,6 +173,16 @@ axiom core.option.Option.and_then
   {T : Type _} {U : Type _} {F : Type _} (opsfunctionFnOnceFTupleTOptionInst :
   core.ops.function.FnOnce F T (Option U)) :
   Option T → F → Result (Option U)
+
+/-- [core::option::{impl core::clone::Clone for core::option::Option<T>}::clone]:
+    Source: '/rustc/library/core/src/option.rs', lines 2278:4-2278:27
+    Name pattern: [core::option::{core::clone::Clone<core::option::Option<@T>>}::clone]
+    Visibility: public -/
+@[rust_fun
+  "core::option::{core::clone::Clone<core::option::Option<@T>>}::clone"]
+axiom core.option.Option.Insts.CoreCloneClone.clone
+  {T : Type _} (cloneCloneInst : core.clone.Clone T) :
+  Option T → Result (Option T)
 
 /-- [core::option::{impl core::default::Default for core::option::Option<T>}::default]:
     Source: '/rustc/library/core/src/option.rs', lines 2314:4-2314:29
@@ -207,6 +249,21 @@ axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
   core.ops.function.FnMut F T Bool) :
   core.slice.iter.Iter T → F → Result (Bool × (core.slice.iter.Iter T))
 
+/-- [core::slice::{[T]}::last]:
+    Source: '/rustc/library/core/src/slice/mod.rs', lines 283:4-283:42
+    Name pattern: [core::slice::{[@T]}::last]
+    Visibility: public -/
+@[rust_fun "core::slice::{[@T]}::last"]
+axiom core.slice.Slice.last {T : Type _} : Slice T → Result (Option T)
+
+/-- [std::path::{impl core::clone::Clone for std::path::PathBuf}::clone]:
+    Source: '/rustc/library/std/src/path.rs', lines 1903:4-1903:27
+    Name pattern: [std::path::{core::clone::Clone<std::path::PathBuf>}::clone]
+    Visibility: public -/
+@[rust_fun "std::path::{core::clone::Clone<std::path::PathBuf>}::clone"]
+axiom std.path.PathBuf.Insts.CoreCloneClone.clone
+  : std.path.PathBuf → Result std.path.PathBuf
+
 /-- [std::sync::lazy_lock::{impl core::ops::deref::Deref<T> for std::sync::lazy_lock::LazyLock<T, F>}::deref]:
     Source: '/rustc/library/std/src/sync/lazy_lock.rs', lines 356:4-356:25
     Name pattern: [std::sync::lazy_lock::{core::ops::deref::Deref<std::sync::lazy_lock::LazyLock<@T, @F>, @T>}::deref]
@@ -248,6 +305,23 @@ axiom alloc.slice.Slice.sort_by
   (coreopsfunctionFnMutFPairShared0TSharedTOrderingInst :
   core.ops.function.FnMut F (T × T) Ordering) :
   Slice T → F → Result (Slice T)
+
+/-- [alloc::sync::{alloc::sync::Arc<T>}::new]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 444:4-444:33
+    Name pattern: [alloc::sync::{alloc::sync::Arc<@T>}::new]
+    Visibility: public -/
+@[rust_fun "alloc::sync::{alloc::sync::Arc<@T>}::new"]
+axiom alloc.sync.Arc.new {T : Type _} : T → Result (alloc.sync.Arc T)
+
+/-- [alloc::sync::{impl core::clone::Clone for alloc::sync::Arc<T>}::clone]:
+    Source: '/rustc/library/alloc/src/sync.rs', lines 2521:4-2521:32
+    Name pattern: [alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone]
+    Visibility: public -/
+@[rust_fun "alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone"]
+axiom alloc.sync.Arc.Insts.CoreCloneClone.clone
+  {T : Type _} {A : Type _} (coreallocAllocatorCloneInst :
+  core.alloc.AllocatorClone A) :
+  alloc.sync.Arc T → Result (alloc.sync.Arc T)
 
 /-- [alloc::sync::{impl core::ops::deref::Deref<T> for alloc::sync::Arc<T>}::deref]:
     Source: '/rustc/library/alloc/src/sync.rs', lines 2570:4-2570:25
@@ -574,4 +648,12 @@ axiom libc_1.unix.linux_like.F_SEAL_SEAL : Result Std.I32
     Visibility: public -/
 @[rust_const "libc#1::unix::linux_like::F_ADD_SEALS"]
 axiom libc_1.unix.linux_like.F_ADD_SEALS : Result Std.I32
+
+/-- [vm_memory::guest_memory::sys::linux::{vm_memory::guest_memory::FileBackedMappingParameters}::open]:
+    Source: 'vm_memory/src/guest_memory/sys/linux.rs', lines 117:4-126:5
+    Visibility: public -/
+axiom guest_memory.sys.linux.FileBackedMappingParameters.open
+  :
+  guest_memory.FileBackedMappingParameters → Result (core.result.Result
+    std.fs.File core.io.error.Error)
 

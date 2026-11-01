@@ -283,4 +283,375 @@ theorem create_shm_spec (ranges : Slice Range) (pageSize : Usize)
   refine create_shm_loop_spec pageSize hPos ranges _ (fun _ _ => rfl) 0 0#u64 (by omega)
     (by simp [shmRanges]) (by simp [shmRanges, sizeSum]) (by simpa using hFit)
 
+/-! ### `new_with_options` -/
+
+@[step]
+theorem _root_.vm_memory.guest_memory.MemoryRegionOptions.clone_spec (self : MemoryRegionOptions) :
+    MemoryRegionOptions.Insts.CoreCloneClone.clone self ⦃ result => result = self ⦄ := by
+  obtain ⟨purpose, align, fb⟩ := self
+  cases fb <;>
+    simp [MemoryRegionOptions.Insts.CoreCloneClone.clone,
+      MemoryRegionPurpose.Insts.CoreCloneClone.clone,
+      _root_.core.option.Option.Insts.CoreCloneClone.clone,
+      FileBackedMappingParameters.Insts.CoreCloneClone.clone,
+      _root_.std.path.PathBuf.Insts.CoreCloneClone.clone, lift,
+      core.clone.impls.CloneU64.clone, core.clone.impls.CloneBool.clone]
+
+/-- Whether range `r` starts before the end of the last region of `regions`,
+    or the end of that region overflows. -/
+def OverlapsLast (regions : List MemoryRegion) (r : Range) : Prop :=
+  ∃ prev ∈ regions.getLast?,
+    match U64.checked_add prev.guest_base (UScalar.cast .U64 prev.mapping.length) with
+    | none => True
+    | some prevEnd => r.1.val < prevEnd.val
+
+/-- The protection of a file-backed mapping: read/write when the file is
+    writable, read-only otherwise. -/
+def fileProtection (fb : FileBackedMappingParameters) : base.mmap.Protection :=
+  if fb.writable then { read := true, write := true } else { read := true, write := false }
+
+/-- The region `new_with_options` maps for range `r`, with `shmOffset` bytes of
+    the shared memory used before it. A range without a backing file maps the
+    shared memory at `shmOffset`. A file-backed range opens its file and maps it
+    at the file offset. Mapping errors are wrapped in the matching variant. -/
+def RegionOutcome (pageSize : Usize) (shm : alloc.sync.Arc base.shm.SharedMemory)
+    (shmOffset : U64) (r : Range)
+    (result : core.result.Result MemoryRegion vm_memory.guest_memory.Error) : Prop :=
+  match r.2.2.file_backed with
+  | none =>
+    ∃ builder configured withOffset aligned built,
+      base.mmap.MemoryMappingBuilder.NewOutcome (UScalar.cast .Usize r.2.1) builder ∧
+      builder.FromSharedMemoryOutcome shm.val configured ∧
+      configured.OffsetOutcome shmOffset withOffset ∧
+      withOffset.AlignOutcome r.2.2.align aligned ∧
+      aligned.BuildOutcome pageSize built ∧
+      match built with
+      | .Ok mapping => result = .Ok {
+          mapping := mapping
+          guest_base := r.1
+          shared_obj := .Shm shm
+          obj_offset := shmOffset
+          options := r.2.2 }
+      | .Err e => result = .Err (.MemoryMappingFailed e)
+  | some fb =>
+    match _root_.guest_memory.sys.linux.FileBackedMappingParameters.open_result fb with
+    | .Err e => result = .Err (.FiledBackedOpenFailed e)
+    | .Ok file =>
+      ∃ builder configured withOffset aligned withProtection built,
+        base.mmap.MemoryMappingBuilder.NewOutcome (UScalar.cast .Usize r.2.1) builder ∧
+        builder.FromFileOutcome file configured ∧
+        configured.OffsetOutcome fb.offset withOffset ∧
+        withOffset.AlignOutcome r.2.2.align aligned ∧
+        aligned.ProtectionOutcome (fileProtection fb) withProtection ∧
+        withProtection.BuildOutcome pageSize built ∧
+        match built with
+        | .Ok mapping => result = .Ok {
+            mapping := mapping
+            guest_base := r.1
+            shared_obj := .File { val := file }
+            obj_offset := fb.offset
+            options := r.2.2 }
+        | .Err e => result = .Err (.FiledBackedMemoryMappingFailed e)
+
+open Classical in
+/-- The loop of `new_with_options` over the remaining ranges, after mapping
+    `regions` and using `shmOffset` bytes of the shared memory. A range that
+    overlaps the last region gives `MemoryRegionOverlap`. Otherwise its region
+    is appended, and a range without a backing file uses its size of the shared
+    memory. At the end, the regions are accepted in order. -/
+def MapRangesOutcome (pageSize : Usize) (shm : alloc.sync.Arc base.shm.SharedMemory) :
+    List Range → List MemoryRegion → U64 →
+    core.result.Result GuestMemory vm_memory.guest_memory.Error → Prop
+  | [], regions, _, result => Accepted regions result
+  | r :: rest, regions, shmOffset, result =>
+    if OverlapsLast regions r then result = .Err .MemoryRegionOverlap
+    else ∃ mapped, RegionOutcome pageSize shm shmOffset r mapped ∧
+      match mapped with
+      | .Err e => result = .Err e
+      | .Ok region => ∃ next : U64, next.val = shmOffset.val + sizeSum (shmRanges [r]) ∧
+          MapRangesOutcome pageSize shm rest (regions ++ [region]) next result
+
+/-- Outcome of `GuestMemory::new_with_options`: create the shared memory, then
+    map the ranges in order. -/
+def NewWithOptionsOutcome (pageSize : Usize) (ranges : List Range)
+    (result : core.result.Result GuestMemory vm_memory.guest_memory.Error) : Prop :=
+  ∃ created, CreateShmOutcome pageSize ranges created ∧
+    match created with
+    | .Err e => result = .Err e
+    | .Ok shm => MapRangesOutcome pageSize { val := shm } ranges [] 0#u64 result
+
+/-- Every file-backed range has the size of its file parameters. Otherwise
+    `new_with_options` panics in `assert_eq!` when it reaches that range. -/
+def FileBackedSizesMatch (ranges : List Range) : Prop :=
+  ∀ r ∈ ranges, ∀ fb, r.2.2.file_backed = some fb → fb.size = r.2.1
+
+
+private theorem shm_descriptor_valid (shm : base.shm.SharedMemory) :
+    _root_.base.sys.linux.mmap.MemoryMapping.ValidDescriptor
+      (Dyn.mk _ base.shm.SharedMemory.Insts.BaseDescriptorAsRawDescriptor shm) :=
+  ⟨_, rfl⟩
+
+private theorem file_descriptor_valid (file : _root_.std.fs.File) :
+    _root_.base.sys.linux.mmap.MemoryMapping.ValidDescriptor
+      (Dyn.mk _ vm_memory.std.fs.File.Insts.BaseDescriptorAsRawDescriptor file) :=
+  ⟨_, rfl⟩
+
+/-- The `new_with_options` loop at range `k`. It is stated for any loop body
+    `F` that runs `new_with_options_loop.body`. -/
+private theorem new_with_options_loop_spec [Platform64] (pageSize : Usize)
+    (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo) (hMmap : Syscalls.Mmap.MmapSpec pageSize)
+    (hMunmap : Syscalls.Mmap.MunmapSpec) (shm : alloc.sync.Arc base.shm.SharedMemory)
+    (s : Slice Range) (hFiles : FileBackedSizesMatch s.val)
+    (F : core.slice.iter.Iter Range × alloc.vec.Vec MemoryRegion × U64 →
+      Result (ControlFlow (core.slice.iter.Iter Range × alloc.vec.Vec MemoryRegion × U64)
+        (core.result.Result GuestMemory vm_memory.guest_memory.Error)))
+    (hF : ∀ it regions shmOffset,
+      F (it, regions, shmOffset) = new_with_options_loop.body shm it regions shmOffset) :
+    ∀ (k : Nat) (regions : alloc.vec.Vec MemoryRegion) (shmOffset : U64),
+      k ≤ s.val.length → regions.val.length ≤ k →
+      shmOffset.val + sizeSum (shmRanges (s.val.drop k)) ≤ U64.max →
+      loop F (⟨s, k⟩, regions, shmOffset) ⦃ result =>
+        MapRangesOutcome pageSize shm (s.val.drop k) regions.val shmOffset result ⦄ := by
+  suffices ∀ n (k : Nat) (regions : alloc.vec.Vec MemoryRegion) (shmOffset : U64),
+      s.val.length - k = n → k ≤ s.val.length → regions.val.length ≤ k →
+      shmOffset.val + sizeSum (shmRanges (s.val.drop k)) ≤ U64.max →
+      loop F (⟨s, k⟩, regions, shmOffset) ⦃ result =>
+        MapRangesOutcome pageSize shm (s.val.drop k) regions.val shmOffset result ⦄ from
+    fun k regions shmOffset => this _ k regions shmOffset rfl
+  intro n
+  induction n with
+  | zero =>
+    intro k regions shmOffset hn hk _ _
+    have hdrop : s.val.drop k = [] := List.drop_eq_nil_of_le (by omega)
+    rw [loop.eq_def, hF, hdrop]
+    simp only [new_with_options_loop.body, sliceIter_next_of_ge s k (by omega), bind_ok, uncurry,
+      alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from, WP.spec_ok, MapRangesOutcome]
+    exact ⟨_, rfl, rfl, rfl, rfl⟩
+  | succ n ih =>
+    intro k regions shmOffset hn hk hlen hfit
+    have hlt : k < s.val.length := by omega
+    have hdrop : s.val.drop k = s.val[k] :: s.val.drop (k + 1) := List.drop_eq_getElem_cons hlt
+    have hmem : s.val[k] ∈ s.val := List.getElem_mem hlt
+    have hslen : s.val.length ≤ Usize.max := s.property
+    rw [loop.eq_def, hF, hdrop]
+    rw [hdrop] at hfit
+    simp only [new_with_options_loop.body, sliceIter_next_of_lt s k hlt, bind_ok, uncurry,
+      alloc.vec.Vec.deref, _root_.core.slice.Slice.last, Slice.from_val, MapRangesOutcome]
+    generalize s.val[k] = r at hfit hmem ⊢
+    obtain ⟨ga, size, opts⟩ := r
+    have hsizeFit : size.val ≤ Usize.max := Platform64.val_le_usize_max size
+    have hsizeCast : (UScalar.cast .Usize size).val = size.val := Platform64.u64_cast_usize_val size
+    have htry : ∀ x : U64, Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from x =
+        ok (.Ok (UScalar.cast .Usize x)) := by
+      intro x
+      simp only [Usize.Insts.CoreConvertTryFromU64TryFromIntError.try_from,
+        core.num.tryFromUScalar]
+      split_ifs with h
+      · rfl
+      · rw [UScalar.max_USize_eq] at h
+        exact absurd (Platform64.val_le_usize_max x) h
+    rcases hl : regions.val.getLast? with _ | prev
+    on_goal 1 =>
+      have hno : ¬ OverlapsLast regions.val (ga, size, opts) := by simp [OverlapsLast, hl]
+      simp only [hno, ↓reduceIte]
+    on_goal 2 =>
+      simp only [base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size, lift, bind_ok]
+      step as ⟨o2, ho2⟩
+      subst ho2
+      rcases hc : U64.checked_add prev.guest_base (UScalar.cast .U64 prev.mapping.length)
+        with _ | prevEnd
+      · have hov : OverlapsLast regions.val (ga, size, opts) := ⟨prev, hl, by simp [hc]⟩
+        simp [_root_.core.option.Option.is_none_or, hov]
+      simp only [_root_.core.option.Option.is_none_or,
+        new_with_options.closure.Insts.CoreOpsFunctionFnOnceTupleGuestAddressBool.call_once]
+      step as ⟨b, hb⟩
+      by_cases hlt' : ga.val < prevEnd.val
+      · have hov : OverlapsLast regions.val (ga, size, opts) := ⟨prev, hl, by simp [hc, hlt']⟩
+        have hbt : b = true := hb.mpr hlt'
+        simp [hbt, hov]
+      have hno : ¬ OverlapsLast regions.val (ga, size, opts) := by
+        rintro ⟨p, hp, hpe⟩
+        have : p = prev := by simpa [hl] using hp.symm
+        subst this
+        simp [hc] at hpe
+        exact hlt' hpe
+      have hbf : b = false := by
+        cases b
+        · rfl
+        · exact absurd (hb.mp rfl) hlt'
+      simp only [hbf, Bool.false_eq_true, ↓reduceIte, hno]
+    all_goals
+      simp only [htry, core.result.Result.map_err_ok, bind_ok,
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch]
+      cases hfb : opts.file_backed with
+      | none =>
+        step as ⟨builder, hbuilder⟩
+        step as ⟨configured, hconfigured⟩
+        step as ⟨withOffset, hwithOffset⟩
+        step as ⟨aligned, haligned⟩
+        have hFd : ∀ d, aligned.descriptor = some d →
+            _root_.base.sys.linux.mmap.MemoryMapping.ValidDescriptor d := by
+          intro d hd
+          rw [haligned, hwithOffset, hconfigured] at hd
+          simp only [Option.some.injEq] at hd
+          subst hd
+          exact shm_descriptor_valid _
+        step with base.mmap.MemoryMappingBuilder.build_spec aligned pageSize hPage hPagePow hFd
+          hMmap hMunmap as ⟨built, hbuilt⟩
+        rcases built with mapping | e
+        · simp only [core.result.Result.map_err_ok, bind_ok]
+          step as ⟨options, hoptions⟩
+          subst options
+          have hpush : regions.val.length < Usize.max := by omega
+          step with alloc.vec.Vec.push_spec regions _ hpush as ⟨regions1, hregions1⟩
+          have hcast : (UScalar.cast .U64 (UScalar.cast .Usize size)).val = size.val := by
+            rw [usize_cast_u64_val, hsizeCast]
+          have hshm : sizeSum (shmRanges ((ga, size, opts) :: s.val.drop (k + 1))) =
+              size.val + sizeSum (shmRanges (s.val.drop (k + 1))) := by
+            simp [shmRanges, sizeSum, hfb]
+          have hadd : shmOffset.val + (UScalar.cast .U64 (UScalar.cast .Usize size)).val ≤
+              U64.max := by
+            rw [hcast]; omega
+          try simp only [lift, bind_ok]
+          step as ⟨next, hnext⟩
+          have hnextv : next.val = shmOffset.val + size.val := by rw [hnext, hcast]
+          refine WP.spec_mono (ih (k + 1) regions1 next (by omega) (by omega)
+            (by rw [hregions1]; simp; omega) (by rw [hnextv]; omega)) ?_
+          intro result hres
+          let region : MemoryRegion := {
+            mapping := mapping
+            guest_base := ga
+            shared_obj := .Shm shm
+            obj_offset := shmOffset
+            options := opts }
+          refine ⟨.Ok region, ?_, next, ?_, ?_⟩
+          · simp only [RegionOutcome, hfb]
+            exact ⟨builder, configured, withOffset, aligned, _, hbuilder, hconfigured,
+              hwithOffset, haligned, hbuilt, rfl⟩
+          · rw [hnextv]
+            simp [shmRanges, sizeSum, hfb]
+          · rw [hregions1] at hres
+            exact hres
+        · simp only [core.result.Result.map_err, bind_ok, bind_tc_ok,
+            guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
+            guest_memory.Error.MemoryMappingFailed.constructor,
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+            core.convert.FromSame.from, WP.spec_ok]
+          refine ⟨.Err _, ?_, rfl⟩
+          simp only [RegionOutcome, hfb]
+          exact ⟨builder, configured, withOffset, aligned, _, hbuilder, hconfigured,
+            hwithOffset, haligned, hbuilt, rfl⟩
+      | some fb =>
+        have hfbsize : fb.size = size := hFiles _ hmem fb hfb
+        simp only [core.result.Result.unwrap, hfbsize, massert, ↓reduceIte, bind_ok]
+        cases hopen : _root_.guest_memory.sys.linux.FileBackedMappingParameters.open_result fb with
+        | Err e =>
+          simp only [core.result.Result.map_err, bind_ok, bind_tc_ok,
+            guest_memory.Error.FiledBackedOpenFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
+            guest_memory.Error.FiledBackedOpenFailed.constructor,
+            core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+            core.convert.FromSame.from, WP.spec_ok]
+          refine ⟨.Err _, ?_, rfl⟩
+          simp only [RegionOutcome, hfb, hopen]
+        | Ok file =>
+          simp only [core.result.Result.map_err_ok, bind_ok]
+          step as ⟨builder, hbuilder⟩
+          step as ⟨configured, hconfigured⟩
+          step as ⟨withOffset, hwithOffset⟩
+          step as ⟨aligned, haligned⟩
+          cases hw : fb.writable
+          all_goals
+            simp only [Bool.false_eq_true, ↓reduceIte]
+            step as ⟨p, hp⟩
+            step as ⟨withProtection, hwithProtection⟩
+            have hprot : p = fileProtection fb := by rw [hp]; simp [fileProtection, hw]
+            rw [hprot] at hwithProtection
+            have hFd : ∀ d, withProtection.descriptor = some d →
+                _root_.base.sys.linux.mmap.MemoryMapping.ValidDescriptor d := by
+              intro d hd
+              rw [hwithProtection, haligned, hwithOffset, hconfigured] at hd
+              simp only [Option.some.injEq] at hd
+              subst hd
+              exact file_descriptor_valid _
+            step with base.mmap.MemoryMappingBuilder.build_spec withProtection pageSize hPage
+              hPagePow hFd hMmap hMunmap as ⟨built, hbuilt⟩
+            rcases built with mapping | e
+            · simp only [core.result.Result.map_err_ok, bind_ok]
+              step as ⟨options, hoptions⟩
+              subst options
+              have hpush : regions.val.length < Usize.max := by omega
+              step with alloc.vec.Vec.push_spec regions _ hpush as ⟨regions1, hregions1⟩
+              refine WP.spec_mono (ih (k + 1) regions1 shmOffset (by omega) (by omega)
+                (by rw [hregions1]; simp; omega)
+                (by simpa [shmRanges, sizeSum, hfb] using hfit)) ?_
+              intro result hres
+              let region : MemoryRegion := {
+                mapping := mapping
+                guest_base := ga
+                shared_obj := .File { val := file }
+                obj_offset := fb.offset
+                options := opts }
+              refine ⟨.Ok region, ?_, shmOffset, ?_, ?_⟩
+              · simp only [RegionOutcome, hfb, hopen]
+                exact ⟨builder, configured, withOffset, aligned, withProtection, _, hbuilder,
+                  hconfigured, hwithOffset, haligned, hwithProtection, hbuilt, rfl⟩
+              · simp [shmRanges, sizeSum, hfb]
+              · rw [hregions1] at hres
+                exact hres
+            · simp only [core.result.Result.map_err, bind_ok, bind_tc_ok,
+                guest_memory.Error.FiledBackedMemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
+                guest_memory.Error.FiledBackedMemoryMappingFailed.constructor,
+                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+                core.convert.FromSame.from, WP.spec_ok]
+              refine ⟨.Err _, ?_, rfl⟩
+              simp only [RegionOutcome, hfb, hopen]
+              exact ⟨builder, configured, withOffset, aligned, withProtection, _, hbuilder,
+                hconfigured, hwithOffset, haligned, hwithProtection, hbuilt, rfl⟩
+
+
+/-- Verify `GuestMemory::new_with_options`, assuming the `mmap(2)`/`munmap(2)`
+    contracts, that the checked sum of the shared-memory sizes doesn't
+    overflow, and that every file-backed range matches its file size. -/
+@[step]
+theorem new_with_options_spec (ranges : Slice Range) (pageSize : Usize) [Platform64]
+    (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo) (hMmap : Syscalls.Mmap.MmapSpec pageSize)
+    (hMunmap : Syscalls.Mmap.MunmapSpec)
+    (hFit : shmSizeBeforeUnaligned pageSize ranges.val ≤ U64.max)
+    (hFiles : FileBackedSizesMatch ranges.val) :
+    new_with_options ranges ⦃ result => NewWithOptionsOutcome pageSize ranges.val result ⦄ := by
+  have hPos : 0 < pageSize.val := Nat.pos_of_isPowerOfTwo hPagePow
+  unfold new_with_options
+  step with create_shm_spec ranges pageSize hPage hPos hFit as ⟨created, hcreated⟩
+  rcases created with shm | e
+  · simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok,
+      SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter]
+    have hsum : sizeSum (shmRanges ranges.val) ≤ U64.max := by
+      simp only [CreateShmOutcome] at hcreated
+      split at hcreated
+      · simp at hcreated
+      · rename_i hnone
+        have hall := List.find?_eq_none.mp hnone
+        have htw : (shmRanges ranges.val).takeWhile (fun r => decide (PageAligned pageSize r)) =
+            shmRanges ranges.val := by
+          have h := List.takeWhile_append_of_pos (l₂ := [])
+            (p := fun r => decide (PageAligned pageSize r)) (fun x hx => by simpa using hall x hx)
+          simpa using h
+        simpa [shmSizeBeforeUnaligned, htw] using hFit
+    refine WP.spec_mono (P₀ := MapRangesOutcome pageSize { val := shm } ranges.val [] 0#u64) ?_
+      (fun result h => ⟨_, hcreated, h⟩)
+    unfold new_with_options_loop
+    refine WP.spec_mono (new_with_options_loop_spec pageSize hPage hPagePow hMmap hMunmap
+      { val := shm } ranges hFiles _ ?_ 0 (alloc.vec.Vec.new MemoryRegion) 0#u64 (by omega)
+      (by simp) (by simpa using hsum)) ?_
+    · intro _ _ _
+      rfl
+    · intro result h
+      simpa using h
+  · simp only [core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch, bind_ok,
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
+      core.convert.FromSame.from, bind_tc_ok, WP.spec_ok]
+    exact ⟨_, hcreated, rfl⟩
+
 end vm_memory.guest_memory.GuestMemory

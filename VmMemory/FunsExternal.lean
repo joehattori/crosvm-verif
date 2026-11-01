@@ -352,6 +352,40 @@ def alloc.vec.VecU8.Insts.CoreConvertFromShared0Str.from (s : Str) :
     Result (alloc.vec.Vec Std.U8) :=
   ok { slice := s }
 
+/-- `Arc::new` stores the value (see `alloc.sync.Arc`). -/
+@[reducible, rust_fun "alloc::sync::{alloc::sync::Arc<@T>}::new"]
+def alloc.sync.Arc.new {T : Type _} (v : T) : Result (alloc.sync.Arc T) :=
+  ok { val := v }
+
+/-- Cloning an `Arc` shares the same value; the reference count is not modeled. -/
+@[reducible, rust_fun "alloc::sync::{core::clone::Clone<alloc::sync::Arc<@T>>}::clone"]
+def alloc.sync.Arc.Insts.CoreCloneClone.clone {T A : Type _}
+    (_allocatorCloneInst : core.alloc.AllocatorClone A) (self : alloc.sync.Arc T) :
+    Result (alloc.sync.Arc T) :=
+  ok self
+
+/-- Cloning a `PathBuf` keeps its identity. -/
+@[reducible, rust_fun "std::path::{core::clone::Clone<std::path::PathBuf>}::clone"]
+def std.path.PathBuf.Insts.CoreCloneClone.clone (self : std.path.PathBuf) :
+    Result std.path.PathBuf :=
+  ok self
+
+/-- Opaque result of opening a file-backed mapping's file
+    (`base::open_file_or_duplicate` with the parameters' flags, i.e. `open(2)`):
+    the opened file or an I/O error. -/
+opaque guest_memory.sys.linux.FileBackedMappingParameters.open_result
+    (params : vm_memory.guest_memory.FileBackedMappingParameters) :
+    core.result.Result std.fs.File core.io.error.Error :=
+  .Err { identity := 0 }
+
+/-- `FileBackedMappingParameters::open` is kept opaque. It is assumed to return
+    without panicking. -/
+@[reducible]
+def guest_memory.sys.linux.FileBackedMappingParameters.open
+    (params : vm_memory.guest_memory.FileBackedMappingParameters) :
+    Result (core.result.Result std.fs.File core.io.error.Error) :=
+  ok (guest_memory.sys.linux.FileBackedMappingParameters.open_result params)
+
 /-- Opaque external model of `libc::mmap64`. Specifications constrain the
     returned pointer on success and `MAP_FAILED` on failure. -/
 @[rust_fun "libc#1::unix::linux_like::mmap64"]

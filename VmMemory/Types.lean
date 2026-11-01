@@ -213,6 +213,19 @@ inductive guest_memory.Error where
   base.volatile_memory.VolatileMemoryError →
   guest_memory.Error
 
+/-- [vm_memory::guest_memory::FileBackedMappingParameters]
+    Source: 'vm_memory/src/guest_memory.rs', lines 151:0-167:1
+    Visibility: public -/
+structure guest_memory.FileBackedMappingParameters where
+  path : std.path.PathBuf
+  address : Std.U64
+  size : Std.U64
+  offset : Std.U64
+  writable : Bool
+  sync : Bool
+  align : Bool
+  ram : Bool
+
 /-- [vm_memory::guest_memory::BackingObject]
     Source: 'vm_memory/src/guest_memory.rs', lines 94:0-97:1
     Visibility: public -/
@@ -230,19 +243,6 @@ inductive guest_memory.MemoryRegionPurpose where
 | GuestMemoryRegion : guest_memory.MemoryRegionPurpose
 | ProtectedFirmwareRegion : guest_memory.MemoryRegionPurpose
 | ReservedMemory : guest_memory.MemoryRegionPurpose
-
-/-- [vm_memory::guest_memory::FileBackedMappingParameters]
-    Source: 'vm_memory/src/guest_memory.rs', lines 151:0-167:1
-    Visibility: public -/
-structure guest_memory.FileBackedMappingParameters where
-  path : std.path.PathBuf
-  address : Std.U64
-  size : Std.U64
-  offset : Std.U64
-  writable : Bool
-  sync : Bool
-  align : Bool
-  ram : Bool
 
 /-- [vm_memory::guest_memory::MemoryRegionOptions]
     Source: 'vm_memory/src/guest_memory.rs', lines 170:0-181:1
@@ -269,6 +269,18 @@ structure guest_memory.GuestMemory where
   regions : alloc.sync.Arc (Slice guest_memory.MemoryRegion)
   locked : Bool
   use_punchhole_locked : Bool
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure#1}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 357:25-357:73 -/
+@[reducible]
+def guest_memory.GuestMemory.new_with_options.closure_1 :=
+  (guest_address.GuestAddress × Std.U64 × guest_memory.MemoryRegionOptions)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new_with_options::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 350:32-350:47 -/
+@[reducible]
+def guest_memory.GuestMemory.new_with_options.closure :=
+  (guest_address.GuestAddress × Std.U64 × guest_memory.MemoryRegionOptions)
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}]
     Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
