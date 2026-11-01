@@ -68,3 +68,9 @@ noncomputable def alloc.slice.Slice.sort_by {T F : Type _}
   then ok (Slice.from (self.val.mergeSort le) (by simp))
   else fail .panic
 
+/-- The blanket `TryFrom<U> for T` where `U: Into<T>` never fails. -/
+@[rust_fun "core::convert::{core::convert::TryFrom<@T, @U, !>}::try_from"]
+def core.convert.TryFromTUNever.Blanket.try_from {T U : Type _} (intoInst : core.convert.Into U T)
+    (u : U) : Result (core.result.Result T Never) := do
+  let t ← intoInst.into u
+  ok (.Ok t)

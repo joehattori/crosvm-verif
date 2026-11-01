@@ -237,6 +237,103 @@ def base.mmap.Protection.Insts.CoreDefaultDefault.default :
     Result vm_memory.base.mmap.Protection :=
   ok { read := false, write := false }
 
+@[reducible, rust_const "libc#1::unix::linux_like::linux_l4re_shared::MFD_ALLOW_SEALING"]
+def libc_1.unix.linux_like.linux_l4re_shared.MFD_ALLOW_SEALING : Result Std.U32 :=
+  ok 0x0002#u32
+
+@[reducible, rust_const "libc#1::unix::linux_like::linux_l4re_shared::EINVAL"]
+def libc_1.unix.linux_like.linux_l4re_shared.EINVAL : Result Std.I32 := ok 22#i32
+
+/-- `MFD_CLOEXEC` from `<sys/memfd.h>`, defined in `base::sys::linux::shm`. -/
+@[reducible, rust_const "base::sys::linux::shm::MFD_CLOEXEC"]
+def base.sys.linux.shm.MFD_CLOEXEC : Result Std.U32 := ok 0x0001#u32
+
+/-- `MFD_NOEXEC_SEAL` from `<sys/memfd.h>`, defined in `base::sys::linux::shm`. -/
+@[reducible, rust_const "base::sys::linux::shm::MFD_NOEXEC_SEAL"]
+def base.sys.linux.shm.MFD_NOEXEC_SEAL : Result Std.U32 := ok 0x0008#u32
+
+/-- Whether the host kernel accepts `MFD_NOEXEC_SEAL`. crosvm probes this once
+    with a test `memfd_create`; the answer is opaque here. -/
+opaque base.sys.linux.shm.mfd_noexec_seal_supported : Bool
+
+/-- The `MFD_NOEXEC_SEAL_SUPPORTED` lazy static, modeled by its value. -/
+@[reducible, rust_const "base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED"]
+def base.sys.linux.shm.MFD_NOEXEC_SEAL_SUPPORTED :
+    Result (std.sync.lazy_lock.LazyLock Bool (Result Bool)) :=
+  ok { val := base.sys.linux.shm.mfd_noexec_seal_supported }
+
+/-- Dereferencing a `LazyLock` returns its value; the initializer is not run
+    again (see `std.sync.lazy_lock.LazyLock`). -/
+@[reducible, rust_fun
+  "std::sync::lazy_lock::{core::ops::deref::Deref<std::sync::lazy_lock::LazyLock<@T, @F>, @T>}::deref"]
+def std.sync.lazy_lock.LazyLock.Insts.CoreOpsDerefDeref.deref {T F : Type _}
+    (_fnOnceInst : core.ops.function.FnOnce F Unit T)
+    (self : std.sync.lazy_lock.LazyLock T F) : Result T :=
+  ok self.val
+
+/-- `CString::new` fails with `NulError` when the bytes contain a NUL. -/
+@[rust_fun "alloc::ffi::c_str::{alloc::ffi::c_str::CString}::new"]
+def alloc.ffi.c_str.CString.new {T : Type _}
+    (intoInst : core.convert.Into T (alloc.vec.Vec Std.U8)) (t : T) :
+    Result (core.result.Result alloc.ffi.c_str.CString alloc.ffi.c_str.NulError) := do
+  let v ← intoInst.into t
+  if 0#u8 ∈ v.val then ok (.Err { bytes := v.val }) else ok (.Ok { bytes := v.val })
+
+/-- Borrow a `CString` as a `CStr` with the same bytes. -/
+@[reducible, rust_fun
+  "alloc::ffi::c_str::{core::ops::deref::Deref<alloc::ffi::c_str::CString, core::ffi::c_str::CStr>}::deref"]
+def alloc.ffi.c_str.CString.Insts.CoreOpsDerefDerefCStr.deref
+    (self : alloc.ffi.c_str.CString) : Result core.ffi.c_str.CStr :=
+  ok { bytes := self.bytes }
+
+/-- Opaque address of the NUL-terminated bytes of a `CStr`. -/
+opaque core.ffi.c_str.CStr.address (self : core.ffi.c_str.CStr) : Usize
+
+@[reducible, rust_fun "core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr"]
+def core.ffi.c_str.CStr.as_ptr (self : core.ffi.c_str.CStr) : Result (ConstRawPtr Std.I8) :=
+  ok { addr := self.address }
+
+/-- Opaque return value of the `memfd_create(2)` system call: a new descriptor,
+    or a negative value on failure. -/
+opaque base.sys.linux.shm.memfd_create_ret (debugName : ConstRawPtr Std.I8) (flags : Std.U32) :
+    Std.I32 := (-1)#i32
+
+/-- crosvm's `memfd_create` wrapper around `syscall(SYS_memfd_create, ..)`. -/
+@[reducible, rust_fun "base::sys::linux::shm::memfd_create"]
+def base.sys.linux.shm.memfd_create (debugName : ConstRawPtr Std.I8) (flags : Std.U32) :
+    Result Std.I32 :=
+  ok (base.sys.linux.shm.memfd_create_ret debugName flags)
+
+/-- Opaque return code of the `ftruncate64(2)` system call. -/
+opaque libc_1.unix.linux_like.ftruncate64_status (fd : Std.I32) (length : Std.I64) :
+    Std.I32 := (-1)#i32
+
+@[reducible, rust_fun "libc#1::unix::linux_like::ftruncate64"]
+def libc_1.unix.linux_like.ftruncate64 (fd : Std.I32) (length : Std.I64) : Result Std.I32 :=
+  ok (libc_1.unix.linux_like.ftruncate64_status fd length)
+
+/-- Take ownership of a raw descriptor. Closing it on drop is not modeled. -/
+@[reducible, rust_fun
+  "base::descriptor::{base::descriptor::FromRawDescriptor<base::descriptor::SafeDescriptor>}::from_raw_descriptor"]
+def base.descriptor.SafeDescriptor.Insts.BaseDescriptorFromRawDescriptor.from_raw_descriptor
+    (fd : Std.I32) : Result vm_memory.base.descriptor.SafeDescriptor :=
+  ok { descriptor := fd }
+
+/-- `errno::Error::new` stores the error number, or 0 when it doesn't fit in
+    an `i32` (`e.try_into().unwrap_or_default()`). -/
+@[rust_fun "base::errno::{base::errno::Error}::new"]
+def base.errno.Error.new {T E : Type _} (tryIntoInst : core.convert.TryInto T Std.I32 E)
+    (e : T) : Result base.errno.Error := do
+  let r ← tryIntoInst.try_into e
+  match r with
+  | .Ok errno => ok { errno }
+  | .Err _ => ok { errno := 0#i32 }
+
+/-- `errno_result()` returns the last host error. -/
+@[reducible, rust_fun "base::errno::errno_result"]
+def base.errno.errno_result (T : Type _) : Result (core.result.Result T base.errno.Error) :=
+  ok (.Err base.errno.Error.last_errno)
+
 /-- Opaque external model of `libc::mmap64`. Specifications constrain the
     returned pointer on success and `MAP_FAILED` on failure. -/
 @[rust_fun "libc#1::unix::linux_like::mmap64"]

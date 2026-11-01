@@ -21,6 +21,23 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 2048
 open vm_memory
 
+/-- [core::convert::{impl core::convert::TryFrom<U, !> for T}::try_from]:
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 821:4-821:44
+    Name pattern: [core::convert::{core::convert::TryFrom<@T, @U, !>}::try_from]
+    Visibility: public -/
+@[rust_fun "core::convert::{core::convert::TryFrom<@T, @U, !>}::try_from"]
+axiom core.convert.TryFromTUNever.Blanket.try_from
+  {T : Type _} {U : Type _} (IntoInst : core.convert.Into U T) :
+  U → Result (core.result.Result T Never)
+
+/-- [core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr]:
+    Source: '/rustc/library/core/src/ffi/c_str.rs', lines 484:4-484:47
+    Name pattern: [core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr]
+    Visibility: public -/
+@[rust_fun "core::ffi::c_str::{core::ffi::c_str::CStr}::as_ptr"]
+axiom core.ffi.c_str.CStr.as_ptr
+  : core.ffi.c_str.CStr → Result (ConstRawPtr Std.I8)
+
 /-- [core::iter::traits::iterator::Iterator::sum]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 3689:4-3692:35
     Name pattern: [core::iter::traits::iterator::Iterator::sum]
@@ -190,6 +207,37 @@ axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.any
   core.ops.function.FnMut F T Bool) :
   core.slice.iter.Iter T → F → Result (Bool × (core.slice.iter.Iter T))
 
+/-- [std::sync::lazy_lock::{impl core::ops::deref::Deref<T> for std::sync::lazy_lock::LazyLock<T, F>}::deref]:
+    Source: '/rustc/library/std/src/sync/lazy_lock.rs', lines 356:4-356:25
+    Name pattern: [std::sync::lazy_lock::{core::ops::deref::Deref<std::sync::lazy_lock::LazyLock<@T, @F>, @T>}::deref]
+    Visibility: public -/
+@[rust_fun
+  "std::sync::lazy_lock::{core::ops::deref::Deref<std::sync::lazy_lock::LazyLock<@T, @F>, @T>}::deref"]
+axiom std.sync.lazy_lock.LazyLock.Insts.CoreOpsDerefDeref.deref
+  {T : Type _} {F : Type _} (coreopsfunctionFnOnceFTupleTInst :
+  core.ops.function.FnOnce F Unit T) :
+  std.sync.lazy_lock.LazyLock T F → Result T
+
+/-- [alloc::ffi::c_str::{alloc::ffi::c_str::CString}::new]:
+    Source: '/rustc/library/alloc/src/ffi/c_str.rs', lines 257:4-257:67
+    Name pattern: [alloc::ffi::c_str::{alloc::ffi::c_str::CString}::new]
+    Visibility: public -/
+@[rust_fun "alloc::ffi::c_str::{alloc::ffi::c_str::CString}::new"]
+axiom alloc.ffi.c_str.CString.new
+  {T : Type _} (coreconvertIntoTVecU8Inst : core.convert.Into T (alloc.vec.Vec
+  Std.U8)) :
+  T → Result (core.result.Result alloc.ffi.c_str.CString
+    alloc.ffi.c_str.NulError)
+
+/-- [alloc::ffi::c_str::{impl core::ops::deref::Deref<core::ffi::c_str::CStr> for alloc::ffi::c_str::CString}::deref]:
+    Source: '/rustc/library/alloc/src/ffi/c_str.rs', lines 725:4-725:28
+    Name pattern: [alloc::ffi::c_str::{core::ops::deref::Deref<alloc::ffi::c_str::CString, core::ffi::c_str::CStr>}::deref]
+    Visibility: public -/
+@[rust_fun
+  "alloc::ffi::c_str::{core::ops::deref::Deref<alloc::ffi::c_str::CString, core::ffi::c_str::CStr>}::deref"]
+axiom alloc.ffi.c_str.CString.Insts.CoreOpsDerefDerefCStr.deref
+  : alloc.ffi.c_str.CString → Result core.ffi.c_str.CStr
+
 /-- [alloc::slice::{[T]}::sort_by]:
     Source: '/rustc/library/alloc/src/slice.rs', lines 192:4-194:37
     Name pattern: [alloc::slice::{[@T]}::sort_by]
@@ -230,6 +278,16 @@ axiom alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
 axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
   {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
 
+/-- [base::descriptor::{impl base::descriptor::FromRawDescriptor for base::descriptor::SafeDescriptor}::from_raw_descriptor]:
+    Source: 'base/src/descriptor.rs', lines 96:4-96:68
+    Name pattern: [base::descriptor::{base::descriptor::FromRawDescriptor<base::descriptor::SafeDescriptor>}::from_raw_descriptor]
+    Visibility: public -/
+@[rust_fun
+  "base::descriptor::{base::descriptor::FromRawDescriptor<base::descriptor::SafeDescriptor>}::from_raw_descriptor"]
+axiom
+  base.descriptor.SafeDescriptor.Insts.BaseDescriptorFromRawDescriptor.from_raw_descriptor
+  : Std.I32 → Result base.descriptor.SafeDescriptor
+
 /-- [base::descriptor::{impl core::convert::TryFrom<&'_0 (dyn base::descriptor::AsRawDescriptor + '_0), core::io::error::Error> for base::descriptor::SafeDescriptor}::try_from]:
     Source: 'base/src/descriptor.rs', lines 114:4-114:83
     Name pattern: [base::descriptor::{core::convert::TryFrom<base::descriptor::SafeDescriptor, &'0 @, core::io::error::Error>}::try_from]
@@ -242,12 +300,31 @@ axiom
   Dyn.{0, _} (fun _dyn => base.descriptor.AsRawDescriptor _dyn) → Result
     (core.result.Result base.descriptor.SafeDescriptor core.io.error.Error)
 
+/-- [base::errno::{base::errno::Error}::new]:
+    Source: 'base/src/errno.rs', lines 28:4-28:46
+    Name pattern: [base::errno::{base::errno::Error}::new]
+    Visibility: public -/
+@[rust_fun "base::errno::{base::errno::Error}::new"]
+axiom base.errno.Error.new
+  {T : Type _} {Clause0_Error : Type _}
+  (coreconvertTryIntoTI32Clause0_ErrorInst : core.convert.TryInto T Std.I32
+  Clause0_Error) :
+  T → Result base.errno.Error
+
 /-- [base::errno::{base::errno::Error}::last]:
     Source: 'base/src/errno.rs', lines 38:4-38:26
     Name pattern: [base::errno::{base::errno::Error}::last]
     Visibility: public -/
 @[rust_fun "base::errno::{base::errno::Error}::last"]
 axiom base.errno.Error.last : Result base.errno.Error
+
+/-- [base::errno::errno_result]:
+    Source: 'base/src/errno.rs', lines 73:0-73:37
+    Name pattern: [base::errno::errno_result]
+    Visibility: public -/
+@[rust_fun "base::errno::errno_result"]
+axiom base.errno.errno_result
+  (T : Type _) : Result (core.result.Result T base.errno.Error)
 
 /-- [base::mmap::{impl core::default::Default for base::mmap::Protection}::default]:
     Source: 'base/src/mmap.rs', lines 111:22-111:29
@@ -275,6 +352,55 @@ axiom std.fs.File.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
   "base::mmap::{base::mmap::MappedRegion<base::mmap::MemoryMapping>}::size"]
 axiom base.mmap.MemoryMapping.Insts.BaseMmapMappedRegion.size
   : base.mmap.MemoryMapping → Result Std.Usize
+
+/-- [libc#1::unix::linux_like::ftruncate64]:
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 2107:12-2107:68
+    Name pattern: [libc#1::unix::linux_like::ftruncate64]
+    Visibility: public -/
+@[rust_fun "libc#1::unix::linux_like::ftruncate64"]
+axiom libc_1.unix.linux_like.ftruncate64
+  : Std.I32 → Std.I64 → Result Std.I32
+
+/-- [libc#1::unix::linux_like::linux_l4re_shared::MFD_ALLOW_SEALING]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux_l4re_shared.rs', lines 1190:8-1190:43
+    Name pattern: [libc#1::unix::linux_like::linux_l4re_shared::MFD_ALLOW_SEALING]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::linux_l4re_shared::MFD_ALLOW_SEALING"]
+axiom libc_1.unix.linux_like.linux_l4re_shared.MFD_ALLOW_SEALING
+  : Result Std.U32
+
+/-- [base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED]
+    Source: 'base/src/sys/linux/shm.rs', lines 129:0-129:48
+    Name pattern: [base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED] -/
+@[rust_const "base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED"]
+axiom base.sys.linux.shm.MFD_NOEXEC_SEAL_SUPPORTED
+  : Result (std.sync.lazy_lock.LazyLock Bool (Result Bool))
+
+/-- [base::sys::linux::shm::memfd_create]:
+    Source: 'base/src/sys/linux/shm.rs', lines 45:0-45:67
+    Name pattern: [base::sys::linux::shm::memfd_create] -/
+@[rust_fun "base::sys::linux::shm::memfd_create"]
+axiom base.sys.linux.shm.memfd_create
+  : ConstRawPtr Std.I8 → Std.U32 → Result Std.I32
+
+/-- [base::sys::linux::shm::MFD_NOEXEC_SEAL]
+    Source: 'base/src/sys/linux/shm.rs', lines 41:0-41:29
+    Name pattern: [base::sys::linux::shm::MFD_NOEXEC_SEAL] -/
+@[rust_const "base::sys::linux::shm::MFD_NOEXEC_SEAL"]
+axiom base.sys.linux.shm.MFD_NOEXEC_SEAL : Result Std.U32
+
+/-- [base::sys::linux::shm::MFD_CLOEXEC]
+    Source: 'base/src/sys/linux/shm.rs', lines 40:0-40:25
+    Name pattern: [base::sys::linux::shm::MFD_CLOEXEC] -/
+@[rust_const "base::sys::linux::shm::MFD_CLOEXEC"]
+axiom base.sys.linux.shm.MFD_CLOEXEC : Result Std.U32
+
+/-- [libc#1::unix::linux_like::linux_l4re_shared::EINVAL]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/linux_l4re_shared.rs', lines 1388:0-1388:23
+    Name pattern: [libc#1::unix::linux_like::linux_l4re_shared::EINVAL]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::linux_l4re_shared::EINVAL"]
+axiom libc_1.unix.linux_like.linux_l4re_shared.EINVAL : Result Std.I32
 
 /-- [libc#1::unix::linux_like::PROT_WRITE]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 490:0-490:27

@@ -37,3 +37,27 @@ structure std.path.PathBuf where
 @[rust_type "alloc::sync::Arc"]
 structure alloc.sync.Arc (T : Type _) where
   val : T
+
+/-- A borrowed C string, modeled by its bytes without the trailing NUL. Its
+    address is given by the opaque `core.ffi.c_str.CStr.address`. -/
+@[rust_type "core::ffi::c_str::CStr"]
+structure core.ffi.c_str.CStr where
+  bytes : List U8
+
+/-- An owned C string, modeled by its bytes without the trailing NUL.
+    Allocation is not modeled. -/
+@[rust_type "alloc::ffi::c_str::CString"]
+structure alloc.ffi.c_str.CString where
+  bytes : List U8
+
+/-- The error of `CString::new` for bytes that contain a NUL. Only the bytes are
+    kept; the position of the first NUL is not modeled. -/
+@[rust_type "alloc::ffi::c_str::NulError"]
+structure alloc.ffi.c_str.NulError where
+  bytes : List U8
+
+/-- `LazyLock<T, F>` modeled by its value after initialization. The initializer
+    `F`, the time it runs, and synchronization are not modeled. -/
+@[rust_type "std::sync::lazy_lock::LazyLock"]
+structure std.sync.lazy_lock.LazyLock (T : Type _) (F : Type _) where
+  val : T

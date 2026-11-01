@@ -27,6 +27,11 @@ function bodies are. `Arc<T>` is modeled by its contents, without reference
 counts, allocation identity, or drop timing. Resource lifetimes and leaks are
 outside the verified scope.
 
+System calls other than `mmap(2)` and `munmap(2)`, such as `fcntl(2)`,
+`memfd_create(2)`, and `ftruncate64(2)`, are modeled by opaque return values.
+They are assumed to return, and their results depend only on their arguments,
+not on earlier calls. `LazyLock` is modeled by its value.
+
 crosvm supports only 64-bit hosts, but the generated Lean leaves the width of
 `usize` unspecified. Specifications that depend on 64-bit `usize` take the
 explicit assumption `[Platform64]` ([Utils/Platform.lean](Utils/Platform.lean)).

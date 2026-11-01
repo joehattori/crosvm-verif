@@ -19,6 +19,13 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
+/-- [core::ffi::c_str::CStr]
+    Source: '/rustc/library/core/src/ffi/c_str.rs', lines 102:0-102:15
+    Name pattern: [core::ffi::c_str::CStr]
+    Visibility: public -/
+@[rust_type "core::ffi::c_str::CStr"]
+axiom core.ffi.c_str.CStr : Type
+
 /-- [core::io::error::Error]
     Source: '/rustc/library/core/src/io/error.rs', lines 87:0-87:16
     Name pattern: [core::io::error::Error]
@@ -39,6 +46,27 @@ axiom std.fs.File : Type
     Visibility: public -/
 @[rust_type "std::path::PathBuf"]
 axiom std.path.PathBuf : Type
+
+/-- [std::sync::lazy_lock::LazyLock]
+    Source: '/rustc/library/std/src/sync/lazy_lock.rs', lines 81:0-81:37
+    Name pattern: [std::sync::lazy_lock::LazyLock]
+    Visibility: public -/
+@[rust_type "std::sync::lazy_lock::LazyLock"]
+axiom std.sync.lazy_lock.LazyLock (T : Type _) (F : Type _) : Type
+
+/-- [alloc::ffi::c_str::CString]
+    Source: '/rustc/library/alloc/src/ffi/c_str.rs', lines 108:0-108:18
+    Name pattern: [alloc::ffi::c_str::CString]
+    Visibility: public -/
+@[rust_type "alloc::ffi::c_str::CString"]
+axiom alloc.ffi.c_str.CString : Type
+
+/-- [alloc::ffi::c_str::NulError]
+    Source: '/rustc/library/alloc/src/ffi/c_str.rs', lines 132:0-132:19
+    Name pattern: [alloc::ffi::c_str::NulError]
+    Visibility: public -/
+@[rust_type "alloc::ffi::c_str::NulError"]
+axiom alloc.ffi.c_str.NulError : Type
 
 /-- [alloc::sync::Arc]
     Source: '/rustc/library/alloc/src/sync.rs', lines 274:0-277:1

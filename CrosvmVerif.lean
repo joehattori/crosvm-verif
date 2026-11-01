@@ -4,6 +4,7 @@ public import Utils.Platform
 public import Utils.CoreSpec
 public import Syscalls.Mmap
 public import Syscalls.Mmap.Tests
+public import Syscalls.Memfd
 public import Resources.Types
 public import Resources.Funs
 public import Resources.AddressRange.Spec
@@ -15,3 +16,4 @@ public import VmMemory.MemoryRegion.Spec
 public import VmMemory.MemoryMapping.Spec
 public import VmMemory.MemoryMappingBuilder.Spec
 public import VmMemory.GuestMemory.Spec
+public import VmMemory.SharedMemory.Spec

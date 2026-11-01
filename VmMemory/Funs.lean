@@ -25,6 +25,15 @@ noncomputable section
 
 namespace vm_memory
 
+/-- Trait implementation: [core::convert::{impl core::convert::TryFrom<U, !> for T}]
+    Source: '/rustc/library/core/src/convert/mod.rs', lines 814:0-816:23
+    Name pattern: [core::convert::TryFrom<@T, @U, !>] -/
+@[reducible, rust_trait_impl "core::convert::TryFrom<@T, @U, !>"]
+def core.convert.TryFromTUNever.Blanket {T : Type _} {U : Type _} (IntoInst :
+  core.convert.Into U T) : core.convert.TryFrom T U Never := {
+  try_from := core.convert.TryFromTUNever.Blanket.try_from IntoInst
+}
+
 /-- Trait implementation: [core::iter::adapters::map::{impl core::iter::traits::iterator::Iterator<B> for core::iter::adapters::map::Map<I, F>}]
     Source: '/rustc/library/core/src/iter/adapters/map.rs', lines 99:0-101:27
     Name pattern: [core::iter::traits::iterator::Iterator<core::iter::adapters::map::Map<@I, @F>, @B>] -/
@@ -260,6 +269,137 @@ def base.mmap.MemoryMappingBuilder.impl.align
   Result base.mmap.MemoryMappingBuilder
   := do
   ok { self with align := (some alignment) }
+
+/-- [{impl core::ops::function::FnOnce<(), A> for fn() -> A}::call_once]:
+    Source: 'vm_memory/src/lib.rs', lines 1:0-1:0
+    Name pattern: [{core::ops::function::FnOnce<fn () -> @A, (), @A>}::call_once] -/
+@[rust_fun "{core::ops::function::FnOnce<fn () -> @A, (), @A>}::call_once"]
+def ArrowA.Insts.CoreOpsFunctionFnOnceTupleA.call_once
+  {A : Type _} (fn_ptr : Result A) (_ : Unit) : Result A := do
+  fn_ptr
+
+/-- Trait implementation: [{impl core::ops::function::FnOnce<(), A> for fn() -> A}]
+    Source: 'vm_memory/src/lib.rs', lines 1:0-1:0
+    Name pattern: [core::ops::function::FnOnce<fn () -> @A, (), @A>] -/
+@[reducible, rust_trait_impl
+  "core::ops::function::FnOnce<fn () -> @A, (), @A>"]
+def ArrowA.Insts.CoreOpsFunctionFnOnceTupleA (A : Type _) :
+  core.ops.function.FnOnce (Result A) Unit A := {
+  call_once := ArrowA.Insts.CoreOpsFunctionFnOnceTupleA.call_once
+}
+
+/-- [base::sys::linux::shm::{impl base::shm::PlatformSharedMemory for base::shm::SharedMemory}::new]:
+    Source: 'base/src/sys/linux/shm.rs', lines 163:4-163:64
+    Name pattern: [base::sys::linux::shm::{base::shm::PlatformSharedMemory<base::shm::SharedMemory>}::new] -/
+@[rust_fun
+  "base::sys::linux::shm::{base::shm::PlatformSharedMemory<base::shm::SharedMemory>}::new"]
+def base.shm.SharedMemory.Insts.BaseShmPlatformSharedMemory.new
+  (debug_name : core.ffi.c_str.CStr) (size : Std.U64) :
+  Result (core.result.Result base.shm.SharedMemory base.errno.Error)
+  := do
+  let i ← base.sys.linux.shm.MFD_CLOEXEC
+  let i1 ← libc_1.unix.linux_like.linux_l4re_shared.MFD_ALLOW_SEALING
+  let flags ← lift (i ||| i1)
+  let ll ← base.sys.linux.shm.MFD_NOEXEC_SEAL_SUPPORTED
+  let b ←
+    std.sync.lazy_lock.LazyLock.Insts.CoreOpsDerefDeref.deref
+      (ArrowA.Insts.CoreOpsFunctionFnOnceTupleA Bool) ll
+  if b
+  then
+    let i2 ← base.sys.linux.shm.MFD_NOEXEC_SEAL
+    let flags1 ← lift (flags ||| i2)
+    let p ← core.ffi.c_str.CStr.as_ptr debug_name
+    let shm_name ← lift (RawPtr.cast Std.I8 .Const p)
+    let fd ← base.sys.linux.shm.memfd_create shm_name flags1
+    if fd < 0#i32
+    then base.errno.errno_result base.shm.SharedMemory
+    else
+      let descriptor ←
+        base.descriptor.SafeDescriptor.Insts.BaseDescriptorFromRawDescriptor.from_raw_descriptor
+          fd
+      let i3 ←
+        base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+          descriptor
+      let i4 ← lift (UScalar.hcast .I64 size)
+      let ret ← libc_1.unix.linux_like.ftruncate64 i3 i4
+      if ret < 0#i32
+      then base.errno.errno_result base.shm.SharedMemory
+      else ok (core.result.Result.Ok { descriptor, size })
+  else
+    let p ← core.ffi.c_str.CStr.as_ptr debug_name
+    let shm_name ← lift (RawPtr.cast Std.I8 .Const p)
+    let fd ← base.sys.linux.shm.memfd_create shm_name flags
+    if fd < 0#i32
+    then base.errno.errno_result base.shm.SharedMemory
+    else
+      let descriptor ←
+        base.descriptor.SafeDescriptor.Insts.BaseDescriptorFromRawDescriptor.from_raw_descriptor
+          fd
+      let i2 ←
+        base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+          descriptor
+      let i3 ← lift (UScalar.hcast .I64 size)
+      let ret ← libc_1.unix.linux_like.ftruncate64 i2 i3
+      if ret < 0#i32
+      then base.errno.errno_result base.shm.SharedMemory
+      else ok (core.result.Result.Ok { descriptor, size })
+
+/-- [base::shm::{base::shm::SharedMemory}::new::{impl core::ops::function::FnOnce<(alloc::ffi::c_str::NulError,), base::errno::Error> for base::shm::{base::shm::SharedMemory}::new::{closure}<T>}::call_once]:
+    Source: 'base/src/shm.rs', lines 37:58-37:61
+    Name pattern: [base::shm::{base::shm::SharedMemory}::new::{core::ops::function::FnOnce<base::shm::{base::shm::SharedMemory}::new::closure<@T>, (alloc::ffi::c_str::NulError), base::errno::Error>}::call_once] -/
+@[rust_fun
+  "base::shm::{base::shm::SharedMemory}::new::{core::ops::function::FnOnce<base::shm::{base::shm::SharedMemory}::new::closure<@T>, (alloc::ffi::c_str::NulError), base::errno::Error>}::call_once"]
+def
+  base.shm.SharedMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleNulErrorError.call_once
+  {T : Type _} (coreconvertIntoTVecU8Inst : core.convert.Into T (alloc.vec.Vec
+  Std.U8)) (c : base.shm.SharedMemory.new.closure T)
+  (tupled_args : alloc.ffi.c_str.NulError) :
+  Result base.errno.Error
+  := do
+  let i ← libc_1.unix.linux_like.linux_l4re_shared.EINVAL
+  base.errno.Error.new (core.convert.TryInto.Blanket
+    (core.convert.TryFromTUNever.Blanket (core.convert.IntoFrom
+    (core.convert.FromSame Std.I32)))) i
+
+/-- Trait implementation: [base::shm::{base::shm::SharedMemory}::new::{impl core::ops::function::FnOnce<(alloc::ffi::c_str::NulError,), base::errno::Error> for base::shm::{base::shm::SharedMemory}::new::{closure}<T>}]
+    Source: 'base/src/shm.rs', lines 37:58-37:61
+    Name pattern: [core::ops::function::FnOnce<base::shm::{base::shm::SharedMemory}::new::closure<@T>, (alloc::ffi::c_str::NulError), base::errno::Error>] -/
+@[reducible, rust_trait_impl
+  "core::ops::function::FnOnce<base::shm::{base::shm::SharedMemory}::new::closure<@T>, (alloc::ffi::c_str::NulError), base::errno::Error>"]
+def
+  base.shm.SharedMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleNulErrorError
+  {T : Type _} (coreconvertIntoTVecU8Inst : core.convert.Into T (alloc.vec.Vec
+  Std.U8)) : core.ops.function.FnOnce (base.shm.SharedMemory.new.closure T)
+  alloc.ffi.c_str.NulError base.errno.Error := {
+  call_once :=
+    base.shm.SharedMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleNulErrorError.call_once
+    coreconvertIntoTVecU8Inst
+}
+
+/-- [base::shm::{base::shm::SharedMemory}::new]:
+    Source: 'base/src/shm.rs', lines 36:4-36:82
+    Name pattern: [base::shm::{base::shm::SharedMemory}::new]
+    Visibility: public -/
+@[rust_fun "base::shm::{base::shm::SharedMemory}::new"]
+def base.shm.SharedMemory.new
+  {T : Type _} (coreconvertIntoTVecU8Inst : core.convert.Into T (alloc.vec.Vec
+  Std.U8)) (debug_name : T) (size : Std.U64) :
+  Result (core.result.Result base.shm.SharedMemory base.errno.Error)
+  := do
+  let r ← alloc.ffi.c_str.CString.new coreconvertIntoTVecU8Inst debug_name
+  let r1 ←
+    core.result.Result.map_err
+      (base.shm.SharedMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleNulErrorError
+      coreconvertIntoTVecU8Inst) r ()
+  let cf ←
+    core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+  match cf with
+  | core.ops.control_flow.ControlFlow.Continue val =>
+    let c ← alloc.ffi.c_str.CString.Insts.CoreOpsDerefDerefCStr.deref val
+    base.shm.SharedMemory.Insts.BaseShmPlatformSharedMemory.new c size
+  | core.ops.control_flow.ControlFlow.Break residual =>
+    core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+      base.shm.SharedMemory (core.convert.FromSame base.errno.Error) residual
 
 /-- [base::sys::linux::mmap::{impl core::convert::From<base::mmap::Protection> for i32}::from]:
     Source: 'base/src/sys/linux/mmap.rs', lines 30:4-30:34

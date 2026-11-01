@@ -135,6 +135,12 @@ structure base.shm.SharedMemory where
   descriptor : base.descriptor.SafeDescriptor
   size : Std.U64
 
+/-- [base::shm::{base::shm::SharedMemory}::new::{closure}]
+    Source: 'base/src/shm.rs', lines 37:58-37:61
+    Name pattern: [base::shm::{base::shm::SharedMemory}::new::closure] -/
+@[reducible, rust_type "base::shm::{base::shm::SharedMemory}::new::closure"]
+def base.shm.SharedMemory.new.closure (T : Type _) := Unit
+
 /-- [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::{closure}]
     Source: 'base/src/sys/linux/mmap.rs', lines 969:29-969:32
     Name pattern: [base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure] -/

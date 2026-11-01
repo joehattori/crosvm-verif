@@ -90,6 +90,8 @@ extract-resources: $(LLBC_DIR)/resources.llbc
 
 # Unlike the resources slice, do not specialize mutable references: this slice
 # has no such calls, and that pass rejects wrap's trait objects.
+# The MFD_NOEXEC_SEAL_SUPPORTED lazy static, which probes the kernel, is modeled
+# in FunsExternal instead.
 $(LLBC_DIR)/vm_memory.llbc:
 	mkdir -p $(LLBC_DIR)
 	PATH="$(TOOLCHAIN_DIR)/bin:$$PATH" $(CHARON) cargo \
@@ -125,6 +127,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'base::mmap::MemoryMappingBuilder::align' \
 		--start-from 'base::mmap::MemoryMappingBuilder::protection' \
 		--start-from 'base::mmap::Protection::read' \
+		--start-from 'base::shm::SharedMemory::new' \
 		--include 'base::mmap::MemoryMappingBuilder' \
 		--include 'base::mmap::_::new' \
 		--include 'base::mmap::_::from_file' \
@@ -133,6 +136,9 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--include 'base::mmap::_::align' \
 		--include 'base::mmap::_::protection' \
 		--include 'base::mmap::_::read' \
+		--opaque 'base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED' \
+		--include 'base::shm::_::new' \
+		--include 'base::sys::linux::shm::_::new' \
 		--include 'base::mmap::Protection' \
 		--include 'base::descriptor::AsRawDescriptor' \
 		--include 'base::descriptor::SafeDescriptor' \
