@@ -17,3 +17,4 @@ public import VmMemory.MemoryMapping.Spec
 public import VmMemory.MemoryMappingBuilder.Spec
 public import VmMemory.GuestMemory.Spec
 public import VmMemory.SharedMemory.Spec
+public import VmMemory.GuestMemory.NewWithOptions

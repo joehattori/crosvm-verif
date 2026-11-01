@@ -1576,6 +1576,53 @@ def guest_address.GuestAddress.Insts.CoreCmpOrd : core.cmp.Ord
   cmp := guest_address.GuestAddress.Insts.CoreCmpOrd.cmp
 }
 
+/-- [vm_memory::guest_memory::Error::MemoryAddSealsFailed]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 67:4-67:44 -/
+def guest_memory.Error.MemoryAddSealsFailed.constructor
+  (e : base.errno.Error) : Result guest_memory.Error := do
+  ok (guest_memory.Error.MemoryAddSealsFailed e)
+
+/-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::errno::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryAddSealsFailed}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 67:4-67:44 -/
+def
+  guest_memory.Error.MemoryAddSealsFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (state : base.errno.Error → Result guest_memory.Error)
+  (args : base.errno.Error) :
+  Result guest_memory.Error
+  := do
+  guest_memory.Error.MemoryAddSealsFailed.constructor args
+
+/-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::errno::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryAddSealsFailed}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 67:4-67:44 -/
+@[reducible]
+def
+  guest_memory.Error.MemoryAddSealsFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce (base.errno.Error → Result guest_memory.Error)
+  base.errno.Error guest_memory.Error := {
+  call_once :=
+    guest_memory.Error.MemoryAddSealsFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
+/-- [vm_memory::guest_memory::sys::linux::finalize_shm]:
+    Source: 'vm_memory/src/guest_memory/sys/linux.rs', lines 30:0-41:1 -/
+def guest_memory.sys.linux.finalize_shm
+  (shm : base.shm.SharedMemory) :
+  Result ((core.result.Result Unit guest_memory.Error) ×
+    base.shm.SharedMemory)
+  := do
+  let seals ← base.sys.linux.shm.MemfdSeals.new
+  let seals1 ← base.sys.linux.shm.MemfdSeals.set_shrink_seal seals
+  let seals2 ← base.sys.linux.shm.MemfdSeals.set_grow_seal seals1
+  let seals3 ← base.sys.linux.shm.MemfdSeals.set_seal_seal seals2
+  let (r, shm1) ←
+    base.shm.SharedMemory.Insts.BaseSysLinuxShmSharedMemoryLinux.add_seals shm
+      seals3
+  let r1 ←
+    core.result.Result.map_err
+      guest_memory.Error.MemoryAddSealsFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+      r (guest_memory.Error.MemoryAddSealsFailed.constructor)
+  ok (r1, shm1)
+
 /-- [vm_memory::guest_memory::Error::MemoryMappingFailed]:
     Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
 def guest_memory.Error.MemoryMappingFailed.constructor

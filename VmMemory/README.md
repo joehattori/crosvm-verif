@@ -1,9 +1,10 @@
 # VmMemory verification
 
-The default build imports every `*/Spec.lean` module here; each states its exact
-contracts and preconditions. The root Makefile lists the extracted functions.
-`MemoryMapping` is verified against the `mmap(2)` and `munmap(2)` contracts in
-[Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
+The default build imports every `*/Spec.lean` module here, and
+[GuestMemory/NewWithOptions.lean](GuestMemory/NewWithOptions.lean); each states
+its exact contracts and preconditions. The root Makefile lists the extracted
+functions. `MemoryMapping` is verified against the `mmap(2)` and `munmap(2)`
+contracts in [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
 
 Not verified:
 - `GuestMemory::new` and `new_with_options`, guest-memory access, descriptor cloning,
