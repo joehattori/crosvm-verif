@@ -1110,7 +1110,7 @@ theorem end_addr_spec (self : GuestMemory) :
       obtain ⟨pre, post, hl, -⟩ := ho
       simp [regionList, hl]
     simp only [hne, ↓reduceIte, core.option.Option.map_or,
-      P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once]
+      guest_memory.MemoryRegion.end.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once]
     apply WP.spec_mono (MemoryRegion.end_spec m)
     intro r hr
     exact ⟨m, ho, hr⟩

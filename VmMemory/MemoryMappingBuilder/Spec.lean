@@ -135,11 +135,11 @@ theorem wrap_none_spec (mapping : PlatformMemoryMapping) :
   simp [base.sys.linux.mmap.MemoryMappingBuilder.wrap, WrapOutcome]
 
 private theorem effective_protection_eq (self : MemoryMappingBuilder) :
-    core.option.Option.unwrap_or_else P.Insts.CoreOpsFunctionFnOnceTupleProtection
+    core.option.Option.unwrap_or_else base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection
       self.protection Protection.read_write = ok self.effectiveProtection := by
   cases hp : self.protection <;>
     simp [core.option.Option.unwrap_or_else, hp, effectiveProtection,
-      P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once, Protection.read_write]
+      base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once, Protection.read_write]
 
 private theorem unwrap_or_eq_getD {T : Type} (value : Option T) (fallback : T) :
     core.option.Option.unwrap_or value fallback = value.getD fallback := by

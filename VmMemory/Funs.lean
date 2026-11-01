@@ -123,7 +123,8 @@ def base.mmap.Protection.read_write : Result base.mmap.Protection := do
     Visibility: public -/
 @[rust_fun
   "base::mmap::{base::mmap::Protection}::{core::ops::function::FnOnce<@, (), base::mmap::Protection>}::call_once"]
-def P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
+def
+  base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
   (state : Result base.mmap.Protection) (_ : Unit) :
   Result base.mmap.Protection
   := do
@@ -134,9 +135,11 @@ def P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
     Name pattern: [core::ops::function::FnOnce<@, (), base::mmap::Protection>] -/
 @[reducible, rust_trait_impl
   "core::ops::function::FnOnce<@, (), base::mmap::Protection>"]
-def P.Insts.CoreOpsFunctionFnOnceTupleProtection : core.ops.function.FnOnce
-  (Result base.mmap.Protection) Unit base.mmap.Protection := {
-  call_once := P.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
+def base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection
+  : core.ops.function.FnOnce (Result base.mmap.Protection) Unit
+  base.mmap.Protection := {
+  call_once :=
+    base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
 }
 
 /-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]:
@@ -1011,8 +1014,8 @@ def base.sys.linux.mmap.MemoryMappingBuilder.build
     else
       let p ←
         core.option.Option.unwrap_or_else
-          P.Insts.CoreOpsFunctionFnOnceTupleProtection self.protection
-          (base.mmap.Protection.read_write)
+          base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection
+          self.protection (base.mmap.Protection.read_write)
       let r ←
         base.sys.linux.mmap.MemoryMapping.new_protection self.size self.align p
       let cf ←
@@ -1029,8 +1032,8 @@ def base.sys.linux.mmap.MemoryMappingBuilder.build
     let i1 ← lift (core.option.Option.unwrap_or self.align 0#u64)
     let p ←
       core.option.Option.unwrap_or_else
-        P.Insts.CoreOpsFunctionFnOnceTupleProtection self.protection
-        (base.mmap.Protection.read_write)
+        base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection
+        self.protection (base.mmap.Protection.read_write)
     let r ←
       base.sys.linux.mmap.MemoryMapping.from_fd_offset_protection_populate
         descriptor self.size i i1 p self.populate
@@ -1083,7 +1086,8 @@ def guest_address.GuestAddress.constructor
 
 /-- [vm_memory::guest_address::{impl core::ops::function::FnOnce<(u64,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_address::GuestAddress}::call_once]:
     Source: 'vm_memory/src/guest_address.rs', lines 24:0-24:33 -/
-def P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once
+def
+  guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once
   (state : Std.U64 → Result guest_address.GuestAddress) (args : Std.U64) :
   Result guest_address.GuestAddress
   := do
@@ -1092,10 +1096,11 @@ def P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once
 /-- Trait implementation: [vm_memory::guest_address::{impl core::ops::function::FnOnce<(u64,), vm_memory::guest_address::GuestAddress> for vm_memory::guest_address::GuestAddress}]
     Source: 'vm_memory/src/guest_address.rs', lines 24:0-24:33 -/
 @[reducible]
-def P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress :
-  core.ops.function.FnOnce (Std.U64 → Result guest_address.GuestAddress)
+def guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress
+  : core.ops.function.FnOnce (Std.U64 → Result guest_address.GuestAddress)
   Std.U64 guest_address.GuestAddress := {
-  call_once := P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once
+  call_once :=
+    guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once
 }
 
 /-- [vm_memory::guest_address::{vm_memory::guest_address::GuestAddress}::offset_from]:
@@ -1122,8 +1127,9 @@ def guest_address.GuestAddress.checked_add
   Result (Option guest_address.GuestAddress)
   := do
   let o ← lift (U64.checked_add self other)
-  core.option.Option.map P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress o
-    (guest_address.GuestAddress.constructor)
+  core.option.Option.map
+    guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress
+    o (guest_address.GuestAddress.constructor)
 
 /-- [vm_memory::guest_address::{vm_memory::guest_address::GuestAddress}::unchecked_add]:
     Source: 'vm_memory/src/guest_address.rs', lines 61:4-63:5
@@ -1143,8 +1149,9 @@ def guest_address.GuestAddress.checked_sub
   Result (Option guest_address.GuestAddress)
   := do
   let o ← lift (U64.checked_sub self other)
-  core.option.Option.map P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress o
-    (guest_address.GuestAddress.constructor)
+  core.option.Option.map
+    guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress
+    o (guest_address.GuestAddress.constructor)
 
 /-- [vm_memory::guest_address::{vm_memory::guest_address::GuestAddress}::mask]:
     Source: 'vm_memory/src/guest_address.rs', lines 71:4-73:5
@@ -1335,7 +1342,8 @@ def guest_memory.Error.MemoryMappingFailed.constructor
 
 /-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryMappingFailed}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
-def P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+def
+  guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
   (state : base.mmap.Error → Result guest_memory.Error)
   (args : base.mmap.Error) :
   Result guest_memory.Error
@@ -1345,10 +1353,12 @@ def P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
 /-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::mmap::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryMappingFailed}]
     Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
 @[reducible]
-def P.Insts.CoreOpsFunctionFnOnceTupleErrorError : core.ops.function.FnOnce
-  (base.mmap.Error → Result guest_memory.Error) base.mmap.Error
-  guest_memory.Error := {
-  call_once := P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+def
+  guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce (base.mmap.Error → Result guest_memory.Error)
+  base.mmap.Error guest_memory.Error := {
+  call_once :=
+    guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
 }
 
 /-- [vm_memory::guest_memory::{impl core::convert::AsRef<(dyn base::descriptor::AsRawDescriptor + 'static)> for vm_memory::guest_memory::BackingObject}::as_ref]:
@@ -1407,8 +1417,9 @@ def guest_memory.MemoryRegion.new_from_shm
   let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
   let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
   let r1 ←
-    core.result.Result.map_err P.Insts.CoreOpsFunctionFnOnceTupleErrorError r
-      (guest_memory.Error.MemoryMappingFailed.constructor)
+    core.result.Result.map_err
+      guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+      r (guest_memory.Error.MemoryMappingFailed.constructor)
   let cf ←
     core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
   match cf with
@@ -1444,8 +1455,9 @@ def guest_memory.MemoryRegion.new_from_file
   let mmb2 ← base.mmap.MemoryMappingBuilder.impl.offset mmb1 offset
   let r ← base.sys.linux.mmap.MemoryMappingBuilder.build mmb2
   let r1 ←
-    core.result.Result.map_err P.Insts.CoreOpsFunctionFnOnceTupleErrorError r
-      (guest_memory.Error.MemoryMappingFailed.constructor)
+    core.result.Result.map_err
+      guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+      r (guest_memory.Error.MemoryMappingFailed.constructor)
   let cf ←
     core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
   match cf with
@@ -1482,7 +1494,8 @@ def guest_memory.MemoryRegion.end
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for for<'_0_1> vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::end<'_0_1>}::call_once]:
     Source: 'vm_memory/src/guest_memory.rs', lines 267:4-270:5 -/
-def P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
+def
+  guest_memory.MemoryRegion.end.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
   (state : guest_memory.MemoryRegion → Result guest_address.GuestAddress)
   (args : guest_memory.MemoryRegion) :
   Result guest_address.GuestAddress
@@ -1492,12 +1505,13 @@ def P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
 /-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::{impl core::ops::function::FnOnce<(&'_0 vm_memory::guest_memory::MemoryRegion,), vm_memory::guest_address::GuestAddress> for for<'_0_1> vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::end<'_0_1>}]
     Source: 'vm_memory/src/guest_memory.rs', lines 267:4-270:5 -/
 @[reducible]
-def P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress :
-  core.ops.function.FnOnce (guest_memory.MemoryRegion → Result
+def
+  guest_memory.MemoryRegion.end.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress
+  : core.ops.function.FnOnce (guest_memory.MemoryRegion → Result
   guest_address.GuestAddress) guest_memory.MemoryRegion
   guest_address.GuestAddress := {
   call_once :=
-    P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
+    guest_memory.MemoryRegion.end.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress.call_once
 }
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::MemoryRegion}::contains]:
@@ -1782,8 +1796,8 @@ def guest_memory.GuestMemory.end_addr
       guest_memory.GuestMemory.end_addr.closure.Insts.CoreOpsFunctionFnMutTupleShared1Shared0MemoryRegionGuestAddress
       i ()
   core.option.Option.map_or
-    P.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress o 0#u64
-    (guest_memory.MemoryRegion.end)
+    guest_memory.MemoryRegion.end.Insts.CoreOpsFunctionFnOnceTupleShared0MemoryRegionGuestAddress
+    o 0#u64 (guest_memory.MemoryRegion.end)
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion,), u64> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::memory_size::{closure}<'_0>}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 481:17-481:54 -/

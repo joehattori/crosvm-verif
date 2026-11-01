@@ -50,11 +50,11 @@ axiom core.iter.traits.iterator.Iterator.max_by_key.default
     Visibility: public -/
 @[trait_default, rust_fun "core::iter::traits::iterator::Iterator::find"]
 axiom core.iter.traits.iterator.Iterator.find.default
-  {Self : Type _} {P1 : Type _} {Clause0_Item : Type _} (IteratorInst :
+  {Self : Type _} {P : Type _} {Clause0_Item : Type _} (IteratorInst :
   core.iter.traits.iterator.Iterator Self Clause0_Item)
   (opsfunctionFnMutPTupleShared0Clause0_ItemBoolInst : core.ops.function.FnMut
-  P1 Clause0_Item Bool) :
-  Self → P1 → Result ((Option Clause0_Item) × Self)
+  P Clause0_Item Bool) :
+  Self → P → Result ((Option Clause0_Item) × Self)
 
 /-- [core::iter::traits::iterator::Iterator::any]:
     Source: '/rustc/library/core/src/iter/traits/iterator.rs', lines 2897:4-2900:37
@@ -174,9 +174,9 @@ axiom core.result.Result.map
 @[rust_fun
   "core::slice::iter::{core::iter::traits::iterator::Iterator<core::slice::iter::Iter<'a, @T>, &'a @T>}::find"]
 axiom core.slice.iter.Iter.Insts.CoreIterTraitsIteratorIteratorSharedAT.find
-  {T : Type _} {P1 : Type _} (opsfunctionFnMutPTupleSharedASharedATBoolInst :
-  core.ops.function.FnMut P1 T Bool) :
-  core.slice.iter.Iter T → P1 → Result ((Option T) × (core.slice.iter.Iter
+  {T : Type _} {P : Type _} (opsfunctionFnMutPTupleSharedASharedATBoolInst :
+  core.ops.function.FnMut P T Bool) :
+  core.slice.iter.Iter T → P → Result ((Option T) × (core.slice.iter.Iter
     T))
 
 /-- [core::slice::iter::{impl core::iter::traits::iterator::Iterator<&'a T> for core::slice::iter::Iter<'a, T>}::any]:

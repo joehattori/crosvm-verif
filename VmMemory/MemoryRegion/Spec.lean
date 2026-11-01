@@ -224,7 +224,7 @@ private theorem mapped_region_spec
     (built : core.result.Result base.mmap.MemoryMapping base.mmap.Error)
     (guest_base : GuestAddress) (shared_obj : BackingObject) (offset : U64) :
     (do
-      let r1 ← core.result.Result.map_err P.Insts.CoreOpsFunctionFnOnceTupleErrorError built
+      let r1 ← core.result.Result.map_err guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError built
         guest_memory.Error.MemoryMappingFailed.constructor
       let cf ← core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
       match cf with
@@ -250,7 +250,7 @@ private theorem mapped_region_spec
     simp [MappedRegionOutcome, hOpt]
   | Err error =>
     simp only [core.result.Result.map_err_err,
-      P.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
+      guest_memory.Error.MemoryMappingFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once,
       guest_memory.Error.MemoryMappingFailed.constructor,
       core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch]
     step with core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual_Err.spec

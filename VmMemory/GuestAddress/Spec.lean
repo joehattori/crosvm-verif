@@ -118,7 +118,7 @@ theorem checked_add_spec (self : GuestAddress) (other : U64) :
   unfold GuestAddress.checked_add
   cases U64.checked_add self other <;>
     simp [core.option.Option.map,
-      P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once, GuestAddress.constructor, lift]
+      guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once, GuestAddress.constructor, lift]
 
 /-- Despite its name, unchecked_add uses Rust's wrapping arithmetic on all inputs. -/
 @[step]
@@ -140,7 +140,7 @@ theorem checked_sub_spec (self : GuestAddress) (other : U64) :
   unfold GuestAddress.checked_sub
   cases U64.checked_sub self other <;>
     simp [core.option.Option.map,
-      P.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once, GuestAddress.constructor, lift]
+      guest_address.GuestAddress.Insts.CoreOpsFunctionFnOnceTupleU64GuestAddress.call_once, GuestAddress.constructor, lift]
 
 @[step]
 theorem mask_spec (self : GuestAddress) (mask : U64) :
