@@ -94,4 +94,26 @@ theorem _root_.vm_memory.base.sys.linux.shm.MemfdSeals.set_seal_seal_spec
       seals = ((self : I32) ||| F_SEAL_SEAL) ⦄ := by
   simp [base.sys.linux.shm.MemfdSeals.set_seal_seal, lift]
 
+/-! ### `add_seals` -/
+
+/-- Outcome of `SharedMemoryLinux::add_seals`: `fcntl(fd, F_ADD_SEALS, seals)`;
+    a negative return gives the last host error. The shared memory value is
+    unchanged. -/
+def AddSealsOutcome (self : SharedMemory) (seals : base.sys.linux.shm.MemfdSeals)
+    (result : core.result.Result Unit _root_.base.errno.Error × SharedMemory) : Prop :=
+  result.2 = self ∧
+  result.1 =
+    if _root_.libc_1.unix.fcntl_status self.descriptor.descriptor F_ADD_SEALS seals < 0#i32
+    then .Err _root_.base.errno.Error.last_errno
+    else .Ok ()
+
+@[step]
+theorem add_seals_spec (self : SharedMemory) (seals : base.sys.linux.shm.MemfdSeals) :
+    Insts.BaseSysLinuxShmSharedMemoryLinux.add_seals self seals ⦃ result =>
+      AddSealsOutcome self seals result ⦄ := by
+  unfold Insts.BaseSysLinuxShmSharedMemoryLinux.add_seals AddSealsOutcome
+  simp only [vm_memory.base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor,
+    _root_.libc_1.unix.linux_like.F_ADD_SEALS, _root_.libc_1.unix.fcntl, bind_ok]
+  split_ifs <;> simp_all
+
 end vm_memory.base.shm.SharedMemory

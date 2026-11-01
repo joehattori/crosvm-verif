@@ -559,3 +559,10 @@ axiom libc_1.unix.linux_like.F_SEAL_SHRINK : Result Std.I32
 @[rust_const "libc#1::unix::linux_like::F_SEAL_SEAL"]
 axiom libc_1.unix.linux_like.F_SEAL_SEAL : Result Std.I32
 
+/-- [libc#1::unix::linux_like::F_ADD_SEALS]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 416:0-416:28
+    Name pattern: [libc#1::unix::linux_like::F_ADD_SEALS]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_ADD_SEALS"]
+axiom libc_1.unix.linux_like.F_ADD_SEALS : Result Std.I32
+

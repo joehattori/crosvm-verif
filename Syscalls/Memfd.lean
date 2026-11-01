@@ -18,6 +18,9 @@ abbrev MFD_ALLOW_SEALING : U32 := 0x0002#u32
 /-- Make the file non-executable and seal its mode (`0x0008`). -/
 abbrev MFD_NOEXEC_SEAL : U32 := 0x0008#u32
 
+/-- `fcntl` command to add file seals (`F_LINUX_SPECIFIC_BASE + 9`). -/
+abbrev F_ADD_SEALS : I32 := 1033#i32
+
 /-- Seal preventing further seals (`0x0001`). -/
 abbrev F_SEAL_SEAL : I32 := 0x0001#i32
 

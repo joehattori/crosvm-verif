@@ -1269,6 +1269,26 @@ def base.sys.linux.shm.MemfdSeals.set_seal_seal
   let i1 ← lift (self ||| i)
   ok i1
 
+/-- [base::sys::linux::shm::{impl base::sys::linux::shm::SharedMemoryLinux for base::shm::SharedMemory}::add_seals]:
+    Source: 'base/src/sys/linux/shm.rs', lines 237:4-237:60
+    Name pattern: [base::sys::linux::shm::{base::sys::linux::shm::SharedMemoryLinux<base::shm::SharedMemory>}::add_seals]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::shm::{base::sys::linux::shm::SharedMemoryLinux<base::shm::SharedMemory>}::add_seals"]
+def base.shm.SharedMemory.Insts.BaseSysLinuxShmSharedMemoryLinux.add_seals
+  (self : base.shm.SharedMemory) (seals : base.sys.linux.shm.MemfdSeals) :
+  Result ((core.result.Result Unit base.errno.Error) × base.shm.SharedMemory)
+  := do
+  let i ←
+    base.descriptor.SafeDescriptor.Insts.BaseDescriptorAsRawDescriptor.as_raw_descriptor
+      self.descriptor
+  let i1 ← libc_1.unix.linux_like.F_ADD_SEALS
+  let ret ← libc_1.unix.fcntl i i1 seals
+  if ret < 0#i32
+  then let r ← base.errno.errno_result Unit
+       ok (r, self)
+  else ok (core.result.Result.Ok (), self)
+
 /-- [vm_memory::guest_address::{impl core::clone::Clone for vm_memory::guest_address::GuestAddress}::clone]:
     Source: 'vm_memory/src/guest_address.rs', lines 23:9-23:14
     Visibility: public -/
