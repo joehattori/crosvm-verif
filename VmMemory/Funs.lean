@@ -107,6 +107,16 @@ def alloc.alloc.Global.Insts.CoreAllocAllocatorClone :
   cloneCloneInst := core.clone.CloneGlobal
 }
 
+/-- Trait implementation: [alloc::vec::{impl core::convert::From<&'_0 str> for alloc::vec::Vec<u8>}]
+    Source: '/rustc/library/alloc/src/vec/mod.rs', lines 4604:0-4604:27
+    Name pattern: [core::convert::From<alloc::vec::Vec<u8>, &'0 str>] -/
+@[reducible, rust_trait_impl
+  "core::convert::From<alloc::vec::Vec<u8>, &'0 str>"]
+def alloc.vec.VecU8.Insts.CoreConvertFromShared0Str : core.convert.From
+  (alloc.vec.Vec Std.U8) Str := {
+  «from» := alloc.vec.VecU8.Insts.CoreConvertFromShared0Str.from
+}
+
 /-- [base::descriptor::{impl base::descriptor::AsRawDescriptor for base::descriptor::SafeDescriptor}::as_raw_descriptor]:
     Source: 'base/src/descriptor.rs', lines 64:4-64:48
     Name pattern: [base::descriptor::{base::descriptor::AsRawDescriptor<base::descriptor::SafeDescriptor>}::as_raw_descriptor]
@@ -1623,6 +1633,33 @@ def guest_memory.sys.linux.finalize_shm
       r (guest_memory.Error.MemoryAddSealsFailed.constructor)
   ok (r1, shm1)
 
+/-- [vm_memory::guest_memory::Error::MemoryCreationFailed]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 69:4-69:44 -/
+def guest_memory.Error.MemoryCreationFailed.constructor
+  (e : base.errno.Error) : Result guest_memory.Error := do
+  ok (guest_memory.Error.MemoryCreationFailed e)
+
+/-- [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::errno::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryCreationFailed}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 69:4-69:44 -/
+def
+  guest_memory.Error.MemoryCreationFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  (state : base.errno.Error → Result guest_memory.Error)
+  (args : base.errno.Error) :
+  Result guest_memory.Error
+  := do
+  guest_memory.Error.MemoryCreationFailed.constructor args
+
+/-- Trait implementation: [vm_memory::guest_memory::Error::{impl core::ops::function::FnOnce<(base::errno::Error,), vm_memory::guest_memory::Error> for vm_memory::guest_memory::Error::MemoryCreationFailed}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 69:4-69:44 -/
+@[reducible]
+def
+  guest_memory.Error.MemoryCreationFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  : core.ops.function.FnOnce (base.errno.Error → Result guest_memory.Error)
+  base.errno.Error guest_memory.Error := {
+  call_once :=
+    guest_memory.Error.MemoryCreationFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+}
+
 /-- [vm_memory::guest_memory::Error::MemoryMappingFailed]:
     Source: 'vm_memory/src/guest_memory.rs', lines 71:4-71:44 -/
 def guest_memory.Error.MemoryMappingFailed.constructor
@@ -1842,6 +1879,94 @@ def guest_memory.MemoryRegion.contains_range
         guest_address.GuestAddress.Insts.CoreCmpPartialOrdGuestAddress end_addr
         ga
     else ok false
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::create_shm]: loop body 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 310:8-331:5 -/
+@[rust_loop_body]
+def guest_memory.GuestMemory.create_shm_loop.body
+  (pg_size : Std.Usize)
+  (iter : core.slice.iter.Iter (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions)) (aligned_size : Std.U64) :
+  Result (ControlFlow ((core.slice.iter.Iter (guest_address.GuestAddress ×
+    Std.U64 × guest_memory.MemoryRegionOptions)) × Std.U64)
+    (core.result.Result base.shm.SharedMemory guest_memory.Error))
+  := do
+  let (o, iter1) ← core.slice.iter.IteratorSliceIter.next iter
+  match o with
+  | none =>
+    let r ←
+      base.shm.SharedMemory.new (core.convert.IntoFrom
+        alloc.vec.VecU8.Insts.CoreConvertFromShared0Str) (toStr "crosvm_guest")
+        aligned_size
+    let r1 ←
+      core.result.Result.map_err
+        guest_memory.Error.MemoryCreationFailed.Insts.CoreOpsFunctionFnOnceTupleErrorError
+        r (guest_memory.Error.MemoryCreationFailed.constructor)
+    let cf ←
+      core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r1
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let (r2, val1) ← guest_memory.sys.linux.finalize_shm val
+      let cf1 ←
+        core.result.Result.Insts.CoreOpsTry_traitTryTResultNeverE.branch r2
+      match cf1 with
+      | core.ops.control_flow.ControlFlow.Continue _ =>
+        ok (done (core.result.Result.Ok val1))
+      | core.ops.control_flow.ControlFlow.Break residual =>
+        let r3 ←
+          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+            base.shm.SharedMemory (core.convert.FromSame guest_memory.Error)
+            residual
+        ok (done r3)
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      let r2 ←
+        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+          base.shm.SharedMemory (core.convert.FromSame guest_memory.Error)
+          residual
+      ok (done r2)
+  | some range =>
+    let (ga, i, mro) := range
+    let b := core.option.Option.is_some mro.file_backed
+    if b
+    then ok (cont (iter1, aligned_size))
+    else
+      let i1 ← lift (UScalar.cast .U64 pg_size)
+      let i2 ← i % i1
+      if i2 != 0#u64
+      then
+        ok (done (core.result.Result.Err (guest_memory.Error.MemoryNotAligned
+          ga i)))
+      else
+        let aligned_size1 ← aligned_size + i
+        ok (cont (iter1, aligned_size1))
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::create_shm]: loop 0:
+    Source: 'vm_memory/src/guest_memory.rs', lines 310:8-331:5 -/
+@[rust_loop]
+def guest_memory.GuestMemory.create_shm_loop
+  (iter : core.slice.iter.Iter (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions)) (aligned_size : Std.U64)
+  (pg_size : Std.Usize) :
+  Result (core.result.Result base.shm.SharedMemory guest_memory.Error)
+  := do
+  loop
+    (fun (iter1, aligned_size1) =>
+      guest_memory.GuestMemory.create_shm_loop.body pg_size iter1
+      aligned_size1)
+    (iter, aligned_size)
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::create_shm]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 307:4-331:5 -/
+def guest_memory.GuestMemory.create_shm
+  (ranges : Slice (guest_address.GuestAddress × Std.U64 ×
+  guest_memory.MemoryRegionOptions)) :
+  Result (core.result.Result base.shm.SharedMemory guest_memory.Error)
+  := do
+  let pg_size ← base.sys.unix.system_info.pagesize
+  let iter ←
+    SharedSlice.Insts.CoreIterTraitsCollectIntoIteratorSharedIter.into_iter
+      ranges
+  guest_memory.GuestMemory.create_shm_loop iter 0#u64 pg_size
 
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/

@@ -346,6 +346,12 @@ def libc_1.unix.linux_like.F_SEAL_GROW : Result Std.I32 := ok 0x0004#i32
 @[reducible, rust_const "libc#1::unix::linux_like::F_ADD_SEALS"]
 def libc_1.unix.linux_like.F_ADD_SEALS : Result Std.I32 := ok 1033#i32
 
+/-- `Vec<u8>::from(&str)` copies the UTF-8 bytes. -/
+@[reducible, rust_fun "alloc::vec::{core::convert::From<alloc::vec::Vec<u8>, &'0 str>}::from"]
+def alloc.vec.VecU8.Insts.CoreConvertFromShared0Str.from (s : Str) :
+    Result (alloc.vec.Vec Std.U8) :=
+  ok { slice := s }
+
 /-- Opaque external model of `libc::mmap64`. Specifications constrain the
     returned pointer on success and `MAP_FAILED` on failure. -/
 @[rust_fun "libc#1::unix::linux_like::mmap64"]

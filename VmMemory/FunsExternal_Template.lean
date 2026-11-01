@@ -278,6 +278,15 @@ axiom alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
 axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
   {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
 
+/-- [alloc::vec::{impl core::convert::From<&'_0 str> for alloc::vec::Vec<u8>}::from]:
+    Source: '/rustc/library/alloc/src/vec/mod.rs', lines 4612:4-4612:31
+    Name pattern: [alloc::vec::{core::convert::From<alloc::vec::Vec<u8>, &'0 str>}::from]
+    Visibility: public -/
+@[rust_fun
+  "alloc::vec::{core::convert::From<alloc::vec::Vec<u8>, &'0 str>}::from"]
+axiom alloc.vec.VecU8.Insts.CoreConvertFromShared0Str.from
+  : Str → Result (alloc.vec.Vec Std.U8)
+
 /-- [base::descriptor::{impl base::descriptor::FromRawDescriptor for base::descriptor::SafeDescriptor}::from_raw_descriptor]:
     Source: 'base/src/descriptor.rs', lines 96:4-96:68
     Name pattern: [base::descriptor::{base::descriptor::FromRawDescriptor<base::descriptor::SafeDescriptor>}::from_raw_descriptor]
