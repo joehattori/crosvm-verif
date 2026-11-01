@@ -142,6 +142,15 @@ def base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection
     base.mmap.Protection.read_write.Insts.CoreOpsFunctionFnOnceTupleProtection.call_once
 }
 
+/-- [base::mmap::{base::mmap::Protection}::read]:
+    Source: 'base/src/mmap.rs', lines 129:4-129:31
+    Name pattern: [base::mmap::{base::mmap::Protection}::read]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::Protection}::read"]
+def base.mmap.Protection.impl.read : Result base.mmap.Protection := do
+  let p ← base.mmap.Protection.Insts.CoreDefaultDefault.default
+  ok { p with read := true }
+
 /-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]:
     Source: 'base/src/mmap.rs', lines 444:4-444:55
     Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::new]

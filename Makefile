@@ -124,6 +124,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'base::mmap::MemoryMappingBuilder::build' \
 		--start-from 'base::mmap::MemoryMappingBuilder::align' \
 		--start-from 'base::mmap::MemoryMappingBuilder::protection' \
+		--start-from 'base::mmap::Protection::read' \
 		--include 'base::mmap::MemoryMappingBuilder' \
 		--include 'base::mmap::_::new' \
 		--include 'base::mmap::_::from_file' \
@@ -131,6 +132,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--include 'base::mmap::_::offset' \
 		--include 'base::mmap::_::align' \
 		--include 'base::mmap::_::protection' \
+		--include 'base::mmap::_::read' \
 		--include 'base::mmap::Protection' \
 		--include 'base::descriptor::AsRawDescriptor' \
 		--include 'base::descriptor::SafeDescriptor' \

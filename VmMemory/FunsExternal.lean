@@ -231,6 +231,12 @@ def libc_1.unix.linux_like.MADV_MERGEABLE : Result Std.I32 := ok 12#i32
 @[reducible, rust_const "libc#1::unix::linux_like::MADV_DONTDUMP"]
 def libc_1.unix.linux_like.MADV_DONTDUMP : Result Std.I32 := ok 16#i32
 
+/-- `Protection::default()` allows neither reading nor writing. -/
+@[reducible, rust_fun "base::mmap::{core::default::Default<base::mmap::Protection>}::default"]
+def base.mmap.Protection.Insts.CoreDefaultDefault.default :
+    Result vm_memory.base.mmap.Protection :=
+  ok { read := false, write := false }
+
 /-- Opaque external model of `libc::mmap64`. Specifications constrain the
     returned pointer on success and `MAP_FAILED` on failure. -/
 @[rust_fun "libc#1::unix::linux_like::mmap64"]

@@ -149,6 +149,16 @@ theorem protection_spec (self : MemoryMappingBuilder) (protection : Protection) 
   simp [impl.protection, ProtectionOutcome]
 
 @[step]
+theorem _root_.vm_memory.base.mmap.Protection.read_write_spec :
+    Protection.read_write ⦃ p => p = { read := true, write := true } ⦄ := by
+  simp [Protection.read_write]
+
+@[step]
+theorem _root_.vm_memory.base.mmap.Protection.read_spec :
+    Protection.impl.read ⦃ p => p = { read := true, write := false } ⦄ := by
+  simp [Protection.impl.read, _root_.base.mmap.Protection.Insts.CoreDefaultDefault.default]
+
+@[step]
 theorem wrap_none_spec (mapping : PlatformMemoryMapping) :
     base.sys.linux.mmap.MemoryMappingBuilder.wrap mapping none ⦃ result =>
       WrapOutcome mapping result ⦄ := by

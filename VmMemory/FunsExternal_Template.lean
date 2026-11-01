@@ -249,6 +249,15 @@ axiom
 @[rust_fun "base::errno::{base::errno::Error}::last"]
 axiom base.errno.Error.last : Result base.errno.Error
 
+/-- [base::mmap::{impl core::default::Default for base::mmap::Protection}::default]:
+    Source: 'base/src/mmap.rs', lines 111:22-111:29
+    Name pattern: [base::mmap::{core::default::Default<base::mmap::Protection>}::default]
+    Visibility: public -/
+@[rust_fun
+  "base::mmap::{core::default::Default<base::mmap::Protection>}::default"]
+axiom base.mmap.Protection.Insts.CoreDefaultDefault.default
+  : Result base.mmap.Protection
+
 /-- [base::sys::unix::descriptor::{impl base::descriptor::AsRawDescriptor for std::fs::File}::as_raw_descriptor]:
     Source: 'base/src/sys/unix/descriptor.rs', lines 190:12-190:56; this code is generated from a macro invocation at: 'base/src/sys/unix/descriptor.rs', lines 221:0-221:22
     Name pattern: [base::sys::unix::descriptor::{base::descriptor::AsRawDescriptor<std::fs::File>}::as_raw_descriptor]
