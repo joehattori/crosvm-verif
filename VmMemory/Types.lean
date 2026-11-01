@@ -148,6 +148,13 @@ def base.shm.SharedMemory.new.closure (T : Type _) := Unit
   "base::sys::linux::mmap::{base::mmap::MemoryMappingBuilder<'a>}::wrap::closure"]
 def base.sys.linux.mmap.MemoryMappingBuilder.wrap.closure := Unit
 
+/-- [base::sys::linux::shm::MemfdSeals]
+    Source: 'base/src/sys/linux/shm.rs', lines 53:0-53:21
+    Name pattern: [base::sys::linux::shm::MemfdSeals]
+    Visibility: public -/
+@[reducible, rust_type "base::sys::linux::shm::MemfdSeals"]
+def base.sys.linux.shm.MemfdSeals := Std.I32
+
 /-- [base::volatile_memory::VolatileMemoryError]
     Source: 'base/src/volatile_memory.rs', lines 41:0-41:28
     Name pattern: [base::volatile_memory::VolatileMemoryError]

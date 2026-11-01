@@ -18,6 +18,15 @@ abbrev MFD_ALLOW_SEALING : U32 := 0x0002#u32
 /-- Make the file non-executable and seal its mode (`0x0008`). -/
 abbrev MFD_NOEXEC_SEAL : U32 := 0x0008#u32
 
+/-- Seal preventing further seals (`0x0001`). -/
+abbrev F_SEAL_SEAL : I32 := 0x0001#i32
+
+/-- Seal preventing the file from shrinking (`0x0002`). -/
+abbrev F_SEAL_SHRINK : I32 := 0x0002#i32
+
+/-- Seal preventing the file from growing (`0x0004`). -/
+abbrev F_SEAL_GROW : I32 := 0x0004#i32
+
 /-- Invalid argument (`EINVAL`). -/
 abbrev EINVAL : I32 := 22#i32
 

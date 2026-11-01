@@ -128,6 +128,10 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'base::mmap::MemoryMappingBuilder::protection' \
 		--start-from 'base::mmap::Protection::read' \
 		--start-from 'base::shm::SharedMemory::new' \
+		--start-from 'base::sys::linux::shm::MemfdSeals::new' \
+		--start-from 'base::sys::linux::shm::MemfdSeals::set_shrink_seal' \
+		--start-from 'base::sys::linux::shm::MemfdSeals::set_grow_seal' \
+		--start-from 'base::sys::linux::shm::MemfdSeals::set_seal_seal' \
 		--include 'base::mmap::MemoryMappingBuilder' \
 		--include 'base::mmap::_::new' \
 		--include 'base::mmap::_::from_file' \
@@ -139,6 +143,10 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--opaque 'base::sys::linux::shm::MFD_NOEXEC_SEAL_SUPPORTED' \
 		--include 'base::shm::_::new' \
 		--include 'base::sys::linux::shm::_::new' \
+		--include 'base::sys::linux::shm::MemfdSeals' \
+		--include 'base::sys::linux::shm::_::set_shrink_seal' \
+		--include 'base::sys::linux::shm::_::set_grow_seal' \
+		--include 'base::sys::linux::shm::_::set_seal_seal' \
 		--include 'base::mmap::Protection' \
 		--include 'base::descriptor::AsRawDescriptor' \
 		--include 'base::descriptor::SafeDescriptor' \

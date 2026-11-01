@@ -334,6 +334,15 @@ def base.errno.Error.new {T E : Type _} (tryIntoInst : core.convert.TryInto T St
 def base.errno.errno_result (T : Type _) : Result (core.result.Result T base.errno.Error) :=
   ok (.Err base.errno.Error.last_errno)
 
+@[reducible, rust_const "libc#1::unix::linux_like::F_SEAL_SEAL"]
+def libc_1.unix.linux_like.F_SEAL_SEAL : Result Std.I32 := ok 0x0001#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::F_SEAL_SHRINK"]
+def libc_1.unix.linux_like.F_SEAL_SHRINK : Result Std.I32 := ok 0x0002#i32
+
+@[reducible, rust_const "libc#1::unix::linux_like::F_SEAL_GROW"]
+def libc_1.unix.linux_like.F_SEAL_GROW : Result Std.I32 := ok 0x0004#i32
+
 /-- Opaque external model of `libc::mmap64`. Specifications constrain the
     returned pointer on success and `MAP_FAILED` on failure. -/
 @[rust_fun "libc#1::unix::linux_like::mmap64"]

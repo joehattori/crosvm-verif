@@ -538,3 +538,24 @@ axiom libc_1.unix.linux_like.linux.gnu.b64.x86_64.MAP_NORESERVE
 @[rust_fun "base::sys::unix::system_info::pagesize"]
 axiom base.sys.unix.system_info.pagesize : Result Std.Usize
 
+/-- [libc#1::unix::linux_like::F_SEAL_GROW]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 421:0-421:28
+    Name pattern: [libc#1::unix::linux_like::F_SEAL_GROW]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_SEAL_GROW"]
+axiom libc_1.unix.linux_like.F_SEAL_GROW : Result Std.I32
+
+/-- [libc#1::unix::linux_like::F_SEAL_SHRINK]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 420:0-420:30
+    Name pattern: [libc#1::unix::linux_like::F_SEAL_SHRINK]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_SEAL_SHRINK"]
+axiom libc_1.unix.linux_like.F_SEAL_SHRINK : Result Std.I32
+
+/-- [libc#1::unix::linux_like::F_SEAL_SEAL]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 419:0-419:28
+    Name pattern: [libc#1::unix::linux_like::F_SEAL_SEAL]
+    Visibility: public -/
+@[rust_const "libc#1::unix::linux_like::F_SEAL_SEAL"]
+axiom libc_1.unix.linux_like.F_SEAL_SEAL : Result Std.I32
+

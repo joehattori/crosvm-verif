@@ -66,4 +66,32 @@ theorem new_spec {T : Type} (intoInst : core.convert.Into T (alloc.vec.Vec U8)) 
       _root_.alloc.ffi.c_str.CString.Insts.CoreOpsDerefDerefCStr.deref]
     exact platform_new_spec _ _
 
+/-! ### Seals -/
+
+@[step]
+theorem _root_.vm_memory.base.sys.linux.shm.MemfdSeals.new_spec :
+    base.sys.linux.shm.MemfdSeals.new ⦃ seals => seals = (0#i32 : I32) ⦄ := by
+  simp [base.sys.linux.shm.MemfdSeals.new]
+
+@[step]
+theorem _root_.vm_memory.base.sys.linux.shm.MemfdSeals.set_shrink_seal_spec
+    (self : base.sys.linux.shm.MemfdSeals) :
+    base.sys.linux.shm.MemfdSeals.set_shrink_seal self ⦃ seals =>
+      seals = ((self : I32) ||| F_SEAL_SHRINK) ⦄ := by
+  simp [base.sys.linux.shm.MemfdSeals.set_shrink_seal, lift]
+
+@[step]
+theorem _root_.vm_memory.base.sys.linux.shm.MemfdSeals.set_grow_seal_spec
+    (self : base.sys.linux.shm.MemfdSeals) :
+    base.sys.linux.shm.MemfdSeals.set_grow_seal self ⦃ seals =>
+      seals = ((self : I32) ||| F_SEAL_GROW) ⦄ := by
+  simp [base.sys.linux.shm.MemfdSeals.set_grow_seal, lift]
+
+@[step]
+theorem _root_.vm_memory.base.sys.linux.shm.MemfdSeals.set_seal_seal_spec
+    (self : base.sys.linux.shm.MemfdSeals) :
+    base.sys.linux.shm.MemfdSeals.set_seal_seal self ⦃ seals =>
+      seals = ((self : I32) ||| F_SEAL_SEAL) ⦄ := by
+  simp [base.sys.linux.shm.MemfdSeals.set_seal_seal, lift]
+
 end vm_memory.base.shm.SharedMemory

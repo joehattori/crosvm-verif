@@ -1218,6 +1218,57 @@ def base.sys.linux.mmap.MemoryMappingBuilder.build
         base.mmap.MemoryMapping (core.convert.FromSame base.mmap.Error)
         residual
 
+/-- [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::new]:
+    Source: 'base/src/sys/linux/shm.rs', lines 58:4-58:30
+    Name pattern: [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::new]
+    Visibility: public -/
+@[rust_fun "base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::new"]
+def base.sys.linux.shm.MemfdSeals.new
+  : Result base.sys.linux.shm.MemfdSeals := do
+  ok 0#i32
+
+/-- [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_grow_seal]:
+    Source: 'base/src/sys/linux/shm.rs', lines 76:4-76:35
+    Name pattern: [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_grow_seal]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_grow_seal"]
+def base.sys.linux.shm.MemfdSeals.set_grow_seal
+  (self : base.sys.linux.shm.MemfdSeals) :
+  Result base.sys.linux.shm.MemfdSeals
+  := do
+  let i ← libc_1.unix.linux_like.F_SEAL_GROW
+  let i1 ← lift (self ||| i)
+  ok i1
+
+/-- [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_shrink_seal]:
+    Source: 'base/src/sys/linux/shm.rs', lines 88:4-88:37
+    Name pattern: [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_shrink_seal]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_shrink_seal"]
+def base.sys.linux.shm.MemfdSeals.set_shrink_seal
+  (self : base.sys.linux.shm.MemfdSeals) :
+  Result base.sys.linux.shm.MemfdSeals
+  := do
+  let i ← libc_1.unix.linux_like.F_SEAL_SHRINK
+  let i1 ← lift (self ||| i)
+  ok i1
+
+/-- [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_seal_seal]:
+    Source: 'base/src/sys/linux/shm.rs', lines 124:4-124:35
+    Name pattern: [base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_seal_seal]
+    Visibility: public -/
+@[rust_fun
+  "base::sys::linux::shm::{base::sys::linux::shm::MemfdSeals}::set_seal_seal"]
+def base.sys.linux.shm.MemfdSeals.set_seal_seal
+  (self : base.sys.linux.shm.MemfdSeals) :
+  Result base.sys.linux.shm.MemfdSeals
+  := do
+  let i ← libc_1.unix.linux_like.F_SEAL_SEAL
+  let i1 ← lift (self ||| i)
+  ok i1
+
 /-- [vm_memory::guest_address::{impl core::clone::Clone for vm_memory::guest_address::GuestAddress}::clone]:
     Source: 'vm_memory/src/guest_address.rs', lines 23:9-23:14
     Visibility: public -/
