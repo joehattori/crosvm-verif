@@ -38,6 +38,11 @@ def OffsetOutcome (self : MemoryMappingBuilder) (offset : U64)
     (result : MemoryMappingBuilder) : Prop :=
   result = { self with offset := some offset }
 
+/-- Set the requested alignment, preserving every other field. No validation occurs. -/
+def AlignOutcome (self : MemoryMappingBuilder) (alignment : U64)
+    (result : MemoryMappingBuilder) : Prop :=
+  result = { self with align := some alignment }
+
 /-- The default access requested by build is read/write. -/
 def effectiveProtection (self : MemoryMappingBuilder) : Protection :=
   self.protection.getD { read := true, write := true }
@@ -127,6 +132,11 @@ theorem from_shared_memory_spec (self : MemoryMappingBuilder) (shm : base.shm.Sh
 theorem offset_spec (self : MemoryMappingBuilder) (offset : U64) :
     impl.offset self offset ⦃ result => OffsetOutcome self offset result ⦄ := by
   simp [impl.offset, OffsetOutcome]
+
+@[step]
+theorem align_spec (self : MemoryMappingBuilder) (alignment : U64) :
+    impl.align self alignment ⦃ result => AlignOutcome self alignment result ⦄ := by
+  simp [impl.align, AlignOutcome]
 
 @[step]
 theorem wrap_none_spec (mapping : PlatformMemoryMapping) :

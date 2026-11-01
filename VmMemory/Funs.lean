@@ -230,6 +230,17 @@ def base.mmap.MemoryMappingBuilder.impl.offset
   := do
   ok { self with offset := (some offset) }
 
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::align]:
+    Source: 'base/src/mmap.rs', lines 498:4-498:70
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::align]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::align"]
+def base.mmap.MemoryMappingBuilder.impl.align
+  (self : base.mmap.MemoryMappingBuilder) (alignment : Std.U64) :
+  Result base.mmap.MemoryMappingBuilder
+  := do
+  ok { self with align := (some alignment) }
+
 /-- [base::sys::linux::mmap::{impl core::convert::From<base::mmap::Protection> for i32}::from]:
     Source: 'base/src/sys/linux/mmap.rs', lines 30:4-30:34
     Name pattern: [base::sys::linux::mmap::{core::convert::From<i32, base::mmap::Protection>}::from]
