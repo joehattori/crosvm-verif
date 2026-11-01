@@ -43,6 +43,11 @@ def AlignOutcome (self : MemoryMappingBuilder) (alignment : U64)
     (result : MemoryMappingBuilder) : Prop :=
   result = { self with align := some alignment }
 
+/-- Set the access protection, preserving every other field. -/
+def ProtectionOutcome (self : MemoryMappingBuilder) (protection : Protection)
+    (result : MemoryMappingBuilder) : Prop :=
+  result = { self with protection := some protection }
+
 /-- The default access requested by build is read/write. -/
 def effectiveProtection (self : MemoryMappingBuilder) : Protection :=
   self.protection.getD { read := true, write := true }
@@ -137,6 +142,11 @@ theorem offset_spec (self : MemoryMappingBuilder) (offset : U64) :
 theorem align_spec (self : MemoryMappingBuilder) (alignment : U64) :
     impl.align self alignment ⦃ result => AlignOutcome self alignment result ⦄ := by
   simp [impl.align, AlignOutcome]
+
+@[step]
+theorem protection_spec (self : MemoryMappingBuilder) (protection : Protection) :
+    impl.protection self protection ⦃ result => ProtectionOutcome self protection result ⦄ := by
+  simp [impl.protection, ProtectionOutcome]
 
 @[step]
 theorem wrap_none_spec (mapping : PlatformMemoryMapping) :

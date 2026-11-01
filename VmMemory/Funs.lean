@@ -230,6 +230,17 @@ def base.mmap.MemoryMappingBuilder.impl.offset
   := do
   ok { self with offset := (some offset) }
 
+/-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::protection]:
+    Source: 'base/src/mmap.rs', lines 490:4-490:83
+    Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::protection]
+    Visibility: public -/
+@[rust_fun "base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::protection"]
+def base.mmap.MemoryMappingBuilder.impl.protection
+  (self : base.mmap.MemoryMappingBuilder) (protection : base.mmap.Protection) :
+  Result base.mmap.MemoryMappingBuilder
+  := do
+  ok { self with protection := (some protection) }
+
 /-- [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::align]:
     Source: 'base/src/mmap.rs', lines 498:4-498:70
     Name pattern: [base::mmap::{base::mmap::MemoryMappingBuilder<'a>}::align]
