@@ -320,7 +320,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
         else
           let i4 ← fd1.inst.as_raw_descriptor fd1.value
           let i5 ← libc_1.unix.linux_like.F_GET_SEALS
-          let seals ← libc_1.unix.fcntl i4 i5
+          let seals ← libc_1.unix.fcntl i4 i5 ()
           let flags2 ←
             if seals >= 0#i32
             then
@@ -385,7 +385,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
           else
             let i4 ← fd1.inst.as_raw_descriptor fd1.value
             let i5 ← libc_1.unix.linux_like.F_GET_SEALS
-            let seals ← libc_1.unix.fcntl i4 i5
+            let seals ← libc_1.unix.fcntl i4 i5 ()
             let flags2 ←
               if seals >= 0#i32
               then
@@ -516,7 +516,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
                   else
                     let i15 ← fd1.inst.as_raw_descriptor fd1.value
                     let i16 ← libc_1.unix.linux_like.F_GET_SEALS
-                    let seals ← libc_1.unix.fcntl i15 i16
+                    let seals ← libc_1.unix.fcntl i15 i16 ()
                     let flags3 ←
                       if seals >= 0#i32
                       then
@@ -629,7 +629,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
           else
             let i9 ← fd1.inst.as_raw_descriptor fd1.value
             let i10 ← libc_1.unix.linux_like.F_GET_SEALS
-            let seals ← libc_1.unix.fcntl i9 i10
+            let seals ← libc_1.unix.fcntl i9 i10 ()
             let flags3 ←
               if seals >= 0#i32
               then
@@ -695,7 +695,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
             else
               let i9 ← fd1.inst.as_raw_descriptor fd1.value
               let i10 ← libc_1.unix.linux_like.F_GET_SEALS
-              let seals ← libc_1.unix.fcntl i9 i10
+              let seals ← libc_1.unix.fcntl i9 i10 ()
               let flags3 ←
                 if seals >= 0#i32
                 then
@@ -828,7 +828,7 @@ def base.sys.linux.mmap.MemoryMapping.try_mmap_populate
                     else
                       let i18 ← fd1.inst.as_raw_descriptor fd1.value
                       let i19 ← libc_1.unix.linux_like.F_GET_SEALS
-                      let seals ← libc_1.unix.fcntl i18 i19
+                      let seals ← libc_1.unix.fcntl i18 i19 ()
                       let flags4 ←
                         if seals >= 0#i32
                         then

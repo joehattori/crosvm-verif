@@ -294,7 +294,8 @@ axiom libc_1.unix.munmap
     Name pattern: [libc#1::unix::fcntl]
     Visibility: public -/
 @[rust_fun "libc#1::unix::fcntl"]
-axiom libc_1.unix.fcntl : Std.I32 → Std.I32 → Result Std.I32
+axiom libc_1.unix.fcntl
+  {VA : Type _} : Std.I32 → Std.I32 → VA → Result Std.I32
 
 /-- [libc#1::unix::linux_like::mmap64]:
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libc-0.2.188/src/unix/linux_like/mod.rs', lines 2112:12-2119:29

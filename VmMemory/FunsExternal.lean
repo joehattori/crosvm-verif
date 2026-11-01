@@ -247,13 +247,15 @@ opaque libc_1.unix.munmap
     (addr : MutRawPtr core.ffi.c_void) (len : Std.Usize) : Result Std.I32 :=
   fail .panic
 
-/-- Opaque return value of `libc::fcntl`. -/
-opaque libc_1.unix.fcntl_status (fd cmd : Std.I32) : Std.I32 := (-1)#i32
+/-- Opaque return value of `libc::fcntl`. `va` holds the trailing variadic
+    arguments: `()` when there are none, the argument itself when there is one. -/
+opaque libc_1.unix.fcntl_status {VA : Type _} (fd cmd : Std.I32) (va : VA) : Std.I32 :=
+  (-1)#i32
 
 /-- External model of `libc::fcntl` returning the opaque C status/seals value. -/
 @[reducible, rust_fun "libc#1::unix::fcntl"]
-def libc_1.unix.fcntl (fd cmd : Std.I32) : Result Std.I32 :=
-  ok (libc_1.unix.fcntl_status fd cmd)
+def libc_1.unix.fcntl {VA : Type _} (fd cmd : Std.I32) (va : VA) : Result Std.I32 :=
+  ok (libc_1.unix.fcntl_status fd cmd va)
 
 /-- Opaque return code of `libc::madvise`. -/
 opaque libc_1.unix.linux_like.linux_l4re_shared.madvise_status

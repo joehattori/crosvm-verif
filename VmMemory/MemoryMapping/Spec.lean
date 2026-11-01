@@ -83,7 +83,7 @@ private def reservationMmapFlags : I32 := (MAP_PRIVATE ||| MAP_NORESERVE) ||| MA
 /-- Whether `fcntl(rawFd, F_GET_SEALS)` reports a non-negative seal mask with
     `F_SEAL_WRITE` set. -/
 private def hasWriteSeal (rawFd : I32) : Bool :=
-  let seals := _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS
+  let seals := _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS ()
   decide (seals ≥ 0#i32) && (seals &&& F_SEAL_WRITE != 0#i32)
 
 /-- Final `mmap64` flags after adjusting for anonymous mapping or write-sealed fd. -/
@@ -415,14 +415,14 @@ private theorem normalizeAlign_eval (pageSize : Usize) (align : Option U64) :
     split <;> simp_all
 
 private theorem seal_flags_eval (f : I32) (rawFd : I32) :
-    (if _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS ≥ 0#i32 then
-      if (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS &&& F_SEAL_WRITE != 0#i32) = true then
+    (if _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () ≥ 0#i32 then
+      if (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () &&& F_SEAL_WRITE != 0#i32) = true then
         ok ((f &&& ~~~MAP_SHARED) ||| MAP_PRIVATE)
       else ok f
     else ok f : Result I32) = ok (targetMmapFlags f (some rawFd)) := by
   simp only [targetMmapFlags, hasWriteSeal, Bool.and_eq_true, decide_eq_true_eq]
-  by_cases h1 : _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS ≥ 0#i32 <;>
-    by_cases h2 : (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS &&& F_SEAL_WRITE != 0#i32) = true <;>
+  by_cases h1 : _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () ≥ 0#i32 <;>
+    by_cases h2 : (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () &&& F_SEAL_WRITE != 0#i32) = true <;>
     simp [h1, h2]
 
 private theorem i64_max_hcast_eq :
@@ -455,8 +455,8 @@ private theorem direct_fd_mmap_spec (pageSize : Usize) (reqAddr : VoidPtr) (size
       else do
         let i4 ← fd1.inst.as_raw_descriptor fd1.value
         let flags2 ←
-          if _root_.libc_1.unix.fcntl_status i4 F_GET_SEALS ≥ 0#i32 then
-            if (_root_.libc_1.unix.fcntl_status i4 F_GET_SEALS &&& F_SEAL_WRITE != 0#i32) = true then
+          if _root_.libc_1.unix.fcntl_status i4 F_GET_SEALS () ≥ 0#i32 then
+            if (_root_.libc_1.unix.fcntl_status i4 F_GET_SEALS () &&& F_SEAL_WRITE != 0#i32) = true then
               ok ((flags &&& ~~~MAP_SHARED) ||| MAP_PRIVATE)
             else ok flags
           else ok flags
@@ -569,8 +569,8 @@ def alignedMmapGhost (pageSize size origSize : Usize) (align : U64) (prot flags 
       else do
         let rawFd ← fd1.inst.as_raw_descriptor fd1.value
         let flags3 ←
-          if _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS ≥ 0#i32 then
-            if (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS &&& F_SEAL_WRITE != 0#i32) = true then
+          if _root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () ≥ 0#i32 then
+            if (_root_.libc_1.unix.fcntl_status rawFd F_GET_SEALS () &&& F_SEAL_WRITE != 0#i32) = true then
               ok ((flags ||| MAP_FIXED) &&& ~~~MAP_SHARED ||| MAP_PRIVATE)
             else ok (flags ||| MAP_FIXED)
           else ok (flags ||| MAP_FIXED)
@@ -640,8 +640,8 @@ theorem alignedMmap_erase (pageSize size origSize : Usize) (align : U64) (prot f
               else do
                 let i15 ← fd1.inst.as_raw_descriptor fd1.value
                 let flags3 ←
-                  if _root_.libc_1.unix.fcntl_status i15 1034#i32 ≥ 0#i32 then
-                      if (_root_.libc_1.unix.fcntl_status i15 1034#i32 &&& 8#i32 != 0#i32) = true then
+                  if _root_.libc_1.unix.fcntl_status i15 1034#i32 () ≥ 0#i32 then
+                      if (_root_.libc_1.unix.fcntl_status i15 1034#i32 () &&& 8#i32 != 0#i32) = true then
                         ok ((flags ||| 16#i32) &&& ~~~1#i32 ||| 2#i32)
                       else ok (flags ||| 16#i32)
                     else ok (flags ||| 16#i32)
