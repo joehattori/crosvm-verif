@@ -654,4 +654,199 @@ theorem new_with_options_spec (ranges : Slice Range) (pageSize : Usize) [Platfor
       core.convert.FromSame.from, bind_tc_ok, WP.spec_ok]
     exact ⟨_, hcreated, rfl⟩
 
+
+/-! ### Shared-memory layout -/
+
+/-- A successful `create_shm` creates a shared memory of `total` bytes. -/
+theorem CreatedShmOutcome.ok_size {total : U64} {shm : base.shm.SharedMemory}
+    (h : CreatedShmOutcome total (.Ok shm)) : shm.size = total := by
+  obtain ⟨created, hnew, hrest⟩ := h
+  rcases created with s0 | e
+  · obtain ⟨fin, ⟨added, hadded, h2, _⟩, hres⟩ := hrest
+    rcases hf : fin.1 with _ | e
+    · simp only [hf, core.result.Result.Ok.injEq] at hres
+      rw [hres, h2, hadded.1]
+      exact hnew.ok_size
+    · simp [hf] at hres
+  · simp at hrest
+
+/-- Under `FtruncateSpec`, the size of a successfully created shared memory fits
+    in `off64_t`. -/
+theorem CreatedShmOutcome.size_le (hFt : FtruncateSpec) {total : U64}
+    {shm : base.shm.SharedMemory} (h : CreatedShmOutcome total (.Ok shm)) :
+    total.val ≤ I64.max := by
+  obtain ⟨created, hnew, hrest⟩ := h
+  rcases created with s0 | e
+  · exact hnew.size_le hFt
+  · simp at hrest
+
+/-- A successful `create_shm` creates a shared memory as large as all ranges
+    without a backing file. -/
+theorem CreateShmOutcome.ok_size {pageSize : Usize} {ranges : List Range}
+    {shm : base.shm.SharedMemory} (h : CreateShmOutcome pageSize ranges (.Ok shm)) :
+    shm.size.val = sizeSum (shmRanges ranges) := by
+  unfold CreateShmOutcome at h
+  split at h
+  · simp at h
+  · obtain ⟨total, htotal, hcreated⟩ := h
+    rw [hcreated.ok_size, htotal]
+
+/-- Under `FtruncateSpec`, the ranges without a backing file fit in `off64_t`
+    when `create_shm` succeeds. -/
+theorem CreateShmOutcome.size_le (hFt : FtruncateSpec) {pageSize : Usize}
+    {ranges : List Range} {shm : base.shm.SharedMemory}
+    (h : CreateShmOutcome pageSize ranges (.Ok shm)) :
+    sizeSum (shmRanges ranges) ≤ I64.max := by
+  unfold CreateShmOutcome at h
+  split at h
+  · simp at h
+  · obtain ⟨total, htotal, hcreated⟩ := h
+    rw [← htotal]
+    exact hcreated.size_le hFt
+
+/-- The regions backed by the shared memory, in order. -/
+def shmRegions (regions : List MemoryRegion) : List MemoryRegion :=
+  regions.filter fun r => match r.shared_obj with
+    | .Shm _ => true
+    | .File _ => false
+
+/-- The end of the range that a region maps of its backing object. -/
+def objEnd (r : MemoryRegion) : Nat := r.obj_offset.val + r.mapping.length.val
+
+private theorem shmRegions_snoc_shm {l : List MemoryRegion} {r : MemoryRegion}
+    {a : alloc.sync.Arc base.shm.SharedMemory} (h : r.shared_obj = .Shm a) :
+    shmRegions (l ++ [r]) = shmRegions l ++ [r] := by
+  simp [shmRegions, h]
+
+private theorem shmRegions_snoc_file {l : List MemoryRegion} {r : MemoryRegion}
+    {a : alloc.sync.Arc _root_.std.fs.File} (h : r.shared_obj = .File a) :
+    shmRegions (l ++ [r]) = shmRegions l := by
+  simp [shmRegions, h]
+
+/-- The loop invariant behind `NewWithOptionsOutcome.shm_regions`: the regions
+    so far use `shm`, map disjoint ranges of it in order, and end by `shmOffset`. -/
+private theorem MapRangesOutcome.shm_regions [Platform64] {pageSize : Usize}
+    {shm : alloc.sync.Arc base.shm.SharedMemory} :
+    ∀ (rest : List Range) (regions : List MemoryRegion) (shmOffset : U64) (gm : GuestMemory),
+      MapRangesOutcome pageSize shm rest regions shmOffset (.Ok gm) →
+      (∀ r ∈ regions, ∀ a, r.shared_obj = .Shm a → a = shm) →
+      (shmRegions regions).Pairwise (fun r s => objEnd r ≤ s.obj_offset.val) →
+      (∀ r ∈ shmRegions regions, objEnd r ≤ shmOffset.val) →
+      (∀ r ∈ gm.regionList, ∀ a, r.shared_obj = .Shm a → a = shm) ∧
+      (shmRegions gm.regionList).Pairwise (fun r s => objEnd r ≤ s.obj_offset.val) ∧
+      ∀ r ∈ shmRegions gm.regionList, objEnd r ≤ shmOffset.val + sizeSum (shmRanges rest) := by
+  intro rest
+  induction rest with
+  | nil =>
+    intro regions shmOffset gm h harc hpair hend
+    obtain ⟨gm', hgm, hlist, _, _⟩ := h
+    simp only [core.result.Result.Ok.injEq] at hgm
+    subst hgm
+    rw [hlist]
+    refine ⟨harc, hpair, fun r hr => ?_⟩
+    simpa [shmRanges, sizeSum] using hend r hr
+  | cons r rest ih =>
+    intro regions shmOffset gm h harc hpair hend
+    simp only [MapRangesOutcome] at h
+    split_ifs at h with hov
+    obtain ⟨mapped, hregion, hmapped⟩ := h
+    rcases mapped with region | e
+    · obtain ⟨next, hnext, hrest⟩ := hmapped
+      obtain ⟨ga, size, opts⟩ := r
+      simp only [RegionOutcome] at hregion
+      cases hfb : opts.file_backed with
+      | none =>
+        simp only [hfb] at hregion
+        obtain ⟨builder, configured, withOffset, aligned, built, hbuilder, hconfigured,
+          hwithOffset, haligned, hbuilt, hres⟩ := hregion
+        rcases built with mapping | e
+        · simp only [core.result.Result.Ok.injEq] at hres
+          subst hres
+          have hlen : mapping.length.val = size.val := by
+            rw [hbuilt.mapped_properties.1, haligned, hwithOffset, hconfigured, hbuilder]
+            exact Platform64.u64_cast_usize_val size
+          have hnextv : next.val = shmOffset.val + size.val := by
+            simpa [shmRanges, sizeSum, hfb] using hnext
+          have hsum : sizeSum (shmRanges ((ga, size, opts) :: rest)) =
+              size.val + sizeSum (shmRanges rest) := by
+            simp [shmRanges, sizeSum, hfb]
+          have key := ih _ next gm hrest ?_ ?_ ?_
+          · rw [hsum]
+            rw [hnextv] at key
+            refine ⟨key.1, key.2.1, fun x hx => ?_⟩
+            have := key.2.2 x hx
+            omega
+          · intro x hx a ha
+            rcases List.mem_append.mp hx with hx | hx
+            · exact harc x hx a ha
+            · simp only [List.mem_singleton] at hx
+              subst hx
+              simpa using ha.symm
+          · rw [shmRegions_snoc_shm rfl]
+            refine List.pairwise_append.mpr ⟨hpair, List.pairwise_singleton _ _,
+              fun x hx y hy => ?_⟩
+            simp only [List.mem_singleton] at hy
+            subst hy
+            exact hend x hx
+          · intro x hx
+            rw [shmRegions_snoc_shm rfl] at hx
+            rcases List.mem_append.mp hx with hx | hx
+            · have := hend x hx
+              omega
+            · simp only [List.mem_singleton] at hx
+              subst hx
+              simp only [objEnd]
+              omega
+        · simp at hres
+      | some fb =>
+        simp only [hfb] at hregion
+        cases hopen : _root_.guest_memory.sys.linux.FileBackedMappingParameters.open_result fb with
+        | Err e => simp [hopen] at hregion
+        | Ok file =>
+          simp only [hopen] at hregion
+          obtain ⟨builder, configured, withOffset, aligned, withProtection, built, -, -, -, -, -,
+            -, hres⟩ := hregion
+          rcases built with mapping | e
+          · simp only [core.result.Result.Ok.injEq] at hres
+            subst hres
+            have hnextv : next.val = shmOffset.val := by
+              simpa [shmRanges, sizeSum, hfb] using hnext
+            have hsum : sizeSum (shmRanges ((ga, size, opts) :: rest)) =
+                sizeSum (shmRanges rest) := by
+              simp [shmRanges, sizeSum, hfb]
+            have key := ih _ next gm hrest ?_ ?_ ?_
+            · rw [hsum, ← hnextv]
+              exact key
+            · intro x hx a ha
+              rcases List.mem_append.mp hx with hx | hx
+              · exact harc x hx a ha
+              · simp only [List.mem_singleton] at hx
+                subst hx
+                simp at ha
+            · rw [shmRegions_snoc_file rfl]
+              exact hpair
+            · rw [shmRegions_snoc_file rfl, hnextv]
+              exact hend
+          · simp at hres
+    · simp at hmapped
+
+/-- On success, every region backed by the shared memory uses the shared memory
+    that `create_shm` created, maps a range of it that lies inside it, and the
+    ranges are disjoint and in order. -/
+theorem NewWithOptionsOutcome.shm_regions [Platform64] {pageSize : Usize}
+    {ranges : List Range} {gm : GuestMemory}
+    (h : NewWithOptionsOutcome pageSize ranges (.Ok gm)) :
+    ∃ shm : base.shm.SharedMemory,
+      (∀ r ∈ gm.regionList, ∀ a, r.shared_obj = .Shm a → a.val = shm) ∧
+      (shmRegions gm.regionList).Pairwise (fun r s => objEnd r ≤ s.obj_offset.val) ∧
+      ∀ r ∈ shmRegions gm.regionList, objEnd r ≤ shm.size.val := by
+  obtain ⟨created, hcreated, hrest⟩ := h
+  rcases created with shm | e
+  · have key := MapRangesOutcome.shm_regions ranges [] 0#u64 gm hrest (by simp) (by simp [shmRegions])
+      (by simp [shmRegions])
+    refine ⟨shm, fun r hr a ha => by rw [key.1 r hr a ha], key.2.1, fun r hr => ?_⟩
+    rw [hcreated.ok_size]
+    simpa using key.2.2 r hr
+  · simp at hrest
+
 end vm_memory.guest_memory.GuestMemory
