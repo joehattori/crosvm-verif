@@ -66,6 +66,54 @@ theorem new_spec {T : Type} (intoInst : core.convert.Into T (alloc.vec.Vec U8)) 
       _root_.alloc.ffi.c_str.CString.Insts.CoreOpsDerefDerefCStr.deref]
     exact platform_new_spec _ _
 
+/-- `size as off64_t` is non-negative only when `size` fits in `i64`. -/
+private theorem hcast_i64_nonneg {x : U64} (h : 0 ≤ (UScalar.hcast .I64 x).val) :
+    x.val ≤ I64.max := by
+  rw [UScalar.hcast_val_eq] at h
+  have hx : x.val < 2 ^ 64 := by
+    have := x.hBounds
+    simpa [UScalarTy.numBits] using this
+  simp only [IScalarTy.numBits, Int.bmod_def] at h
+  rw [I64.max_eq]
+  split_ifs at h with hlt <;> omega
+
+/-- A successful `PlatformSharedMemory::new` records the requested size. -/
+theorem PlatformNewOutcome.ok_size {debugName : core.ffi.c_str.CStr} {size : U64}
+    {shm : SharedMemory} (h : PlatformNewOutcome debugName size (.Ok shm)) :
+    shm.size = size := by
+  unfold PlatformNewOutcome at h
+  dsimp only at h
+  split_ifs at h
+  simp_all
+
+/-- Under `FtruncateSpec`, a successful `PlatformSharedMemory::new` has a size
+    that fits in `off64_t`, so `ftruncate64` received the requested length. -/
+theorem PlatformNewOutcome.size_le (hFt : FtruncateSpec) {debugName : core.ffi.c_str.CStr}
+    {size : U64} {shm : SharedMemory} (h : PlatformNewOutcome debugName size (.Ok shm)) :
+    size.val ≤ I64.max := by
+  unfold PlatformNewOutcome at h
+  dsimp only at h
+  split_ifs at h with h1 h2
+  apply hcast_i64_nonneg
+  apply hFt
+  simp only [IScalar.lt_equiv, not_lt] at h2
+  simpa using h2
+
+/-- A successful `SharedMemory::new` records the requested size. -/
+theorem NewOutcome.ok_size {bytes : List U8} {size : U64} {shm : SharedMemory}
+    (h : NewOutcome bytes size (.Ok shm)) : shm.size = size := by
+  unfold NewOutcome at h
+  split_ifs at h
+  exact h.ok_size
+
+/-- Under `FtruncateSpec`, a successful `SharedMemory::new` has a size that fits
+    in `off64_t`. -/
+theorem NewOutcome.size_le (hFt : FtruncateSpec) {bytes : List U8} {size : U64}
+    {shm : SharedMemory} (h : NewOutcome bytes size (.Ok shm)) : size.val ≤ I64.max := by
+  unfold NewOutcome at h
+  split_ifs at h
+  exact h.size_le hFt
+
 /-! ### Seals -/
 
 @[step]

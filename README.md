@@ -31,7 +31,9 @@ System calls other than `mmap(2)` and `munmap(2)`, such as `fcntl(2)`,
 `memfd_create(2)`, and `ftruncate64(2)`, are modeled by opaque return values.
 They are assumed to return, and their results depend only on their arguments,
 not on earlier calls: for example, seals added with `F_ADD_SEALS` are not
-reflected in a later `F_GET_SEALS`. `LazyLock` is modeled by its value.
+reflected in a later `F_GET_SEALS`. Specifications that need more take it as
+an explicit contract, such as `FtruncateSpec`
+([Syscalls/Memfd.lean](Syscalls/Memfd.lean)). `LazyLock` is modeled by its value.
 
 crosvm supports only 64-bit hosts, but the generated Lean leaves the width of
 `usize` unspecified. Specifications that depend on 64-bit `usize` take the

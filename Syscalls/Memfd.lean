@@ -3,9 +3,9 @@ public import VmMemory.FunsExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result
 
-/-! Flag constants for `memfd_create(2)` and the `fcntl(2)` seal commands.
-    The system calls themselves are modeled in `VmMemory/FunsExternal.lean` by
-    opaque return values, so they need no contract here. -/
+/-! Flag constants for `memfd_create(2)` and the `fcntl(2)` seal commands, and
+    the `ftruncate(2)` contract. The system calls themselves are modeled in
+    `VmMemory/FunsExternal.lean` by opaque return values. -/
 
 namespace Syscalls.Memfd
 
@@ -32,5 +32,12 @@ abbrev F_SEAL_GROW : I32 := 0x0004#i32
 
 /-- Invalid argument (`EINVAL`). -/
 abbrev EINVAL : I32 := 22#i32
+
+/-- System-level specification of `ftruncate64(2)`: a negative length fails
+    with `EINVAL`, so every successful (non-negative) return comes with a
+    non-negative length. -/
+def FtruncateSpec : Prop :=
+  ∀ fd length,
+    0 ≤ (_root_.libc_1.unix.linux_like.ftruncate64_status fd length).val → 0 ≤ length.val
 
 end Syscalls.Memfd

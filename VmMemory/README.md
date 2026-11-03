@@ -4,7 +4,9 @@ The default build imports every `*/Spec.lean` module here, and
 [GuestMemory/NewWithOptions.lean](GuestMemory/NewWithOptions.lean); each states
 its exact contracts and preconditions. The root Makefile lists the extracted
 functions. `MemoryMapping` is verified against the `mmap(2)` and `munmap(2)`
-contracts in [Syscalls/Mmap.lean](../Syscalls/Mmap.lean).
+contracts in [Syscalls/Mmap.lean](../Syscalls/Mmap.lean), and the `SharedMemory`
+size bound against the `ftruncate(2)` contract in
+[Syscalls/Memfd.lean](../Syscalls/Memfd.lean).
 
 Not verified:
 - `GuestMemory::new`, guest-memory access, descriptor cloning, formatting, and
