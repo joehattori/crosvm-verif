@@ -4,6 +4,8 @@ public import VmMemory.SharedMemory.Spec
 public import Utils.Platform
 import all Aeneas.Std.Scalar.Ops.Add
 import Utils.CoreSpec
+-- The pinned library does not export the unfolding equation for iterToList.
+import all Aeneas.Std.Alloc.Vec.IntoIter
 @[expose] public section
 open Aeneas Aeneas.Std Result
 open vm_memory.guest_address
@@ -492,6 +494,59 @@ theorem _root_.U64.Insts.CoreIterTraitsAccumSumU64.sumFrom_map_slice_spec {T F :
     apply WP.spec_mono (ih (i + 1) acc' (by omega) (by omega))
     intro r hr
     omega
+
+/-- `iterToList` over a slice iterator mapped by a pure closure appends the
+    mapped remaining elements to the reversed accumulator. -/
+private theorem iterToList_map_slice {T U F : Type}
+    (fInst : core.ops.function.FnMut F T U) (f : F) (g : T → U)
+    (hf : ∀ x, fInst.call_mut f x = ok (g x, f)) (s : Slice T) :
+    ∀ (i : Nat) (acc : List U),
+      alloc.vec.FromIteratorVec.iterToList
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) ⟨⟨s, i⟩, f⟩ acc =
+        ok (acc.reverse ++ (s.val.drop i).map g) := by
+  suffices ∀ n (i : Nat) (acc : List U), s.val.length - i = n →
+      alloc.vec.FromIteratorVec.iterToList
+          (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+            (core.iter.traits.iterator.IteratorSliceIter T) fInst) ⟨⟨s, i⟩, f⟩ acc =
+        ok (acc.reverse ++ (s.val.drop i).map g) from
+    fun i acc => this _ i acc rfl
+  intro n
+  induction n with
+  | zero =>
+    intro i acc hn
+    have hge : s.val.length ≤ i := by omega
+    rw [alloc.vec.FromIteratorVec.iterToList.eq_def]
+    simp [core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next,
+      core.slice.iter.IteratorSliceIter.next, Nat.not_lt.mpr hge,
+      List.drop_eq_nil_of_le hge]
+  | succ n ih =>
+    intro i acc hn
+    have hlt : i < s.val.length := by omega
+    have hdrop : s.val.drop i = s.val[i] :: s.val.drop (i + 1) := List.drop_eq_getElem_cons hlt
+    rw [alloc.vec.FromIteratorVec.iterToList.eq_def]
+    simp only [core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator.next,
+      core.slice.iter.IteratorSliceIter.next, Slice.len_val, hlt, ↓reduceDIte, bind_ok, hf,
+      uncurry]
+    rw [ih (i + 1) _ (by omega), hdrop]
+    simp only [List.reverse_cons, List.map_cons, List.append_assoc, List.singleton_append]
+    rfl
+
+/-- Collecting a slice iterator mapped by a pure closure into a `Vec` gives the
+    mapped elements. -/
+theorem _root_.core.iter.traits.iterator.Iterator.collect_map_slice_spec {T U F : Type}
+    (fInst : core.ops.function.FnMut F T U) (f : F) (g : T → U)
+    (hf : ∀ x, fInst.call_mut f x = ok (g x, f)) (s : Slice T) :
+    core.iter.traits.iterator.Iterator.collect.default
+        (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+          (core.iter.traits.iterator.IteratorSliceIter T) fInst)
+        (core.iter.traits.collect.FromIteratorVec U) ⟨⟨s, 0⟩, f⟩
+      ⦃ v => v.val = s.val.map g ⦄ := by
+  simp only [core.iter.traits.iterator.Iterator.collect.default,
+    alloc.vec.FromIteratorVec.from_iter,
+    core.iter.traits.collect.IntoIterator.Blanket.into_iter, bind_ok]
+  rw [iterToList_map_slice fInst f g hf s 0 []]
+  simp
 
 private theorem u64_add_overflow (x y : U64) (h : U64.max < x.val + y.val) :
     x + y = fail .integerOverflow := by
@@ -2326,5 +2381,46 @@ theorem NewWithOptionsOutcome.shm_regions [Platform64] {pageSize : Usize}
     rw [hcreated.ok_size]
     simpa using key.2.2 r hr
   · simp at hrest
+
+/-! ### `new` -/
+
+/-- The ranges `GuestMemory::new` passes to `new_with_options`: each range with
+    default options. -/
+def defaultRanges (ranges : List (GuestAddress × U64)) : List Range :=
+  ranges.map fun r => (r.1, r.2, MemoryRegionOptions.defaultOptions)
+
+private theorem new_closure_spec (r : GuestAddress × U64) :
+    new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_mut
+      () r = ok ((r.1, r.2, MemoryRegionOptions.defaultOptions), ()) := by
+  obtain ⟨addr, size⟩ := r
+  simp [new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_mut,
+    MemoryRegionOptions.Insts.CoreDefaultDefault.default,
+    MemoryRegionPurpose.Insts.CoreDefaultDefault.default, MemoryRegionOptions.defaultOptions]
+  rfl
+
+/-- Verify `GuestMemory::new`: it is `new_with_options` on the ranges with
+    default options, none of which is file-backed. -/
+@[step]
+theorem new_spec (ranges : Slice (GuestAddress × U64)) (pageSize : Usize) [Platform64]
+    (hPage : vm_memory.base.sys.unix.system_info.pagesize = ok pageSize)
+    (hPagePow : pageSize.val.isPowerOfTwo) (hMmap : Syscalls.Mmap.MmapSpec pageSize)
+    (hMunmap : Syscalls.Mmap.MunmapSpec)
+    (hFit : shmSizeBeforeUnaligned pageSize (defaultRanges ranges.val) ≤ U64.max) :
+    new ranges ⦃ result => NewWithOptionsOutcome pageSize (defaultRanges ranges.val) result ⦄ := by
+  unfold new
+  simp only [core.slice.Slice.iter, core.iter.traits.iterator.Iterator.map.default, bind_ok]
+  step with core.iter.traits.iterator.Iterator.collect_map_slice_spec
+    new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions
+    () (fun r => (r.1, r.2, MemoryRegionOptions.defaultOptions)) new_closure_spec ranges
+    as ⟨v, hv⟩
+  have hvs : v.slice.val = defaultRanges ranges.val := hv
+  have hFiles : FileBackedSizesMatch v.slice.val := by
+    intro r hr fb hfb
+    rw [hvs] at hr
+    obtain ⟨x, -, rfl⟩ := List.mem_map.mp hr
+    simp [MemoryRegionOptions.defaultOptions] at hfb
+  rw [← hvs]
+  exact new_with_options_spec v.slice pageSize hPage hPagePow hMmap hMunmap (by rw [hvs]; exact hFit)
+    hFiles
 
 end vm_memory.guest_memory.GuestMemory

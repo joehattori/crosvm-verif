@@ -122,6 +122,7 @@ $(LLBC_DIR)/vm_memory.llbc:
 		--start-from 'crate::guest_memory::sys::linux::finalize_shm' \
 		--start-from 'crate::guest_memory::GuestMemory::create_shm' \
 		--start-from 'crate::guest_memory::GuestMemory::new_with_options' \
+		--start-from 'crate::guest_memory::GuestMemory::new' \
 		--opaque 'crate::guest_memory::sys::linux::_::open' \
 		--start-from 'base::mmap::MemoryMappingBuilder::new' \
 		--start-from 'base::mmap::MemoryMappingBuilder::from_file' \

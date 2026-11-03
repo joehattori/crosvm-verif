@@ -282,6 +282,11 @@ def guest_memory.GuestMemory.new_with_options.closure_1 :=
 def guest_memory.GuestMemory.new_with_options.closure :=
   (guest_address.GuestAddress × Std.U64 × guest_memory.MemoryRegionOptions)
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{closure}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 410:21-410:70 -/
+@[reducible]
+def guest_memory.GuestMemory.new.closure := Unit
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}]
     Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
 @[reducible]

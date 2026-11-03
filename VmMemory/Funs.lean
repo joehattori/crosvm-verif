@@ -2546,6 +2546,84 @@ def guest_memory.GuestMemory.new_with_options
       guest_memory.GuestMemory (core.convert.FromSame guest_memory.Error)
       residual
 
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{impl core::ops::function::FnMut<(&'_0 (vm_memory::guest_address::GuestAddress, u64),), (vm_memory::guest_address::GuestAddress, u64, vm_memory::guest_memory::MemoryRegionOptions)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{closure}<'_0>}::call_mut]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 410:21-410:70 -/
+def
+  guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_mut
+  (c : guest_memory.GuestMemory.new.closure)
+  (tupled_args : (guest_address.GuestAddress × Std.U64)) :
+  Result ((guest_address.GuestAddress × Std.U64 ×
+    guest_memory.MemoryRegionOptions) × guest_memory.GuestMemory.new.closure)
+  := do
+  let (addr, size) := tupled_args
+  let mro ← guest_memory.MemoryRegionOptions.Insts.CoreDefaultDefault.default
+  ok ((addr, size, mro), ())
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{impl core::ops::function::FnOnce<(&'_0 (vm_memory::guest_address::GuestAddress, u64),), (vm_memory::guest_address::GuestAddress, u64, vm_memory::guest_memory::MemoryRegionOptions)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{closure}<'_0>}::call_once]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 410:21-410:70 -/
+def
+  guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_once
+  (c : guest_memory.GuestMemory.new.closure)
+  (p : (guest_address.GuestAddress × Std.U64)) :
+  Result (guest_address.GuestAddress × Std.U64 ×
+    guest_memory.MemoryRegionOptions)
+  := do
+  let (t, _) ←
+    guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_mut
+      () p
+  ok t
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{impl core::ops::function::FnOnce<(&'_0 (vm_memory::guest_address::GuestAddress, u64),), (vm_memory::guest_address::GuestAddress, u64, vm_memory::guest_memory::MemoryRegionOptions)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 410:21-410:70 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions
+  : core.ops.function.FnOnce guest_memory.GuestMemory.new.closure
+  (guest_address.GuestAddress × Std.U64) (guest_address.GuestAddress ×
+  Std.U64 × guest_memory.MemoryRegionOptions) := {
+  call_once :=
+    guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_once
+}
+
+/-- Trait implementation: [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{impl core::ops::function::FnMut<(&'_0 (vm_memory::guest_address::GuestAddress, u64),), (vm_memory::guest_address::GuestAddress, u64, vm_memory::guest_memory::MemoryRegionOptions)> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new::{closure}<'_0>}]
+    Source: 'vm_memory/src/guest_memory.rs', lines 410:21-410:70 -/
+@[reducible]
+def
+  guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions
+  : core.ops.function.FnMut guest_memory.GuestMemory.new.closure
+  (guest_address.GuestAddress × Std.U64) (guest_address.GuestAddress ×
+  Std.U64 × guest_memory.MemoryRegionOptions) := {
+  FnOnceInst :=
+    guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnOnceTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions
+  call_mut :=
+    guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions.call_mut
+}
+
+/-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::new]:
+    Source: 'vm_memory/src/guest_memory.rs', lines 406:4-414:5
+    Visibility: public -/
+def guest_memory.GuestMemory.new
+  (ranges : Slice (guest_address.GuestAddress × Std.U64)) :
+  Result (core.result.Result guest_memory.GuestMemory guest_memory.Error)
+  := do
+  let i ← core.slice.Slice.iter ranges
+  let m ←
+    core.iter.traits.iterator.Iterator.map.default
+      (core.iter.traits.iterator.IteratorSliceIter (guest_address.GuestAddress
+      × Std.U64))
+      guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions
+      i ()
+  let v ←
+    core.iter.traits.iterator.Iterator.collect.default
+      (core.iter.adapters.map.Map.Insts.CoreIterTraitsIteratorIterator
+      (core.iter.traits.iterator.IteratorSliceIter (guest_address.GuestAddress
+      × Std.U64))
+      guest_memory.GuestMemory.new.closure.Insts.CoreOpsFunctionFnMutTupleShared0PairGuestAddressU64TupleGuestAddressU64MemoryRegionOptions)
+      (core.iter.traits.collect.FromIteratorVec (guest_address.GuestAddress ×
+      Std.U64 × guest_memory.MemoryRegionOptions)) m
+  let s ← alloc.vec.Vec.as_slice alloc.alloc.Global v
+  guest_memory.GuestMemory.new_with_options s
+
 /-- [vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{impl core::ops::function::FnMut<(&'_0 vm_memory::guest_memory::MemoryRegion, &'_1 vm_memory::guest_memory::MemoryRegion), core::cmp::Ordering> for vm_memory::guest_memory::{vm_memory::guest_memory::GuestMemory}::from_regions::{closure}}::call_mut]:
     Source: 'vm_memory/src/guest_memory.rs', lines 419:24-419:62 -/
 def

@@ -352,6 +352,14 @@ axiom alloc.sync.ArcSlice.Insts.CoreConvertFromVec.from
 axiom alloc.sync.Arc.Insts.CoreConvertAsRef.as_ref
   {T : Type _} (A : Type _) : alloc.sync.Arc T → Result T
 
+/-- [alloc::vec::{alloc::vec::Vec<T>}::as_slice]:
+    Source: '/rustc/library/alloc/src/vec/mod.rs', lines 1856:4-1856:40
+    Name pattern: [alloc::vec::{alloc::vec::Vec<@T>}::as_slice]
+    Visibility: public -/
+@[rust_fun "alloc::vec::{alloc::vec::Vec<@T>}::as_slice"]
+axiom alloc.vec.Vec.as_slice
+  {T : Type _} (A : Type _) : alloc.vec.Vec T → Result (Slice T)
+
 /-- [alloc::vec::{impl core::convert::From<&'_0 str> for alloc::vec::Vec<u8>}::from]:
     Source: '/rustc/library/alloc/src/vec/mod.rs', lines 4612:4-4612:31
     Name pattern: [alloc::vec::{core::convert::From<alloc::vec::Vec<u8>, &'0 str>}::from]

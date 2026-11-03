@@ -352,6 +352,11 @@ def alloc.vec.VecU8.Insts.CoreConvertFromShared0Str.from (s : Str) :
     Result (alloc.vec.Vec Std.U8) :=
   ok { slice := s }
 
+/-- `Vec::as_slice` borrows the elements; the allocator parameter is ignored. -/
+@[reducible, rust_fun "alloc::vec::{alloc::vec::Vec<@T>}::as_slice"]
+def alloc.vec.Vec.as_slice {T : Type _} (_A : Type _) (v : alloc.vec.Vec T) : Result (Slice T) :=
+  ok v.slice
+
 /-- `Arc::new` stores the value (see `alloc.sync.Arc`). -/
 @[reducible, rust_fun "alloc::sync::{alloc::sync::Arc<@T>}::new"]
 def alloc.sync.Arc.new {T : Type _} (v : T) : Result (alloc.sync.Arc T) :=
